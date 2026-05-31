@@ -47,7 +47,7 @@ bash run_pod.sh
 3. Add a **Manual Trigger** node
 4. Add an **HTTP Request** node:
    - Method: `POST`
-   - URL: `http://192.168.1.98:8001/run`
+   - URL: `http://<your-host-ip>:8001/run`
    - Body Content Type: `JSON`
    - Body: `{ "caller": "n8n" }`
 5. Execute the workflow
