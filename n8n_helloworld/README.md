@@ -2,10 +2,22 @@
 
 Minimal end-to-end example showing n8n triggering a K9-AIF governed agent pipeline via REST API.
 
+> **Note:** This is a demonstration example. Kafka messaging is not wired — the pipeline is invoked directly via REST API. For the full production architecture with Kafka-based event routing, see the [EOC reference example](https://github.com/k9aif/k9-aif-framework/tree/main/examples/K9X_Enterprise_Insurance_OperationsCenter).
+
 ## What this demonstrates
 
 ```
 n8n → HTTP POST → Orchestrator → Squad → Agent → Response
+```
+
+In production, each K9-AIF component runs as its own process or container:
+
+```
+[Container 1] app_backend   — REST API, accepts incoming requests, publishes to Kafka
+[Container 2] Router        — listens on the entry Kafka topic, routes to domain topics
+[Container 3] Orchestrator  — listens on its domain Kafka topic, runs Squad → Agents, publishes results
+
+n8n → app_backend (REST) → Kafka → Router → Kafka → Orchestrator → Squad → Agent → Kafka (results) → n8n
 ```
 
 The K9-AIF framework is installed automatically via `pip install k9-aif` during the container build. No framework source code needed.
