@@ -85,7 +85,7 @@ class DiagnosisResult:
     escalate_to_human: bool
     provenance: ProvenanceChain
 
-class DiagnosisAgent(BaseAgent, ABC):
+class DiagnosisAgent(BaseAgent):
     @abstractmethod
     async def diagnose(self, request: DiagnosisRequest) -> DiagnosisResult: ...
 ```
