@@ -211,16 +211,51 @@ def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
     <h2>Why the combination matters</h2>
     <p>Neither piece replaces the other. The SDK is genuinely good at running an agent;
     K9-AIF is genuinely good at the layer Anthropic isn't trying to solve -- enterprise
-    architecture governance, substitutability, and provenance. This storefront is small
-    proof of that: a livestock order really does stop and wait for a human, no matter
-    how the diagnosis agent underneath is implemented, because the gate lives in
-    K9-AIF's harness, not in either substrate's prompt.</p>
+    architecture governance, substitutability, and provenance. The livestock order
+    gate you can trigger live in this storefront right now is a deterministic policy
+    check (an item flagged <code>is_livestock</code> pauses at checkout for admin
+    approval) -- no LLM involved, and it doesn't need one to be trustworthy. That's
+    deliberate: this project's thesis is that agentic autonomy is warranted only where
+    genuine uncertainty exists, and most of a real storefront -- browsing, cart,
+    checkout, order status -- isn't uncertain at all.</p>
+
+    <h2>Current status: not agentic yet, on purpose</h2>
+    <p>As of today, nothing you click through in this storefront makes a real call to
+    Claude. Every route runs through <code>petstore/services/</code>, which
+    <code>test_deterministic_purity.py</code> proves contains no LLM import at all.
+    <code>DiagnosisAgent</code> and its two substrates exist and are tested --
+    proving the same contract holds for both the Claude Agent SDK and a direct API
+    call -- but those tests mock the model call rather than hitting it, and neither
+    substrate is wired into any live storefront route yet. The one genuinely uncertain
+    step this project identifies -- a customer describing a problem with their pet in
+    their own words -- doesn't have a UI entry point here yet. Until it does, this is
+    an honest demonstration of the deterministic half of the thesis, not the agentic
+    half.</p>
 
     <h2>Architecture -- high level</h2>
-    <img src="images/diagram-high-level.png" alt="High-level architecture diagram" style="max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px">
+    <p class="muted">Click to open full size in a new tab.</p>
+    <a href="images/diagram-high-level.png" target="_blank" rel="noopener">
+      <img src="images/diagram-high-level.png" alt="High-level architecture diagram" style="max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px;cursor:zoom-in">
+    </a>
 
     <h2>Architecture -- class diagram, for the curious</h2>
-    <img src="images/diagram-detailed-class.png" alt="Detailed ABB/SBB class diagram" style="max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px">
+    <p class="muted">Click to open full size in a new tab.</p>
+    <a href="images/diagram-detailed-class.png" target="_blank" rel="noopener">
+      <img src="images/diagram-detailed-class.png" alt="Detailed ABB/SBB class diagram" style="max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px;cursor:zoom-in">
+    </a>
+
+    <h2>In short</h2>
+    <p>No LLM call happens anywhere in this storefront today -- so why are K9-AIF
+    Framework and the Claude Agent SDK even here? Because they prove two separate,
+    real claims, independent of whether a model ever gets called. K9-AIF's
+    governance, contracts, and substitutability are already doing real work on
+    every order placed right now -- the livestock gate, the deterministic pipeline,
+    the ABB/SBB split -- with or without an agent in the loop. The Claude Agent SDK
+    is here to prove that when a genuinely uncertain step does show up, K9-AIF can
+    wrap a real production agent harness as one interchangeable substrate, verified
+    against its actual installed API rather than assumed. That proof exists today
+    only in mocked tests, not live traffic -- the honest current limit of this
+    reference implementation, not a mistake in it.</p>
 
     <p class="muted" style="margin-top:24px">Source: <a href="https://github.com/k9aif/examples" target="_blank" rel="noopener">github.com/k9aif/examples</a>
     (this project lives under <code>Work-In-Progress/K9-AIF-and-Claude-Agent-SDK/</code>).</p>
