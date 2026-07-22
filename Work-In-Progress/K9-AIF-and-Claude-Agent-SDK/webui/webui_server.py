@@ -171,7 +171,7 @@ def _login_page(error: Optional[str] = None, cart_count: int = 0) -> bytes:
     body = f"""
     <div class="card">
       <form method="post" action="/login">
-        <label>Email</label>
+        <label>Username</label>
         <input type="text" name="email" required>
         <label>Password</label>
         <input type="password" name="password" required>
@@ -192,7 +192,7 @@ def _register_page(error: Optional[str] = None, cart_count: int = 0) -> bytes:
       <form method="post" action="/register">
         <label>Name</label>
         <input type="text" name="name" required>
-        <label>Email</label>
+        <label>Username</label>
         <input type="text" name="email" required>
         <label>Password</label>
         <input type="password" name="password" required minlength="6">
