@@ -97,7 +97,7 @@ def _page(title: str, body_html: str, nav_html: str = "") -> bytes:
 </head>
 <body>
   <div class="topbar">
-    <a href="index.html">&larr; Pet Store Agentic</a>
+    <div><a href="index.html">&larr; Pet Store Agentic</a><a href="/about">About</a></div>
     <div>{nav_html}</div>
   </div>
   <div class="content">
@@ -162,6 +162,70 @@ def _render_category(category_id: str, nav_html: str) -> bytes:
 
     body += '<a class="back" href="index.html">&larr; Back to storefront</a>'
     return _page(title, body, nav_html)
+
+
+# ── About ────────────────────────────────────────────────────────────────
+
+def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
+    body = """
+    <h2>The original Java Pet Store</h2>
+    <p>Java Pet Store was Sun Microsystems' J2EE BluePrints demo application (2001) --
+    a reference implementation showing how to structure an enterprise Java app with
+    Servlets, JSP, EJB, and JMS. It sold live animals (fish, dogs, cats, birds,
+    reptiles) in every category; there was no "supplies" section at all. This project
+    reuses its artwork and catalog data under its original BSD-style license, and
+    borrows its purpose: a mundane domain so the architecture stays the interesting
+    part of the page.</p>
+
+    <h2>K9-AIF Framework -- what it adds here</h2>
+    <p>K9-AIF is an architecture-first framework for governed, observable, multi-agent
+    systems: abstract contracts (ABBs) separated from concrete implementations (SBBs),
+    a Router &rarr; Orchestrator &rarr; Squad &rarr; Agent hierarchy with strict
+    three-layer decoupling, and a substitutability guarantee -- any capability defined
+    once as a contract can be satisfied by more than one concrete implementation,
+    selected by config, never by rewriting the call site. In this project that's the
+    <code>DiagnosisAgent</code> contract, satisfied by two interchangeable substrates.
+    K9-AIF also owns the parts an agent harness doesn't: the deterministic order
+    pipeline that never touches an LLM, the livestock gate that enforces itself in the
+    harness rather than the prompt, and the audit trail tying an order to which
+    substrate actually ran.</p>
+
+    <h2>Claude Agent SDK -- equally important, a different job</h2>
+    <p>The Claude Agent SDK is Anthropic's own agent harness: a real multi-turn tool-use
+    loop, in-process MCP tool serving, session and context-compaction handling, and a
+    <code>can_use_tool</code> permission callback for gating individual tool calls. None
+    of that is trivial to build correctly, and K9-AIF doesn't try to -- <code>SdkDiagnosisAgent</code>
+    in this project calls the real SDK for exactly this reason, verified against its
+    actual installed API rather than assumed (see <code>DEVIATIONS.md</code> in the repo).
+    The honest comparison was never K9-AIF vs. the SDK. It's K9-AIF-over-the-SDK vs.
+    K9-AIF-over-a-direct-API-call -- and the SDK is one substrate option that saves
+    real engineering effort, not a competitor to the architecture around it.</p>
+
+    <h2>K9X Ecosystem</h2>
+    <p>This project is one of several K9-AIF-based products in the K9X ecosystem
+    (Studio, Enterprise Continuum, HIL case management, SATAN adversarial testing).
+    It's the example that specifically proves how an external agent framework --
+    the Claude Agent SDK here -- gets wrapped as one substrate behind a K9-AIF
+    contract, rather than becoming the architecture itself.</p>
+
+    <h2>Why the combination matters</h2>
+    <p>Neither piece replaces the other. The SDK is genuinely good at running an agent;
+    K9-AIF is genuinely good at the layer Anthropic isn't trying to solve -- enterprise
+    architecture governance, substitutability, and provenance. This storefront is small
+    proof of that: a livestock order really does stop and wait for a human, no matter
+    how the diagnosis agent underneath is implemented, because the gate lives in
+    K9-AIF's harness, not in either substrate's prompt.</p>
+
+    <h2>Architecture -- high level</h2>
+    <img src="images/diagram-high-level.png" alt="High-level architecture diagram" style="max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px">
+
+    <h2>Architecture -- class diagram, for the curious</h2>
+    <img src="images/diagram-detailed-class.png" alt="Detailed ABB/SBB class diagram" style="max-width:100%;border:1px solid #ccc;border-radius:6px;margin-top:8px">
+
+    <p class="muted" style="margin-top:24px">Source: <a href="https://github.com/k9aif/examples" target="_blank" rel="noopener">github.com/k9aif/examples</a>
+    (this project lives under <code>Work-In-Progress/K9-AIF-and-Claude-Agent-SDK/</code>).</p>
+    """
+    return _page("About", body, _nav(user, None, cart_count))
 
 
 # ── Auth pages ───────────────────────────────────────────────────────────
@@ -531,6 +595,9 @@ class Handler(SimpleHTTPRequestHandler):
                 self._redirect("/admin/login")
                 return
             self._send_html(_admin_dashboard_page())
+            return
+        if path == "/about":
+            self._send_html(_about_page(user, cart_count))
             return
 
         super().do_GET()
