@@ -172,10 +172,12 @@ def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
     <p>Java Pet Store was Sun Microsystems' J2EE BluePrints demo application (2001) --
     a reference implementation showing how to structure an enterprise Java app with
     Servlets, JSP, EJB, and JMS. It sold live animals (fish, dogs, cats, birds,
-    reptiles) in every category; there was no "supplies" section at all. This project
-    reuses its artwork and catalog data under its original BSD-style license, and
-    borrows its purpose: a mundane domain so the architecture stays the interesting
-    part of the page.</p>
+    reptiles) in every category; there was no "supplies" section at all -- which is
+    why livestock, not supplies, is the category this project's gate is built around:
+    inherited from the reference app, not invented for the demo. This project reuses
+    its artwork and catalog data under its original BSD-style license, and borrows
+    its purpose: a mundane domain so the architecture stays the interesting part of
+    the page.</p>
 
     <h2>K9-AIF Framework -- what it adds here</h2>
     <p>K9-AIF is an architecture-first framework for governed, observable, multi-agent
@@ -183,20 +185,28 @@ def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
     a Router &rarr; Orchestrator &rarr; Squad &rarr; Agent hierarchy with strict
     three-layer decoupling, and a substitutability guarantee -- any capability defined
     once as a contract can be satisfied by more than one concrete implementation,
-    selected by config, never by rewriting the call site. In this project that's the
-    <code>DiagnosisAgent</code> contract, satisfied by two interchangeable substrates.
-    K9-AIF also owns the parts an agent harness doesn't: the deterministic order
-    pipeline that never touches an LLM, the livestock gate that enforces itself in the
-    harness rather than the prompt, and the audit trail tying an order to which
-    substrate actually ran.</p>
+    selected by config, never by rewriting the call site. That's the framework's
+    architecture in general. <strong>This example currently reaches only the bottom
+    layer of it.</strong> Three real framework pieces are wired in:
+    <code>BaseAgent</code> (the <code>DiagnosisAgent</code> contract itself),
+    <code>BaseAdapter</code> (how <code>SdkDiagnosisAgent</code> wraps a Claude Agent
+    SDK session), and the <code>k9_inference</code> chain (<code>llm_invoke</code>,
+    used by <code>DirectApiDiagnosisAgent</code>). No Router, Orchestrator, or Squad is
+    instantiated anywhere in this project -- storefront routing here is plain
+    application code, not a K9-AIF Router. The upper layers are where this example
+    goes next, not where it is today.</p>
 
-    <h2>Claude Agent SDK -- equally important, a different job</h2>
+    <h2>Claude Agent SDK -- a different job</h2>
     <p>The Claude Agent SDK is Anthropic's own agent harness: a real multi-turn tool-use
     loop, in-process MCP tool serving, session and context-compaction handling, and a
     <code>can_use_tool</code> permission callback for gating individual tool calls. None
     of that is trivial to build correctly, and K9-AIF doesn't try to -- <code>SdkDiagnosisAgent</code>
     in this project calls the real SDK for exactly this reason, verified against its
-    actual installed API rather than assumed (see <code>DEVIATIONS.md</code> in the repo).
+    actual installed API rather than assumed. That verification caught a real
+    discrepancy: the build spec assumed a generic <code>PreToolUse</code> hook returning
+    <code>deny()</code> would gate the livestock fulfillment tool call; the SDK's actual,
+    purpose-built mechanism turned out to be the dedicated <code>can_use_tool</code>
+    callback instead (see <code>DEVIATIONS.md</code> in the repo for the full list).
     The honest comparison was never K9-AIF vs. the SDK. It's K9-AIF-over-the-SDK vs.
     K9-AIF-over-a-direct-API-call -- and the SDK is one substrate option that saves
     real engineering effort, not a competitor to the architecture around it.</p>
@@ -210,7 +220,7 @@ def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
 
     <h2>Why the combination matters</h2>
     <p>Neither piece replaces the other. The SDK is genuinely good at running an agent;
-    K9-AIF is genuinely good at the layer Anthropic isn't trying to solve -- enterprise
+    K9-AIF addresses a layer Anthropic isn't trying to solve -- enterprise
     architecture governance, substitutability, and provenance. The livestock order
     gate you can trigger live in this storefront right now is a deterministic policy
     check (an item flagged <code>is_livestock</code> pauses at checkout for admin
@@ -245,17 +255,18 @@ def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
     </a>
 
     <h2>In short</h2>
-    <p>No LLM call happens anywhere in this storefront today -- so why are K9-AIF
-    Framework and the Claude Agent SDK even here? Because they prove two separate,
-    real claims, independent of whether a model ever gets called. K9-AIF's
-    governance, contracts, and substitutability are already doing real work on
-    every order placed right now -- the livestock gate, the deterministic pipeline,
-    the ABB/SBB split -- with or without an agent in the loop. The Claude Agent SDK
-    is here to prove that when a genuinely uncertain step does show up, K9-AIF can
-    wrap a real production agent harness as one interchangeable substrate, verified
-    against its actual installed API rather than assumed. That proof exists today
-    only in mocked tests, not live traffic -- the honest current limit of this
-    reference implementation, not a mistake in it.</p>
+    <p>K9-AIF's governance is already doing real work on every order placed in this
+    storefront right now: the livestock gate (a deterministic policy check, no LLM
+    involved), the deterministic order pipeline (zero LLM imports, enforced by
+    <code>test_deterministic_purity.py</code>), and the ABB/SBB split that lets
+    <code>DiagnosisAgent</code> be satisfied by two interchangeable substrates.
+    The Claude Agent SDK integration proves something at the interface level on top
+    of that: that a K9-AIF ABB contract can wrap a real production agent harness as
+    one swappable substrate, verified against its actual installed API rather than
+    assumed -- verification that caught a real discrepancy (<code>can_use_tool</code>
+    instead of the <code>PreToolUse</code> hook the build spec originally assumed).
+    That proof exists today only in mocked tests, not live traffic -- the honest
+    current limit of this reference implementation, not a mistake in it.</p>
 
     <p class="muted" style="margin-top:24px">Source: <a href="https://github.com/k9aif/examples" target="_blank" rel="noopener">github.com/k9aif/examples</a>
     (this project lives under <code>Work-In-Progress/K9-AIF-and-Claude-Agent-SDK/</code>).</p>
