@@ -1,6 +1,6 @@
 # Pet Store Agentic — Plan
 
-**Status: planning only.** No implementation yet. Target start: later this week, not today.
+**Status: planning only.** No implementation yet. Target start: next week, not today.
 
 Full spec: [`project.md`](project.md) (the authoritative build spec — this file summarizes it, not replaces it).
 Project conventions: [`CLAUDE.md`](CLAUDE.md).

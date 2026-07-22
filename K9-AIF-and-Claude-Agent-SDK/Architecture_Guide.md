@@ -6,37 +6,21 @@ This file captures the *general* principles this project exists to demonstrate �
 
 ## 1. External framework integration — the Adapter discipline
 
-**Principle:** any external agent framework is wrapped via `BaseAdapter` multiple inheritance, at whichever K9-AIF layer matches that framework's *natural unit of encapsulation* — not at whatever layer looks most impressive.
+**Principle:** any external agent framework is wrapped via a `BaseAdapter` at whichever K9-AIF layer matches that framework's *natural unit of encapsulation* — not at whatever layer looks most impressive.
 
-**Pet Store Agentic does not use CrewAI. No CrewAI dependency exists anywhere in this project.** The precedent below is cited purely to justify *the pattern* — it's an existing, already-shipped example of the same design discipline applied to a different external framework, in `k9_aif_abb/k9_adapters/crewai/crewai_orchestrator_adapter.py` elsewhere in the K9-AIF framework repo:
+**Pet Store Agentic does not use CrewAI. No CrewAI dependency exists anywhere in this project.** K9-AIF already has a shipped precedent for this pattern elsewhere in the framework, applied to CrewAI's `Crew` — cited here only to justify the *pattern*, not because this project depends on it. `Crew` is itself a multi-agent orchestrating construct with its own internal agents and its own `kickoff()`, so the existing adapter wraps it at the **Orchestrator** layer.
 
-```python
-class CrewAIOrchestratorAdapter(BaseOrchestrator, BaseAdapter):
-    def adapt_input(self, payload: dict) -> dict: ...   # K9-AIF payload → CrewAI's shape
-    def adapt_output(self, result: Any) -> dict: ...    # CrewAI's result → K9-AIF's shape
-    def execute_flow(self, payload: dict) -> dict: ...  # calls crew.kickoff() / crew.run()
-```
-
-CrewAI's `Crew` is *itself* a multi-agent orchestrating construct — it has its own internal agents and its own `kickoff()`. So the natural wrapping point is the **Orchestrator** layer: `CrewAIOrchestratorAdapter` is simultaneously a valid `BaseOrchestrator` (K9-AIF sees a normal orchestrator) and an explicit `BaseAdapter` (the type system says "this bridges to something external").
-
-The Claude Agent SDK's unit of encapsulation is different — one session, one autonomous tool loop, not a crew. So it wraps one layer down, at the **Agent** layer:
-
-```python
-class SdkDiagnosisAgent(DiagnosisAgent, BaseAdapter):
-    def adapt_input(self, request: DiagnosisRequest) -> dict: ...     # → SDK session input
-    def adapt_output(self, sdk_result: Any) -> DiagnosisResult: ...   # SDK output → DiagnosisResult
-    def diagnose(self, request: DiagnosisRequest) -> DiagnosisResult: ...
-```
-
-Same shape, same multiple-inheritance discipline, same `adapt_input`/`adapt_output` pair — just one layer lower, because that's where the SDK's own unit of work actually sits.
+The Claude Agent SDK's unit of encapsulation is different — one session, one autonomous tool loop, not a crew of agents. So the same discipline applies one layer down, at the **Agent** layer, wrapping a single `DiagnosisAgent` implementation instead of an orchestrator.
 
 **Rule of thumb for the next external framework this happens to:** ask what its natural unit of encapsulation is (a crew, a single agent session, a single tool call) before deciding which K9-AIF layer it should extend alongside `BaseAdapter`.
+
+Exact class shapes for both the CrewAI precedent and the proposed Agent SDK wrapping: see [`Detailed_Design.md`](Detailed_Design.md).
 
 ---
 
 ## 2. Fan-out authority is exclusive to K9-AIF
 
-Only the K9-AIF hierarchy — Orchestrator → Squad → Agent — may fan out or delegate. When an external framework has its own internal delegation concept (the Agent SDK's subagents; potentially CrewAI's own internal task delegation), that mechanism is disabled or bypassed at the wrapping boundary.
+Only the K9-AIF hierarchy — Orchestrator -> Squad -> Agent — may fan out or delegate. When an external framework has its own internal delegation concept (the Agent SDK's subagents; potentially CrewAI's own internal task delegation), that mechanism is disabled or bypassed at the wrapping boundary.
 
 **Why this is non-negotiable, not a style preference:** provenance is a graph (`DELEGATES_TO` edges) built from what K9-AIF can see. If a wrapped framework quietly delegates further on its own, K9-AIF records "one agent ran" when three sessions actually ran underneath it. The graph doesn't error — it just silently under-reports, and nobody notices until they query it expecting a complete answer. Two competing delegation trees means one of them isn't in the graph at all. There is no such thing as governing an untracked delegation path, so the wrap must actively deny it, not just decline to use it.
 
@@ -77,6 +61,7 @@ Installed package signatures win over any spec, including this one and `project.
 | File | Answers |
 |---|---|
 | `Architecture_Guide.md` (this file) | *Why* — principles that would hold in any domain, not just pet supplies |
+| `Detailed_Design.md` | *Exact shape* — class contracts and signatures referenced conceptually above |
 | `project.md` | *What* — the concrete Pet Store Agentic build spec |
 | `CLAUDE.md` | *Rules* — project-specific invariants and load-bearing tests |
 | `PLAN.md` | *Status* — build order, current phase, pre-build verification steps |
