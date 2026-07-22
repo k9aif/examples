@@ -12,26 +12,27 @@
     color: #000;
     background: #ffffff;
   }
-  /* ── Top bar ─────────────────────────────────────────────── */
+  /* ── Top bar — real bkg-topbar.gif tile from the original app ──────── */
   .topbar {
-    background: #003366;
+    background: #163832 url('images/bkg-topbar.gif') repeat-x;
     color: #ffffff;
-    padding: 6px 12px;
+    padding: 8px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
   .topbar a { color: #ffffff; text-decoration: none; font-size: 12px; margin-left: 14px; }
   .topbar a:hover { text-decoration: underline; }
+
   .brand {
     background: #ffffff;
-    border-bottom: 3px solid #003366;
+    border-bottom: 3px solid #163832;
     padding: 10px 16px;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
   }
-  .brand h1 { margin: 0; font-size: 26px; color: #003366; font-family: Georgia, 'Times New Roman', serif; }
+  .brand h1 { margin: 0; font-size: 26px; color: #163832; font-family: Georgia, 'Times New Roman', serif; }
   .brand .tagline { font-size: 11px; color: #666; font-style: italic; }
   .brand .search input { font-size: 12px; padding: 3px; width: 160px; }
   .brand .search button { font-size: 12px; padding: 3px 8px; }
@@ -39,49 +40,33 @@
   /* ── Layout ──────────────────────────────────────────────── */
   .layout { display: flex; }
   .sidebar {
-    width: 150px;
-    background: #eef3f8;
-    border-right: 1px solid #b0c4de;
+    width: 160px;
+    background: #ffffff url('images/bkg-sidebar.gif') repeat;
+    border-right: 1px solid #d9c9a3;
     padding: 10px 0;
   }
   .sidebar h2 {
     font-size: 12px;
     text-transform: uppercase;
-    color: #003366;
+    color: #163832;
     margin: 0 0 6px 10px;
   }
   .sidebar ul { list-style: none; margin: 0; padding: 0; }
   .sidebar li a {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    color: #003366;
+    gap: 8px;
+    padding: 5px 10px;
+    color: #163832;
     text-decoration: none;
     font-size: 12px;
-    border-bottom: 1px solid #dbe6f0;
   }
-  .sidebar li a:hover { background: #dbe6f0; }
-  .sidebar .icon { font-size: 15px; width: 18px; text-align: center; }
+  .sidebar li a:hover { text-decoration: underline; }
+  .sidebar li a img { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #b8a672; }
 
-  .content { flex: 1; padding: 20px; text-align: center; }
-  .mascot {
-    font-size: 90px;
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-  .content h2 { color: #003366; font-family: Georgia, serif; margin: 4px 0; }
+  .content { flex: 1; padding: 24px; text-align: center; }
+  .content h2 { color: #163832; font-family: Georgia, serif; margin: 10px 0 4px; }
   .content .blurb { max-width: 480px; margin: 8px auto 20px; font-size: 12px; color: #333; }
-
-  .pet-strip { display: flex; justify-content: center; gap: 18px; margin: 18px 0; }
-  .pet-strip .pet {
-    width: 70px; height: 70px;
-    border-radius: 50%;
-    background: #eef3f8;
-    border: 2px solid #b0c4de;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 30px;
-  }
 
   .footer-note {
     margin-top: 30px;
@@ -91,6 +76,7 @@
     border-top: 1px solid #ddd;
     padding-top: 10px;
   }
+  .footer-note a { color: #777; }
 </style>
 </head>
 <body>
@@ -119,16 +105,16 @@
     <div class="sidebar">
       <h2>Categories</h2>
       <ul>
-        <li><a href="#"><span class="icon">🐟</span> Fish</a></li>
-        <li><a href="#"><span class="icon">🐦</span> Birds</a></li>
-        <li><a href="#"><span class="icon">🐱</span> Cats</a></li>
-        <li><a href="#"><span class="icon">🐶</span> Dogs</a></li>
-        <li><a href="#"><span class="icon">🦎</span> Reptiles</a></li>
+        <li><a href="#"><img src="images/fish_icon.gif" alt="Fish"> Fish</a></li>
+        <li><a href="#"><img src="images/birds_icon.gif" alt="Birds"> Birds</a></li>
+        <li><a href="#"><img src="images/cats_icon.gif" alt="Cats"> Cats</a></li>
+        <li><a href="#"><img src="images/dogs_icon.gif" alt="Dogs"> Dogs</a></li>
+        <li><a href="#"><img src="images/reptiles_icon.gif" alt="Reptiles"> Reptiles</a></li>
       </ul>
     </div>
 
     <div class="content">
-      <div class="mascot">🦜</div>
+      <img src="images/splash.gif" alt="Pet Store mascot and category collage" width="357" height="347">
       <h2>Welcome to Pet Store Agentic</h2>
       <p class="blurb">
         Same nostalgic front door as the original Java Pet Store — a deliberately mundane
@@ -138,19 +124,13 @@
         and a livestock fulfillment gate that no prompt can talk its way past.
       </p>
 
-      <div class="pet-strip">
-        <div class="pet">🐟</div>
-        <div class="pet">🐦</div>
-        <div class="pet">🐱</div>
-        <div class="pet">🐶</div>
-        <div class="pet">🦎</div>
-      </div>
-
       <div class="footer-note">
         This storefront is a visual homage only — not yet wired to the backend.
-        See <code>PLAN.md</code> for build status. The original Java Pet Store was a
-        Sun Microsystems J2EE BluePrints demo application (2001); this project has no
-        affiliation with Oracle or the original BluePrints program.
+        See <code>PLAN.md</code> for build status. Mascot and category artwork are
+        reused from the original Java Pet Store demo application, Copyright 1999-2001
+        Sun Microsystems, Inc., redistributed under its original BSD-style license
+        (see <a href="images/THIRD_PARTY_LICENSE_java_pet_store.txt">THIRD_PARTY_LICENSE_java_pet_store.txt</a>).
+        This project has no affiliation with, and is not endorsed by, Oracle or Sun Microsystems.
       </div>
     </div>
   </div>

@@ -9,3 +9,4 @@ build/
 .venv/
 *.db
 .pytest_cache/
+j2ee-petstore/
