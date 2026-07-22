@@ -1,6 +1,15 @@
 # Pet Store Agentic — Plan
 
-**Status: work in progress.** One small piece prototyped ahead of schedule — `petstore/gates/` (the `BaseGateRegistry` contract + `SimpleGateRegistry` SQLite adapter, see below) — everything else in the 7-phase build order is still design-only. Main implementation target: next week.
+**Status: work in progress.** Phase 1 (deterministic core) and the gates prototype are real, running, tested code — everything from Phase 2 onward (Router, Diagnosis ABB/SBBs, Agent SDK integration, Neo4j provenance) is still design-only. Main implementation target for the rest: next week.
+
+**What's actually running right now:**
+- `database/schema.sql` — Postgres `petstore` schema (catalog, inventory, orders, order_items, order_state_history, shipping_labels), applied against a live database
+- `petstore/services/` — inventory, pricing, payment, order_state, fulfillment — zero LLM imports, verified by `tests/test_deterministic_purity.py` (including a negative-control check that the test genuinely detects violations, not just passes vacuously)
+- `demo/walk_deterministic_order.py` — a complete non-livestock order, start to finish, run successfully end-to-end against the live database
+- `petstore/gates/` — `BaseGateRegistry` contract + `SimpleGateRegistry` (SQLite), 8 passing tests
+- `webui/index.html` — a static homage to the original Java Pet Store's look (parrot mascot, category sidebar, top bar) — not yet wired to the backend
+
+17 tests passing total (9 in `test_deterministic_purity.py` + 8 in `test_gate_registry.py`).
 
 Full spec: [`project.md`](project.md) (the authoritative build spec — this file summarizes it, not replaces it).
 Project conventions: [`CLAUDE.md`](CLAUDE.md).
@@ -31,7 +40,7 @@ Render any of them with `plantuml diagrams/<file>.puml` (or paste into any Plant
 
 ## Build order (from `project.md` §10 — see there for full detail)
 
-1. **Deterministic core** — services, order state machine, livestock-flagged catalog. `test_deterministic_purity.py` ships here.
+1. **Deterministic core** — ✅ done. Services, order state machine, Postgres-backed catalog/inventory/orders. `test_deterministic_purity.py` passing. Not yet done: livestock-flagged SKUs and the gate-triggering path through this phase — the current demo only exercises a non-livestock order, per spec.
 2. **Routing** — intent router, deterministic handlers registered first. Prove ordinary traffic short-circuits.
 3. **ABB + first SBB** — define `DiagnosisAgent`; implement `DirectApiDiagnosisAgent` first, deliberately, so the contract is substrate-neutral before SDK specifics can leak into it.
 4. **SDK SBB** — `SdkDiagnosisAgent`. Verify installed SDK signatures before writing anything. Disable subagents. Both SBBs must pass `test_sbb_contract_parity.py`.
@@ -58,6 +67,6 @@ One documentation note carried over from review: `SdkDiagnosisAgent` bypasses `l
 
 ---
 
-## Not doing today
+## Not doing today (still next week)
 
-The Diagnosis ABB/SBBs, the Router, the deterministic services, the Agent SDK integration itself, and Neo4j provenance are still next week's work. Today's scope grew by one deliberate exception (`petstore/gates/`, prototyped and tested) but the rest of the 7-phase build order is untouched.
+The Diagnosis ABB/SBBs, the Router/Intent dispatch, the Agent SDK integration itself, and Neo4j provenance. `webui/index.html` is a static homage only — wiring it to the deterministic services happens when the Router/Storefront API phase is built, not before. Today's scope grew well past the original "planning only" intent — Phase 1 and the gates prototype are real, tested, and running against a live Postgres database — but Phases 2, 3, 4, and 6 are still untouched.

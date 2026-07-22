@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pet Store Agentic</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    color: #000;
+    background: #ffffff;
+  }
+  /* ── Top bar ─────────────────────────────────────────────── */
+  .topbar {
+    background: #003366;
+    color: #ffffff;
+    padding: 6px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .topbar a { color: #ffffff; text-decoration: none; font-size: 12px; margin-left: 14px; }
+  .topbar a:hover { text-decoration: underline; }
+  .brand {
+    background: #ffffff;
+    border-bottom: 3px solid #003366;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .brand h1 { margin: 0; font-size: 26px; color: #003366; font-family: Georgia, 'Times New Roman', serif; }
+  .brand .tagline { font-size: 11px; color: #666; font-style: italic; }
+  .brand .search input { font-size: 12px; padding: 3px; width: 160px; }
+  .brand .search button { font-size: 12px; padding: 3px 8px; }
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  .layout { display: flex; }
+  .sidebar {
+    width: 150px;
+    background: #eef3f8;
+    border-right: 1px solid #b0c4de;
+    padding: 10px 0;
+  }
+  .sidebar h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #003366;
+    margin: 0 0 6px 10px;
+  }
+  .sidebar ul { list-style: none; margin: 0; padding: 0; }
+  .sidebar li a {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    color: #003366;
+    text-decoration: none;
+    font-size: 12px;
+    border-bottom: 1px solid #dbe6f0;
+  }
+  .sidebar li a:hover { background: #dbe6f0; }
+  .sidebar .icon { font-size: 15px; width: 18px; text-align: center; }
+
+  .content { flex: 1; padding: 20px; text-align: center; }
+  .mascot {
+    font-size: 90px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .content h2 { color: #003366; font-family: Georgia, serif; margin: 4px 0; }
+  .content .blurb { max-width: 480px; margin: 8px auto 20px; font-size: 12px; color: #333; }
+
+  .pet-strip { display: flex; justify-content: center; gap: 18px; margin: 18px 0; }
+  .pet-strip .pet {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: #eef3f8;
+    border: 2px solid #b0c4de;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+  }
+
+  .footer-note {
+    margin-top: 30px;
+    font-size: 11px;
+    font-style: italic;
+    color: #777;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <span>Pet Store Agentic — a K9-AIF reference implementation</span>
+    <div>
+      <a href="#">Account</a>
+      <a href="#">Cart</a>
+      <a href="#">Sign In</a>
+    </div>
+  </div>
+
+  <div class="brand">
+    <div>
+      <h1>Pet Store <span style="color:#c8102e;">Agentic</span></h1>
+      <div class="tagline">A homage to the Java™ Pet Store — J2EE BluePrints, 2001 — rebuilt on K9-AIF</div>
+    </div>
+    <div class="search">
+      <input type="text" placeholder="Search catalog…">
+      <button>Search</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <h2>Categories</h2>
+      <ul>
+        <li><a href="#"><span class="icon">🐟</span> Fish</a></li>
+        <li><a href="#"><span class="icon">🐦</span> Birds</a></li>
+        <li><a href="#"><span class="icon">🐱</span> Cats</a></li>
+        <li><a href="#"><span class="icon">🐶</span> Dogs</a></li>
+        <li><a href="#"><span class="icon">🦎</span> Reptiles</a></li>
+      </ul>
+    </div>
+
+    <div class="content">
+      <div class="mascot">🦜</div>
+      <h2>Welcome to Pet Store Agentic</h2>
+      <p class="blurb">
+        Same nostalgic front door as the original Java Pet Store — a deliberately mundane
+        e-commerce domain, chosen so the architecture stays the only interesting thing here.
+        Everything below the storefront runs on K9-AIF: deterministic services for the
+        ordinary path, one genuinely agentic capability for customer problem diagnosis,
+        and a livestock fulfillment gate that no prompt can talk its way past.
+      </p>
+
+      <div class="pet-strip">
+        <div class="pet">🐟</div>
+        <div class="pet">🐦</div>
+        <div class="pet">🐱</div>
+        <div class="pet">🐶</div>
+        <div class="pet">🦎</div>
+      </div>
+
+      <div class="footer-note">
+        This storefront is a visual homage only — not yet wired to the backend.
+        See <code>PLAN.md</code> for build status. The original Java Pet Store was a
+        Sun Microsystems J2EE BluePrints demo application (2001); this project has no
+        affiliation with Oracle or the original BluePrints program.
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
