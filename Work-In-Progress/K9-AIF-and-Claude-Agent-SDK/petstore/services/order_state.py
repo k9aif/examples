@@ -26,7 +26,10 @@ class OrderState(str, Enum):
 _LEGAL_TRANSITIONS: Dict[OrderState, List[OrderState]] = {
     OrderState.CREATED: [OrderState.PAYMENT_AUTHORIZED, OrderState.CANCELLED],
     OrderState.PAYMENT_AUTHORIZED: [OrderState.FULFILLING, OrderState.CANCELLED],
-    OrderState.FULFILLING: [OrderState.SHIPPED],
+    # CANCELLED is legal from FULFILLING too -- a rejected livestock gate
+    # (petstore/services/checkout.py's cancel_after_gate_rejection) cancels
+    # an order that already reached FULFILLING while awaiting approval.
+    OrderState.FULFILLING: [OrderState.SHIPPED, OrderState.CANCELLED],
     OrderState.SHIPPED: [OrderState.DELIVERED],
     OrderState.DELIVERED: [],
     OrderState.CANCELLED: [],
@@ -37,12 +40,14 @@ class IllegalTransitionError(ValueError):
     pass
 
 
-def create_order(customer_id: str) -> str:
+def create_order(customer_id: str, user_id: Optional[str] = None) -> str:
+    """user_id is None for guest checkout -- orders.user_id is a nullable FK
+    precisely so guest checkout never requires an account."""
     order_id = str(uuid4())
     with get_cursor(commit=True) as cur:
         cur.execute(
-            "INSERT INTO orders (order_id, customer_id, state) VALUES (%s, %s, %s)",
-            (order_id, customer_id, OrderState.CREATED.value),
+            "INSERT INTO orders (order_id, customer_id, user_id, state) VALUES (%s, %s, %s, %s)",
+            (order_id, customer_id, user_id, OrderState.CREATED.value),
         )
         cur.execute(
             "INSERT INTO order_state_history (order_id, from_state, to_state) VALUES (%s, %s, %s)",

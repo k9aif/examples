@@ -13,7 +13,7 @@ import ast
 import sqlite3
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from petstore.gates.base_gate_registry import BaseGateRegistry
 from petstore.gates.models import Gate, GateState, GateType
@@ -101,6 +101,19 @@ class SimpleGateRegistry(BaseGateRegistry):
             "SELECT * FROM gates WHERE gate_id = ?", (gate_id,)
         ).fetchone()
         return self._row_to_gate(row)
+
+    async def list_pending(self, gate_type: Optional[GateType] = None) -> List[Gate]:
+        if gate_type is not None:
+            rows = self._conn.execute(
+                "SELECT * FROM gates WHERE state = ? AND gate_type = ? ORDER BY created_at ASC",
+                (GateState.PENDING.value, gate_type.value),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM gates WHERE state = ? ORDER BY created_at ASC",
+                (GateState.PENDING.value,),
+            ).fetchall()
+        return [self._row_to_gate(row) for row in rows]
 
     def _find(self, order_id: str, gate_type: GateType) -> Optional[Gate]:
         row = self._conn.execute(

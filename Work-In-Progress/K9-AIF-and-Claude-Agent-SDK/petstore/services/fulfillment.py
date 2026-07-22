@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Optional
+from typing import List, Optional
 
 from petstore.services.db import get_cursor
 from petstore.services.models import ShippingLabel
@@ -43,3 +43,33 @@ def get_order_status(order_id: str) -> Optional[dict]:
         "created_at": row[5],
         "updated_at": row[6],
     }
+
+
+def get_order_history_for_user(user_id: str) -> List[dict]:
+    """Order history for the user portal -- guest orders (user_id NULL) never appear here."""
+    with get_cursor() as cur:
+        cur.execute(
+            "SELECT order_id, state, total_cents, created_at FROM orders "
+            "WHERE user_id = %s ORDER BY created_at DESC",
+            (user_id,),
+        )
+        rows = cur.fetchall()
+    return [
+        {"order_id": str(r[0]), "state": r[1], "total_cents": r[2], "created_at": r[3]}
+        for r in rows
+    ]
+
+
+def get_all_orders() -> List[dict]:
+    """All orders, guest and logged-in alike -- for the admin portal."""
+    with get_cursor() as cur:
+        cur.execute(
+            "SELECT order_id, customer_id, user_id, state, total_cents, created_at "
+            "FROM orders ORDER BY created_at DESC"
+        )
+        rows = cur.fetchall()
+    return [
+        {"order_id": str(r[0]), "customer_id": r[1], "user_id": str(r[2]) if r[2] else None,
+         "state": r[3], "total_cents": r[4], "created_at": r[5]}
+        for r in rows
+    ]

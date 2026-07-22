@@ -21,7 +21,7 @@ test_deterministic_purity.py like the rest of petstore/services/.
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from petstore.services.models import SKU
 
@@ -57,7 +57,35 @@ _RAW_ITEMS: List[Tuple[str, str, str, str, str, float]] = [
     ("EST-19", "Finch",                "BIRDS",    "Great stress reliever", "Adult Male", 15.50),
 ]
 
+# species -> image filename, from the original app's product-level image
+# references (cloudscape.sql embeds these as <image src="../images/X"> inside
+# the product description itself; the original associates one image per
+# PRODUCT/species, not per individual item -- e.g. both Angelfish items
+# (EST-1, EST-2) share fish1.jpg, matching how the source data itself works.
+_IMAGE_BY_SPECIES: Dict[str, str] = {
+    "Angelfish": "fish1.jpg",
+    "Tiger Shark": "fish4.gif",
+    "Koi": "fish3.gif",
+    "Goldfish": "fish2.gif",
+    "Bulldog": "dog2.gif",
+    "Poodle": "dog6.gif",
+    "Dalmation": "dog5.gif",
+    "Golden Retriever": "dog1.gif",
+    "Labrador Retriever": "dog5.gif",
+    "Chihuahua": "dog4.gif",
+    "Rattlesnake": "lizard3.gif",
+    "Iguana": "lizard2.gif",
+    "Manx": "cat3.gif",
+    "Persian": "cat1.gif",
+    "Amazon Parrot": "bird4.gif",
+    "Finch": "bird1.gif",
+}
+
 _DEFAULT_QTY = 10
+
+
+def image_for_species(species: str) -> Optional[str]:
+    return _IMAGE_BY_SPECIES.get(species)
 
 
 def original_catalog_skus() -> List[SKU]:

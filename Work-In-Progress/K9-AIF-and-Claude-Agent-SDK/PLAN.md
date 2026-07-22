@@ -1,20 +1,23 @@
 # Pet Store Agentic — Plan
 
-**Status: work in progress.** Phases 1, 3, 4, and the gates prototype (part of Phase 5) are real, running, tested code. Phase 2 (Router) and Phase 6 (Neo4j graph provenance) are still design-only.
+**Status: work in progress.** Phases 1, 3, 4, and the gates prototype (part of Phase 5) are real, running, tested code. On top of that, the storefront now has a genuinely working web frontend — accounts, checkout, order history, and an admin portal — which is new scope beyond `project.md`'s original 7 phases, added because a static mockup wasn't satisfying to click through. Phase 2 (Router) and Phase 6 (Neo4j graph provenance) are still design-only.
 
 **What's actually running right now:**
-- `database/schema.sql` — Postgres `petstore` schema (catalog, inventory, orders, order_items, order_state_history, shipping_labels), applied against a live database
-- `petstore/services/` — inventory, pricing, payment, order_state, fulfillment — zero LLM imports, verified by `tests/test_deterministic_purity.py` (including a negative-control check that the test genuinely detects violations, not just passes vacuously)
-- `demo/walk_deterministic_order.py` — a complete non-livestock order, start to finish, run successfully end-to-end against the live database
-- `petstore/gates/` — `BaseGateRegistry` contract + `SimpleGateRegistry` (SQLite)
-- `petstore/abb/diagnosis.py` — the `DiagnosisAgent` ABB contract (`DiagnosisRequest`/`DiagnosisResult`, sync/async bridge for `BaseAgent.execute()`)
-- `petstore/sbb/direct_diagnosis.py` — `DirectApiDiagnosisAgent`, real `llm_invoke`/`K9ModelRouter` call, built first per project.md's own ordering rationale
-- `petstore/sbb/sdk_diagnosis.py` + `sdk_tools.py` — `SdkDiagnosisAgent`, real `claude-agent-sdk` (0.2.125) integration: `query()`, in-process MCP tools via `@tool`/`create_sdk_mcp_server`, `can_use_tool`-based livestock gate, subagents never enabled
-- `webui/index.html` — a homage to the original Java Pet Store's look, using the *real* 2001 artwork (mascot, category icons, background tiles), reused under its original BSD-style license with attribution — not yet wired to the backend
-- `DEVIATIONS.md` — where the real installed `claude-agent-sdk` differs from `project.md`'s assumptions (hook payload shapes, the `can_use_tool` vs. hook mechanism, subagents-are-opt-in, the fulfillment-tool spec ambiguity)
+- `database/schema.sql` — Postgres `petstore` schema: catalog, inventory, orders (+ nullable `user_id`), order_items, order_state_history, shipping_labels, **users, admin, sessions** — applied against a live database
+- `petstore/services/` — inventory, pricing, payment, order_state, fulfillment, **auth** (PBKDF2 password hashing + session tokens), **checkout** (full order orchestration) — zero LLM imports, verified by `tests/test_deterministic_purity.py`
+- `demo/walk_deterministic_order.py`, `demo/seed_original_catalog.py`, `demo/seed_admin.py` — runnable end to end against the live database
+- `petstore/gates/` — `BaseGateRegistry` contract + `SimpleGateRegistry` (SQLite), now with `list_pending()` for the admin dashboard
+- `petstore/abb/diagnosis.py` — the `DiagnosisAgent` ABB contract
+- `petstore/sbb/direct_diagnosis.py` — `DirectApiDiagnosisAgent`, real `llm_invoke`/`K9ModelRouter` call
+- `petstore/sbb/sdk_diagnosis.py` + `sdk_tools.py` — `SdkDiagnosisAgent`, real `claude-agent-sdk` (0.2.125) integration
+- `webui/webui_server.py` — a real backend: category browsing, guest and logged-in checkout (`petstore/services/checkout.py`, tying the livestock gate to a real order for the first time), registration/login/logout, order history, and an admin portal (all orders + livestock gate approve/reject) — verified end to end live: register → buy livestock item → admin sees pending gate → approves it → order ships
+- `webui/index.html` + category/checkout pages — real 2001 artwork throughout, including per-product photos (fish1.jpg, dog2.gif, etc., all 28 items), reused under the original BSD-style license with attribution
+- `DEVIATIONS.md` — where the real installed `claude-agent-sdk` differs from `project.md`'s assumptions
 
-**30 tests passing total:**
-`test_deterministic_purity.py` (9) · `test_gate_registry.py` (8) · `test_direct_diagnosis.py` (4) · `test_gate_cannot_be_bypassed.py` (4) · `test_no_sdk_subagents.py` (1) · `test_sbb_contract_parity.py` (4) — three of the five load-bearing tests from `CLAUDE.md` now exist and pass: gate-cannot-be-bypassed, substrate-is-interchangeable, delegation-hierarchy-stays-single.
+**48 tests passing total:**
+`test_deterministic_purity.py` (12) · `test_gate_registry.py` (8) · `test_direct_diagnosis.py` (4) · `test_gate_cannot_be_bypassed.py` (4) · `test_no_sdk_subagents.py` (1) · `test_sbb_contract_parity.py` (4) · `test_auth.py` (8) · `test_checkout.py` (7) — three of the five load-bearing tests from `CLAUDE.md` exist and pass: gate-cannot-be-bypassed, substrate-is-interchangeable, delegation-hierarchy-stays-single. `test_checkout.py` is the first test proving the gate against a *real order*, not just the registry or the SDK callback in isolation.
+
+A real state-machine bug was caught and fixed along the way: `FULFILLING → CANCELLED` wasn't a legal transition, which broke gate rejection (an order sitting at FULFILLING awaiting approval has nowhere to go if rejected). Fixed in `order_state.py`.
 
 Full spec: [`project.md`](project.md) (the authoritative build spec — this file summarizes it, not replaces it).
 Project conventions: [`CLAUDE.md`](CLAUDE.md).
@@ -74,4 +77,6 @@ One thing still genuinely unverified (`DEVIATIONS.md` #6): the exact qualified t
 
 ## Not doing yet
 
-Router/Intent dispatch (Phase 2), the equivalent gate branch in `DirectApiDiagnosisAgent`, Neo4j provenance (Phase 6), and wiring `webui/index.html` to the actual backend. No live `claude-agent-sdk` session has actually been run end-to-end yet either — everything in Phase 4 is verified against the SDK's real *type signatures*, and tested with `query()` mocked, but not yet run live against the Claude CLI/API. That's the natural next verification step before calling Phase 4 fully proven.
+Router/Intent dispatch (Phase 2), the equivalent gate branch in `DirectApiDiagnosisAgent`, Neo4j provenance (Phase 6). No live `claude-agent-sdk` session has actually been run end-to-end yet either — everything in Phase 4 is verified against the SDK's real *type signatures*, and tested with `query()` mocked, but not yet run live against the Claude CLI/API. That's the natural next verification step before calling Phase 4 fully proven.
+
+On the storefront side: no persistent cart (checkout is single-item, "Buy" straight to a quantity/payment form — there's no "add multiple items then check out once" yet), no password reset, no admin ability to manage the catalog itself (only orders and gates), and the diagnosis agents (Direct API / SDK) aren't wired into the storefront UI at all yet -- that integration (a "having trouble with your pet?" flow calling into `DiagnosisAgent`) is still ahead.

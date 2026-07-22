@@ -13,7 +13,7 @@ part of the contract.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from petstore.gates.models import Gate, GateType
 
@@ -36,3 +36,7 @@ class BaseGateRegistry(ABC):
     @abstractmethod
     async def resolve(self, gate_id: str, approved: bool, approver: str) -> Gate:
         """Flip a gate to APPROVED or REJECTED. Called by whatever approval mechanism the adapter uses."""
+
+    @abstractmethod
+    async def list_pending(self, gate_type: Optional[GateType] = None) -> List[Gate]:
+        """All gates currently PENDING, optionally filtered by gate_type -- an admin review queue."""

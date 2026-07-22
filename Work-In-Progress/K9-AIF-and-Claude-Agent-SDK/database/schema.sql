@@ -6,6 +6,36 @@
 
 CREATE SCHEMA IF NOT EXISTS petstore;
 
+-- ── Accounts ─────────────────────────────────────────────────────────────
+-- Separate users/admin tables (not one table with a role column) --
+-- keeps the two portals' auth genuinely independent, matching "petstore
+-- admin portal" and "petstore user portal" as two distinct surfaces.
+CREATE TABLE IF NOT EXISTS petstore.users (
+    user_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email           TEXT NOT NULL UNIQUE,
+    password_hash   TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS petstore.admin (
+    admin_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username        TEXT NOT NULL UNIQUE,
+    password_hash   TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Shared session-token table for both portals -- principal_type
+-- discriminates which table principal_id refers to (Postgres has no
+-- polymorphic FK; enforced in application code instead).
+CREATE TABLE IF NOT EXISTS petstore.sessions (
+    session_token   TEXT PRIMARY KEY,
+    principal_type  TEXT NOT NULL CHECK (principal_type IN ('user', 'admin')),
+    principal_id    UUID NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at      TIMESTAMPTZ NOT NULL
+);
+
 -- ── Catalog ──────────────────────────────────────────────────────────────
 -- category: 'supplies' | 'livestock' | 'veterinary' (project.md §2)
 CREATE TABLE IF NOT EXISTS petstore.sku (
@@ -34,6 +64,7 @@ CREATE TABLE IF NOT EXISTS petstore.inventory (
 CREATE TABLE IF NOT EXISTS petstore.orders (
     order_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id     TEXT NOT NULL,
+    user_id         UUID REFERENCES petstore.users(user_id),  -- NULL for guest checkout
     state           TEXT NOT NULL CHECK (state IN (
                         'created', 'payment_authorized', 'fulfilling',
                         'shipped', 'delivered', 'cancelled'
@@ -73,5 +104,13 @@ CREATE TABLE IF NOT EXISTS petstore.shipping_labels (
     generated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Idempotent migration path: on a fresh DB, CREATE TABLE above already
+-- has user_id inline and this is a no-op; on a DB from before accounts
+-- existed, this actually adds the column (exactly how it was applied
+-- to this project's own live database).
+ALTER TABLE petstore.orders ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES petstore.users(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON petstore.order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_state_history_order_id ON petstore.order_state_history(order_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON petstore.orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_principal ON petstore.sessions(principal_type, principal_id);

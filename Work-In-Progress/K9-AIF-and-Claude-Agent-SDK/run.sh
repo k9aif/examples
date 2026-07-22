@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Pet Store Agentic -- launches the storefront.
 #
-# Category browsing is real now (queries the live Postgres petstore
-# schema via webui_server.py). Everything else -- Account/Cart/Sign In,
-# Search, checkout -- is still a placeholder; that's the Router/
-# Storefront API phase, still ahead. See PLAN.md for exact status.
+# Real now: category browsing, guest/logged-in checkout, registration,
+# login, order history, and an admin portal (all orders + livestock
+# gate approval) -- all against the live Postgres petstore schema via
+# webui_server.py. Search and a persistent multi-item cart are still
+# placeholders. See PLAN.md for exact status.
 #
 # For the backend/data-layer work instead, see tests.sh and demo.sh.
+# To create an admin account: python demo/seed_admin.py <username> <password>
 
 set -e
 
@@ -35,8 +37,8 @@ set +a
 
 echo "=================================================================="
 echo " Pet Store Agentic -- storefront"
-echo " Category browsing is real (live Postgres). Everything else is"
-echo " still a placeholder -- see PLAN.md."
+echo " Real: catalog, checkout, accounts, order history, admin portal."
+echo " Still placeholder: search, persistent cart. See PLAN.md."
 echo "=================================================================="
 echo " http://localhost:$PORT"
 echo "=================================================================="
