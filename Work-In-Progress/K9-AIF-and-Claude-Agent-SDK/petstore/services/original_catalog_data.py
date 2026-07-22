@@ -76,5 +76,20 @@ def original_catalog_skus() -> List[SKU]:
     return skus
 
 
+def raw_items() -> List[Tuple[str, str, str, str, str, float]]:
+    """(sku_id, species, category_id, description, variant, price_dollars) -- read-only access
+    to the source rows, for presentation-layer groupings (e.g. category browsing) that don't
+    belong in the SKU shape itself."""
+    return list(_RAW_ITEMS)
+
+
+def species_by_category() -> Dict[str, set]:
+    """category_id (FISH/DOGS/CATS/BIRDS/REPTILES, from the original app's own grouping) -> species names."""
+    grouping: Dict[str, set] = {}
+    for _sku_id, species, category_id, *_ in _RAW_ITEMS:
+        grouping.setdefault(category_id, set()).add(species)
+    return grouping
+
+
 def original_catalog_stock() -> Dict[str, int]:
     return {sku_id: _DEFAULT_QTY for sku_id, *_ in _RAW_ITEMS}

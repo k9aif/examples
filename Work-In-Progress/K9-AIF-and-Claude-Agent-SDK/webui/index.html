@@ -143,31 +143,31 @@
     <div class="sidebar">
       <h2>Categories</h2>
       <ul>
-        <li><a href="#"><img src="images/fish_icon.gif" alt="Fish"> Fish</a></li>
-        <li><a href="#"><img src="images/birds_icon.gif" alt="Birds"> Birds</a></li>
-        <li><a href="#"><img src="images/cats_icon.gif" alt="Cats"> Cats</a></li>
-        <li><a href="#"><img src="images/dogs_icon.gif" alt="Dogs"> Dogs</a></li>
-        <li><a href="#"><img src="images/reptiles_icon.gif" alt="Reptiles"> Reptiles</a></li>
+        <li><a href="category?category_id=FISH"><img src="images/fish_icon.gif" alt="Fish"> Fish</a></li>
+        <li><a href="category?category_id=BIRDS"><img src="images/birds_icon.gif" alt="Birds"> Birds</a></li>
+        <li><a href="category?category_id=CATS"><img src="images/cats_icon.gif" alt="Cats"> Cats</a></li>
+        <li><a href="category?category_id=DOGS"><img src="images/dogs_icon.gif" alt="Dogs"> Dogs</a></li>
+        <li><a href="category?category_id=REPTILES"><img src="images/reptiles_icon.gif" alt="Reptiles"> Reptiles</a></li>
       </ul>
     </div>
 
     <div class="content">
       <!-- Real image map from the original app's splash.jsp -- same
-           coords, same category?category_id=... targets (adapted to "#"
-           placeholders since there's no backend yet). Note: <area>
-           hotspots on a flat bitmap can't visually scale on hover --
-           that's a hard constraint of image maps, not a choice. Cursor
-           still changes to a pointer, and each area has a title tooltip
-           as the hover affordance a flat image map can actually offer. -->
+           coords, same category?category_id=... targets, now pointing at
+           webui_server.py's real /category route (live Postgres data).
+           Note: <area> hotspots on a flat bitmap can't visually scale on
+           hover -- that's a hard constraint of image maps, not a choice.
+           Cursor still changes to a pointer, and each area has a title
+           tooltip as the hover affordance a flat image map can actually offer. -->
       <img src="images/splash.gif" alt="Pet Store mascot and category collage"
            width="357" height="347" usemap="#estoremap">
       <map name="estoremap">
-        <area href="#" alt="Birds" title="Birds" coords="72,2,280,250" shape="rect">
-        <area href="#" alt="Fish" title="Fish" coords="2,180,72,250" shape="rect">
-        <area href="#" alt="Dogs" title="Dogs" coords="60,250,130,320" shape="rect">
-        <area href="#" alt="Reptiles" title="Reptiles" coords="140,270,210,340" shape="rect">
-        <area href="#" alt="Cats" title="Cats" coords="225,240,295,310" shape="rect">
-        <area href="#" alt="Birds" title="Birds" coords="280,180,350,250" shape="rect">
+        <area href="category?category_id=BIRDS" alt="Birds" title="Birds" coords="72,2,280,250" shape="rect">
+        <area href="category?category_id=FISH" alt="Fish" title="Fish" coords="2,180,72,250" shape="rect">
+        <area href="category?category_id=DOGS" alt="Dogs" title="Dogs" coords="60,250,130,320" shape="rect">
+        <area href="category?category_id=REPTILES" alt="Reptiles" title="Reptiles" coords="140,270,210,340" shape="rect">
+        <area href="category?category_id=CATS" alt="Cats" title="Cats" coords="225,240,295,310" shape="rect">
+        <area href="category?category_id=BIRDS" alt="Birds" title="Birds" coords="280,180,350,250" shape="rect">
       </map>
 
       <h2>Welcome to Pet Store Agentic</h2>
