@@ -36,6 +36,19 @@ CREATE TABLE IF NOT EXISTS petstore.sessions (
     expires_at      TIMESTAMPTZ NOT NULL
 );
 
+-- Shopping cart -- keyed by an anonymous cart-session token (its own
+-- cookie, separate from petstore_session), not by user_id. Works
+-- identically for guests and logged-in users; deliberately does not
+-- merge a guest cart into an account's cart on login (a real classic
+-- e-commerce edge case, out of scope for this build -- see PLAN.md).
+CREATE TABLE IF NOT EXISTS petstore.cart_items (
+    cart_session_id TEXT NOT NULL,
+    sku_id          TEXT NOT NULL REFERENCES petstore.sku(sku_id),
+    quantity        INTEGER NOT NULL CHECK (quantity > 0),
+    added_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (cart_session_id, sku_id)
+);
+
 -- ── Catalog ──────────────────────────────────────────────────────────────
 -- category: 'supplies' | 'livestock' | 'veterinary' (project.md §2)
 CREATE TABLE IF NOT EXISTS petstore.sku (

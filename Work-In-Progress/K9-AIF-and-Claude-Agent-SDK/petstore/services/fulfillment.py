@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import uuid
 from typing import List, Optional
 
 from petstore.services.db import get_cursor
@@ -24,6 +25,15 @@ def generate_shipping_label(order_id: str) -> ShippingLabel:
 
 
 def get_order_status(order_id: str) -> Optional[dict]:
+    # order_id is a UUID column -- a malformed value (a typo, a stray query
+    # param) makes Postgres raise InvalidTextRepresentation before it ever
+    # gets to compare rows. Validate first so a bad ID reads as "not found"
+    # (the honest answer for public order lookup) rather than a crash.
+    try:
+        uuid.UUID(order_id)
+    except (ValueError, AttributeError, TypeError):
+        return None
+
     with get_cursor() as cur:
         cur.execute(
             "SELECT state, subtotal_cents, tax_cents, shipping_cents, total_cents, "

@@ -120,3 +120,12 @@ def test_logged_in_checkout_ties_order_to_user(_seeded_items, gate_config):
     # user_id=None (guest) is exercised above; a real user_id would need a
     # users row to satisfy the FK -- covered by the user-portal integration
     # test once that's wired, not duplicated here.
+
+
+def test_get_order_status_with_malformed_id_returns_none_not_a_crash():
+    """order_id is a UUID column -- a malformed value used to raise
+    psycopg2.errors.InvalidTextRepresentation instead of reading as
+    'not found' (found live, via /order-status?order_id=x)."""
+    assert fulfillment.get_order_status("x") is None
+    assert fulfillment.get_order_status("") is None
+    assert fulfillment.get_order_status("not-a-uuid-at-all") is None
