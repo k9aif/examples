@@ -1,44 +1,33 @@
 #!/usr/bin/env bash
-# Pet Store Agentic -- run tests, then the deterministic-core demo.
+# Pet Store Agentic -- launches the storefront.
 #
-# There's no persistent server yet (that's the Router/Storefront API
-# phase, still ahead) -- this runs what actually exists: the test suite,
-# then demo/walk_deterministic_order.py against the live Postgres database
-# configured in .env.
+# webui/ is a static homage right now -- no Router/Storefront API exists
+# yet to wire it to (that's still ahead). This serves it as a real,
+# browsable site rather than just a file you open from Finder, since
+# relative image paths and a real origin matter even for a static page.
+#
+# For the backend/data-layer work instead, see tests.sh and demo.sh.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+PORT="${PETSTORE_WEBUI_PORT:-8500}"
 
-VENV_PY="$SCRIPT_DIR/.venv/bin/python3.11"
-
-if [ ! -x "$VENV_PY" ]; then
-  echo "[run.sh] ERROR: venv not found at $VENV_PY"
-  echo "  Run first:"
-  echo "    python3.11 -m venv .venv"
-  echo "    source .venv/bin/activate"
-  echo "    pip install -e /Users/ravinatarajan/ai/k9-aif-framework"
-  echo "    pip install -r requirements.txt"
+if [ ! -d "$SCRIPT_DIR/webui" ]; then
+  echo "[run.sh] ERROR: webui/ not found."
   exit 1
 fi
 
-if [ ! -f "$SCRIPT_DIR/.env" ]; then
-  echo "[run.sh] ERROR: .env not found. Copy an existing K9-AIF .env (POSTGRES_*, K9_ENV, etc.) here first."
-  exit 1
+echo "=================================================================="
+echo " Pet Store Agentic -- storefront (static homage, not yet wired"
+echo " to the backend -- see PLAN.md)"
+echo "=================================================================="
+echo " http://localhost:$PORT"
+echo "=================================================================="
+
+if command -v open >/dev/null 2>&1; then
+  ( sleep 1 && open "http://localhost:$PORT" ) &
 fi
 
-set -a
-source "$SCRIPT_DIR/.env"
-set +a
-
-echo "=================================================================="
-echo " Pet Store Agentic -- test suite"
-echo "=================================================================="
-"$VENV_PY" -m pytest tests/ -v
-
-echo
-echo "=================================================================="
-echo " Pet Store Agentic -- deterministic order walkthrough"
-echo "=================================================================="
-"$VENV_PY" demo/walk_deterministic_order.py
+cd "$SCRIPT_DIR/webui"
+python3 -m http.server "$PORT"
