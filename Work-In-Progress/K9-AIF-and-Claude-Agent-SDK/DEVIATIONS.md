@@ -114,3 +114,51 @@ being rejected or unavailable, update `allowed_tools` and this note.
 `permission_mode`, `model`, `max_turns` — the spec's general shape (an options
 object configuring a session) was right; only the exact hook/deny mechanism
 and subagent-disable story needed correcting above.
+
+---
+
+## 7. `HandlerResult` / `SHORT_CIRCUIT` / `RESOLVED` / `CONTINUE` don't exist
+
+`project.md` §4's routing diagram assumes a chain-of-responsibility `Intent
+Router` with a `HandlerResult` disposition enum (`SHORT_CIRCUIT`, `RESOLVED`,
+`CONTINUE`). Nothing in the installed `k9_aif_abb` package defines any of
+these names — grepped the full package tree, confirmed absent.
+
+The real `BaseRouter` (`k9_aif_abb/k9_core/router/base_router.py`) contract is
+just `route(payload: dict) -> dict`. The framework's actual, documented
+pattern (per the framework's own `CLAUDE.md`) is: known `event_type` routes to
+a domain topic directly; unknown `event_type` publishes to `intent.in`, where
+a separate `IntentOrchestrator` process resolves it via an `IntentSquad`. That
+topology assumes Kafka-decoupled processes — it's a different mechanism from
+a synchronous chain-of-responsibility, not a stricter version of the same one.
+
+**Resolution:** `project.md`'s disposition vocabulary is not a framework
+primitive — it's an application-level convention layered on top of
+`BaseRouter`'s plain dict return contract (which permits this; nothing in the
+ABB restricts the shape of the returned dict). `petstore/routing/router.py`
+implements `SHORT_CIRCUIT`/`CONTINUE` as Petstore's own `Disposition` enum,
+documented as such rather than presented as framework-provided behavior.
+
+## 8. `BaseSquad` matches flow steps by class name, not registry alias
+
+`BaseSquad.execute()` builds `agent_map = {a.__class__.__name__: a for a in
+self.agents}` and matches each flow step's `agent:` field against that map.
+The standard `SquadLoader` + `AgentRegistry` + YAML pattern (`SKILLS.md` Skill
+4) assumes the YAML `agents:` list entry is both the registry lookup key
+*and* equal to the resulting instance's real class name — true in every
+`SKILLS.md` example, where a class is registered under its own name.
+
+That assumption breaks for `DiagnosisAgent`'s swappable substrate: the
+logical name (`DiagnosisAgent`, the ABB) intentionally differs from whichever
+concrete class actually gets instantiated (`SdkDiagnosisAgent` or
+`DirectApiDiagnosisAgent`, selected by `config/sbb_bindings.yaml`). Loading
+the Diagnosis Squad through YAML + `SquadLoader` in the standard way would
+look up the agent under the alias `"DiagnosisAgent"` but then fail to match
+the flow step to it, because `agent_map` is keyed by the real, differing
+class name.
+
+**Resolution:** the Diagnosis Squad is hand-constructed directly as a
+`BaseSquad` instance in `petstore/orchestration/diagnosis_squad.py`, with
+`flow` set dynamically to match whichever concrete class is actually
+configured. The new Setup Planning Squad has no such conflict (one fixed
+substrate) and uses the standard YAML + `SquadLoader` pattern as documented.

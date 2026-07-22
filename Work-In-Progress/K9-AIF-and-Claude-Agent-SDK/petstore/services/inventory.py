@@ -25,6 +25,26 @@ def get_sku(sku_id: str) -> Optional[SKU]:
     )
 
 
+def search_by_keyword(query: str, limit: int = 10) -> list[SKU]:
+    """Fixed query (case-insensitive substring over name/description/category),
+    fixed result -- a database read, not a ranking problem. See project.md §3."""
+    like = f"%{query.lower()}%"
+    with get_cursor() as cur:
+        cur.execute(
+            "SELECT sku_id, name, category, description, unit_price_cents, "
+            "is_livestock, is_prescription, species FROM sku "
+            "WHERE lower(name) LIKE %s OR lower(description) LIKE %s OR lower(category) LIKE %s "
+            "ORDER BY name LIMIT %s",
+            (like, like, like, limit),
+        )
+        rows = cur.fetchall()
+    return [
+        SKU(sku_id=r[0], name=r[1], category=r[2], description=r[3], unit_price_cents=r[4],
+            is_livestock=r[5], is_prescription=r[6], species=r[7])
+        for r in rows
+    ]
+
+
 def check_stock(sku_id: str, quantity: int) -> bool:
     with get_cursor() as cur:
         cur.execute("SELECT quantity_on_hand FROM inventory WHERE sku_id = %s", (sku_id,))
