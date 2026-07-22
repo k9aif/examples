@@ -1,0 +1,82 @@
+@startuml
+title Pet Store Agentic — ABB / SBB Substrate Swap (Class Diagram)
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+package "K9-AIF ABB" {
+  abstract class BaseAgent
+
+  class DiagnosisRequest <<frozen dataclass>> {
+    +narrative: str
+    +tank_profile: TankProfile | None
+    +customer_id: str
+  }
+
+  class DiagnosisResult <<frozen dataclass>> {
+    +likely_causes: list[Cause]
+    +recommended_products: list[SKU]
+    +confidence: Confidence
+    +escalate_to_human: bool
+    +provenance: ProvenanceChain
+  }
+
+  abstract class DiagnosisAgent {
+    {abstract} +diagnose(request: DiagnosisRequest): DiagnosisResult
+  }
+}
+
+package "SBB — Substrate A (Claude Agent SDK)" {
+  class SdkDiagnosisAgent {
+    -sdk_session
+    +diagnose(request): DiagnosisResult
+  }
+  note right of SdkDiagnosisAgent
+    Multi-turn autonomous loop.
+    Tools: search_catalog,
+    check_species_compatibility,
+    retrieve_care_guide,
+    check_inventory.
+    Gate enforced via PreToolUse hook.
+    SDK subagents DISABLED — squads
+    own all fan-out.
+    Bypasses llm_invoke/ModelRouter —
+    the SDK owns its own inference loop.
+  end note
+}
+
+package "SBB — Substrate B (Direct API)" {
+  class DirectApiDiagnosisAgent {
+    +diagnose(request): DiagnosisResult
+  }
+  note right of DirectApiDiagnosisAgent
+    Single-shot structured call
+    against the Messages API.
+    Tool use orchestrated explicitly
+    in Python — code decides what
+    to call next, not the model.
+    Gate enforced as an explicit
+    branch in that code.
+  end note
+}
+
+DiagnosisAgent --|> BaseAgent
+SdkDiagnosisAgent --|> DiagnosisAgent
+DirectApiDiagnosisAgent --|> DiagnosisAgent
+
+DiagnosisAgent ..> DiagnosisRequest : consumes
+DiagnosisAgent ..> DiagnosisResult : produces
+
+note "config/sbb_bindings.yaml\nselects the binding — no code change\ndiagnosis_abb: sdk | direct_api" as ConfigNote
+ConfigNote .. SdkDiagnosisAgent
+ConfigNote .. DirectApiDiagnosisAgent
+
+note as Honesty
+  Substitutability means the CONTRACT holds,
+  not that implementations are equivalent
+  in quality. SBB-B handles open-ended
+  narratives worse — documented, not hidden.
+end note
+
+@enduml

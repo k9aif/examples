@@ -1,0 +1,75 @@
+@startuml
+skinparam rectangleStyle rounded
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam backgroundColor white
+skinparam dpi 160
+skinparam noteBackgroundColor #FFFDEB
+skinparam noteBorderColor #999999
+skinparam packageBackgroundColor white
+skinparam packageBorderColor #666666
+skinparam rectangleBackgroundColor #F8FAFC
+skinparam rectangleBorderColor #666666
+skinparam arrowColor #555555
+skinparam titleFontColor #111111
+
+title Pet Store Agentic — Layered Architecture
+
+rectangle "Storefront API" as API
+
+rectangle "Intent Router (SBB)\nchain-of-responsibility" as Router
+
+rectangle "Deterministic Services\npetstore/services/ — ZERO LLM imports" as Services
+rectangle "Cached / Canned Response" as Cache
+
+package "Agentic Path (fallthrough only)" as AgenticPath {
+  rectangle "Orchestrator" as Orch
+  rectangle "Diagnosis Squad" as Squad
+  rectangle "Diagnosis ABB\n(abstract contract)" as ABB
+
+  package "SBB — interchangeable substrates" as SBBs {
+    rectangle "SdkDiagnosisAgent\n(Claude Agent SDK loop\n+ PreToolUse hook gate)" as SdkSBB
+    rectangle "DirectApiDiagnosisAgent\n(single-shot Messages API\n+ explicit gate branch)" as DirectSBB
+  }
+}
+
+rectangle "GateRegistry\n(external, survives compaction)" as Gate
+rectangle "Neo4j Provenance Graph" as Graph
+
+API --> Router
+
+Router --> Services : SHORT_CIRCUIT\n(majority of traffic)
+Router --> Cache : RESOLVED
+Router --> Orch : CONTINUE\n(no deterministic handler claimed it)
+
+Orch --> Squad
+Squad --> ABB
+ABB <.. SdkSBB : satisfies
+ABB <.. DirectSBB : satisfies
+
+SdkSBB --> Gate : query on every\nPreToolUse
+DirectSBB --> Gate : explicit check\nbefore fulfillment
+
+SdkSBB --> Graph : provenance
+DirectSBB --> Graph : provenance
+Services --> Graph : order state
+
+note right of SBBs
+  Selected by config, no code change:
+  config/sbb_bindings.yaml
+    diagnosis_abb: sdk | direct_api
+
+  Both must satisfy the same ABB contract
+  and enforce the livestock gate identically.
+end note
+
+note bottom of Router
+  Deterministic handlers register first.
+  The agentic path is the fallthrough,
+  not the default — this ordering IS
+  the architectural argument.
+end note
+
+@enduml

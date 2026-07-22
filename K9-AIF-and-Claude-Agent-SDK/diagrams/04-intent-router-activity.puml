@@ -1,0 +1,56 @@
+@startuml
+title Pet Store Agentic — Intent Router Dispatch (Activity Diagram)
+
+skinparam shadowing false
+skinparam activityBackgroundColor #F8FAFC
+skinparam activityBorderColor #666666
+skinparam arrowColor #555555
+skinparam noteBackgroundColor #FFFDEB
+skinparam noteBorderColor #999999
+
+start
+:Request arrives at Storefront API;
+:Intent Router evaluates handlers\nin registration order;
+
+note right
+  Deterministic handlers are
+  registered BEFORE the agentic
+  fallthrough. This ordering IS
+  the architectural argument —
+  not a performance optimization.
+end note
+
+if (Deterministic handler claims it?\n(order status, inventory, cart)) then (yes)
+  :Disposition = SHORT_CIRCUIT;
+  :Deterministic Service handles request;
+  note right: petstore/services/ — zero LLM imports,\nenforced by test_deterministic_purity.py
+  :Return response;
+  stop
+elseif (Cached / canned response applies?) then (yes)
+  :Disposition = RESOLVED;
+  :Return cached response;
+  stop
+else (no deterministic handler claimed it)
+  :Disposition = CONTINUE;
+  :Orchestrator selects Diagnosis Squad;
+  :Squad invokes Diagnosis ABB;
+  :SBB (sdk or direct_api, per config)\nperforms diagnosis;
+
+  if (Fulfillment includes livestock?) then (yes)
+    :PreToolUse hook checks GateRegistry;
+    if (Gate APPROVED?) then (yes)
+      :Proceed with fulfillment;
+    else (no)
+      :Deny tool call;
+      :Escalate to human approval;
+    endif
+  else (no)
+    :Proceed normally;
+  endif
+
+  :Emit provenance to graph\n(DiagnosisSession, ToolInvocation, Decision);
+  :Return response;
+  stop
+endif
+
+@enduml
