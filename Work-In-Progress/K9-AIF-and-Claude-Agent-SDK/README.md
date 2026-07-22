@@ -1,5 +1,8 @@
+# Pet Store Agentic
 
+**Status: WORK IN PROGRESS.** Planning and design only — see `PLAN.md` for current status, `Architecture_Guide.md` and `Detailed_Design.md` for the design, `project.md` for the full build spec. Not a working example yet.
 
+---
 
 K9-AIF-Framework is Better at what it does — which isn't what the Agent SDK does.
 

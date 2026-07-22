@@ -150,6 +150,35 @@ Both `SdkDiagnosisAgent` and `DirectApiDiagnosisAgent` satisfy `DiagnosisAgent` 
 
 ---
 
+## GateRegistry — Provider Adapter Pattern (minimal now, extensible later)
+
+`project.md` §7 requires gate state to live in an external registry the `PreToolUse` hook can query directly — but doesn't specify who actually flips a gate from `PENDING` to `APPROVED`. In a real deployment that's a human, reviewing the order in some queue. This project gives that concern the same three-layer treatment every other infrastructure concern in K9-AIF gets (see the framework's Provider Adapter Pattern — Secret Management, Cache, Object Storage all follow this shape):
+
+```python
+# k9_core/gates/base_gate_registry.py — ABB contract
+class BaseGateRegistry(ABC):
+    @abstractmethod
+    async def status(self, order_id: str, gate_type: GateType) -> Gate: ...
+    @abstractmethod
+    async def request_approval(self, order_id: str, gate_type: GateType, context: dict) -> Gate: ...
+    @abstractmethod
+    async def resolve(self, gate_id: str, approved: bool, approver: str) -> Gate: ...
+```
+
+**Phase 5 (this build): `SimpleGateRegistry`.** SQLite-backed, no external dependencies, no queue UI. `resolve()` is called directly — by a test, by a CLI command, or by a minimal local endpoint. This is enough to prove `test_gate_cannot_be_bypassed.py` and `test_gate_survives_compaction.py`: both only care that the hook queries external state and gets a real answer, not about how that state was set.
+
+**Later phase (not this build): `K9xHilGateRegistryAdapter`.** Backs the same `BaseGateRegistry` contract with a real K9x HIL Project -> App -> Queue -> Task flow — a human reviewer sees the pending livestock order in an actual queue and approves or rejects it there, and that action is what calls `resolve()`. `PreToolUse` hook code, `SdkDiagnosisAgent`, `DirectApiDiagnosisAgent`, and both adversarial tests stay completely unchanged — only `config/gates.yaml`'s `provider:` key changes. This is the same substrate-neutrality claim the project already makes for diagnosis (§ above), applied to who approves the gate instead of what performs the diagnosis.
+
+```yaml
+# config/gates.yaml
+gates:
+  provider: simple        # simple (default, this build) | k9x_hil (future)
+```
+
+Deliberately **not building the `k9x_hil` adapter now** — matches this project's own Anti-Goal against adding infrastructure the thesis doesn't require yet. The point of designing the contract this way now is that adding it later is a new adapter file and a config change, not a redesign.
+
+---
+
 ## Open design questions (resolve before Phase 4 implementation)
 
 - Exact `PreToolUse` hook payload shape and deny contract — verify against the installed `claude-agent-sdk`, don't assume (see `project.md` §0, `PLAN.md`).

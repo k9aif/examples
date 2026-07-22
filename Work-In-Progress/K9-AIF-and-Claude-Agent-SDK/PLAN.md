@@ -1,6 +1,6 @@
 # Pet Store Agentic — Plan
 
-**Status: planning only.** No implementation yet. Target start: next week, not today.
+**Status: work in progress.** One small piece prototyped ahead of schedule — `petstore/gates/` (the `BaseGateRegistry` contract + `SimpleGateRegistry` SQLite adapter, see below) — everything else in the 7-phase build order is still design-only. Main implementation target: next week.
 
 Full spec: [`project.md`](project.md) (the authoritative build spec — this file summarizes it, not replaces it).
 Project conventions: [`CLAUDE.md`](CLAUDE.md).
@@ -35,7 +35,7 @@ Render any of them with `plantuml diagrams/<file>.puml` (or paste into any Plant
 2. **Routing** — intent router, deterministic handlers registered first. Prove ordinary traffic short-circuits.
 3. **ABB + first SBB** — define `DiagnosisAgent`; implement `DirectApiDiagnosisAgent` first, deliberately, so the contract is substrate-neutral before SDK specifics can leak into it.
 4. **SDK SBB** — `SdkDiagnosisAgent`. Verify installed SDK signatures before writing anything. Disable subagents. Both SBBs must pass `test_sbb_contract_parity.py`.
-5. **Gates** — `GateRegistry`, the `PreToolUse` hook, the equivalent explicit branch in SBB-B. Both adversarial tests must pass.
+5. **Gates** — `GateRegistry`, the `PreToolUse` hook, the equivalent explicit branch in SBB-B. Both adversarial tests must pass. The `BaseGateRegistry` contract and its `SimpleGateRegistry` adapter are already prototyped (`petstore/gates/`, `tests/test_gate_registry.py`, 8 passing tests) — what's left for this phase is the hook and the SBB-side integration, not the registry itself. A K9x HIL-backed adapter (real human-review queue instead of a direct `resolve()` call) is a deliberately deferred later phase — see `Detailed_Design.md`.
 6. **Graph provenance** — sessions, tool invocations, gates, decisions. Confirm `SATISFIED_BY` distinguishes the two substrates in Neo4j.
 7. **Docs** — written last, from what was actually built.
 
@@ -60,4 +60,4 @@ One documentation note carried over from review: `SdkDiagnosisAgent` bypasses `l
 
 ## Not doing today
 
-No code, no venv installs beyond what's already set up, no PyPI/GitHub actions. This file and the diagrams are the full scope of today's session.
+The Diagnosis ABB/SBBs, the Router, the deterministic services, the Agent SDK integration itself, and Neo4j provenance are still next week's work. Today's scope grew by one deliberate exception (`petstore/gates/`, prototyped and tested) but the rest of the 7-phase build order is untouched.

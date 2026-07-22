@@ -32,6 +32,8 @@ Any genuinely uncertain capability is defined once as an abstract ABB contract. 
 
 **Substitutability means the contract holds, not that every substrate performs equally.** `DirectApiDiagnosisAgent` handling open-ended narratives worse than `SdkDiagnosisAgent` is a real, documented tradeoff, not a flaw to hide. The claim being proven is narrower and more honest than "all substrates are equivalent": it's "the system keeps working, and keeps enforcing the same gates, no matter which one is behind the contract today."
 
+The same discipline applies to *who approves a gate*, not just *what performs a diagnosis*. `GateRegistry` is designed against an abstract contract from the start, with a minimal SQLite-backed implementation for this build and a real K9x HIL-backed implementation as a documented, deliberately-deferred later phase — see `Detailed_Design.md`. Building the minimal version first and the richer one later is the same substrate-neutrality claim, applied on a delay.
+
 ---
 
 ## 4. The deterministic/agentic boundary is architecture, not a performance detail
