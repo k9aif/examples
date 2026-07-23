@@ -172,9 +172,11 @@ def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
     <p>Java Pet Store was Sun Microsystems' J2EE BluePrints demo application (2001) --
     a reference implementation showing how to structure an enterprise Java app with
     Servlets, JSP, EJB, and JMS. It sold live animals (fish, dogs, cats, birds,
-    reptiles) in every category; there was no "supplies" section at all -- which is
-    why livestock, not supplies, is the category this project's gate is built around:
-    inherited from the reference app, not invented for the demo. This project reuses
+    reptiles) in every category, because that was its entire catalog -- there was no
+    "supplies" section at all. This project inherits that category from the reference
+    app; the livestock gate itself is not part of that inheritance -- the original
+    modeled no approval workflow of any kind, and the gate is this project's own
+    addition. This project reuses
     its artwork and catalog data under its original BSD-style license, and borrows
     its purpose: a mundane domain so the architecture stays the interesting part of
     the page.</p>
@@ -214,13 +216,13 @@ def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
     <h2>K9X Ecosystem</h2>
     <p>This project is one of several K9-AIF-based products in the K9X ecosystem
     (Studio, Enterprise Continuum, HIL case management, SATAN adversarial testing).
-    It's the example that specifically proves how an external agent framework --
-    the Claude Agent SDK here -- gets wrapped as one substrate behind a K9-AIF
-    contract, rather than becoming the architecture itself.</p>
+    It's the example that specifically demonstrates the pattern for how an external
+    agent framework -- the Claude Agent SDK here -- gets wrapped as one substrate
+    behind a K9-AIF contract, rather than becoming the architecture itself.</p>
 
     <h2>Why the combination matters</h2>
-    <p>Neither piece replaces the other. The SDK is genuinely good at running an agent;
-    K9-AIF addresses a layer Anthropic isn't trying to solve -- enterprise
+    <p>Neither piece replaces the other. The SDK runs an agent loop; K9-AIF addresses
+    a layer Anthropic isn't trying to solve -- enterprise
     architecture governance, substitutability, and provenance. The livestock order
     gate you can trigger live in this storefront right now is a deterministic policy
     check (an item flagged <code>is_livestock</code> pauses at checkout for admin

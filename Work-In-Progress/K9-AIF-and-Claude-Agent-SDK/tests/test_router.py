@@ -21,13 +21,17 @@ from petstore.services.order_state import OrderState
 
 @pytest.fixture(autouse=True)
 def _seeded_items():
+    # Name includes the unique suffix too, not just the sku_id -- earlier runs'
+    # seeded rows are never cleaned up, and search_by_keyword's LIMIT can push
+    # this run's row out of a same-named result set otherwise (a real, observed
+    # flake once enough "Test Router Fish Flakes" rows had accumulated).
     unique = uuid.uuid4().hex[:6]
     supply_sku = f"TEST-ROUTER-SUP-{unique}"
     inventory.seed_catalog(
-        [SKU(supply_sku, "Test Router Fish Flakes", "supplies", "desc", 500, False, False)],
+        [SKU(supply_sku, f"Test Router Fish Flakes {unique}", "supplies", "desc", 500, False, False)],
         stock_by_sku={supply_sku: 20},
     )
-    return {"supply_sku": supply_sku}
+    return {"supply_sku": supply_sku, "unique": unique}
 
 
 @pytest.fixture
@@ -124,12 +128,10 @@ def test_return_eligibility_true_for_delivered_order(router, _seeded_items):
 
 
 def test_product_search_short_circuits(router, _seeded_items):
-    result = router.route({"event_type": "product_search", "query": "router fish"})
+    result = router.route({"event_type": "product_search", "query": _seeded_items["unique"]})
 
     assert result["disposition"] == Disposition.SHORT_CIRCUIT.value
-    names = [r["name"] for r in result["response"]["results"]]
     assert _seeded_items["supply_sku"] in [r["sku_id"] for r in result["response"]["results"]]
-    assert any("Router Fish" in n for n in names)
 
 
 def test_unrecognized_event_type_continues_not_short_circuits(router):
