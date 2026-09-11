@@ -477,3 +477,9 @@ no `.start()` method), not a regression from this fix.
 
 - [ ]  Confirm `studiox_v2` visibility (public/private) — not yet decided
 - [ ]  Decide where the Sonnet-vs-local-model positioning note gets used
+
+**Update (same stretch) — node label trim, `studiox_v2` commit `7475e5b`:** dropped the redundant
+"Agent" filler word from squad/orchestrator labels (`Agn4AnomalyDetectionAgentSquad` →
+`Agn4AnomalyDetectionSquad`) since the type badge above each box already says SQUAD/ORCHESTRATOR —
+display-only, underlying names unchanged everywhere else. Screenshot `09` in
+`verification-screenshots/`.
