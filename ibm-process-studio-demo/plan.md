@@ -530,3 +530,8 @@ detailed-design.md + a real production bug fix, `studiox_v2` commits `d252f05`, 
 automatically (would require the frontend to capture and POST the image alongside the scaffold
 request; `detailed-design.md` currently just instructs the SA to export and attach it manually).
 Sidebar collapse for a wider canvas — still open, lower priority than what's been done tonight.
+
+**Update (same overnight stretch) — sidebar collapse toggle, `studiox_v2` commit `8f61020`:**
+one-click collapse/expand for the palette sidebar (Ravi: "the canvas can be wider?"). The sidebar
+already had drag-to-resize (220-500px, pre-existing) but no way to fully collapse it. New toggle
+button sets width to 0 and restores the prior width on re-expand. Screenshot `13`.
