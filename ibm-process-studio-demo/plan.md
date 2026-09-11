@@ -587,3 +587,23 @@ scope call), with links to `k9x.ai/developer_guide` and `patterns.k9x.ai`.
 - Only the BPMN import path is gated through the Traceability tab — spec-doc import isn't.
 
 Screenshots `01`–`13` in `verification-screenshots/` cover the whole arc, in order.
+
+**Update (morning of 2026-09-11) — CSV export/import + design-time flow positioning,
+`studiox_v2` commits `9ec8558`, `d5e34d3`:**
+
+1. Traceability matrix Component/Squad/Orchestrator names are now editable, plus CSV Export/Import
+   for offline editing (Ravi scoped this down himself from a bigger canvas-sync/saved-project idea
+   — "let's keep it simple," no database, no session model). Renames propagate everywhere the old
+   name was referenced (squad's name in its orchestrator's list, agent's name in its squad's list,
+   orchestrator's name in every adapter's `orchestrator` field), matched by `process_id`. Inline
+   edits and CSV-imported edits share the exact same propagation code path in `handleConfirm()`.
+   Verified end-to-end: export → edit on disk → re-import → confirm → canvas shows the new names
+   with zone/type metadata intact, old names fully gone. Screenshots `14`–`15`.
+2. About tab now states the design-time flow: IBM Context Studio (schemas) → IBM Process Studio
+   (blueprint) → K9X Studio (this) — Ravi's own wording, not fabricated detail. He mentioned a
+   fuller document he made describing these stages (starting from Context Studio schemas) — not
+   yet located/incorporated, asked him where it is. Screenshot `16`.
+
+**Open question for Ravi:** `detailed-design.md` already links to `patterns.k9x.ai` but doesn't
+have a substantive "Patterns Applied" section referencing specific named patterns — worth building
+that out further, or is the link sufficient for now?
