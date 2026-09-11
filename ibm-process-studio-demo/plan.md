@@ -535,3 +535,55 @@ Sidebar collapse for a wider canvas — still open, lower priority than what's b
 one-click collapse/expand for the palette sidebar (Ravi: "the canvas can be wider?"). The sidebar
 already had drag-to-resize (220-500px, pre-existing) but no way to fully collapse it. New toggle
 button sets width to 0 and restores the prior width on re-expand. Screenshot `13`.
+
+---
+
+## Overnight session summary (2026-09-10 → 2026-09-11, for morning review)
+
+Everything below is committed and pushed to `studiox_v2` (`main`), verified via real browser
+testing (Playwright, separate port from Ravi's own running instance throughout), not just
+direct function calls. Commits in order:
+
+`055000d` `88f4071` `aa65b45` `4c7f5fe` `40daffe` `acd0a92` `19094ab` `0e3e9c8`→`17e4b5f`
+`7475e5b` `53ff03f` `d252f05` `853ea7e` `8f61020`
+
+**Mapping-document-first pipeline (steps 1–8, all done):** BPMN import → deterministic
+Traceability Matrix (editable, gates canvas generation) → canvas rendered from it → scaffold
+generation. Zone-color extraction, orchestrator/squad wiring, and the RED-zone agent bug all
+fixed and verified against **two** different BPMN shapes (the AP invoice example and a synthetic
+insurance-claims one with zero color data), not just one.
+
+**Canvas (Step 6):** sub-tabs (All/Orchestrators/Squads/Adapters/HIL, a pure filter, not a second
+layout), column backgrounds tied to `layout.ts`'s own position table, JPG export, wider column
+spacing with a 75%-zoom floor (never shrinks past readable), shortened node labels, sidebar
+collapse toggle.
+
+**Real bugs found and fixed, not just features added:**
+- Orchestrator/squad wiring (positional-index bug) — the original motivating bug.
+- RED-zone agent under-generation (BaseAgent instead of K9CriticActorAgent).
+- Traceability tab going blank after Confirm (state being nulled instead of persisted).
+- Refresh losing all canvas state (no persistence layer existed at all).
+- `hil_orchestrator` silently mispositioned in layout (no `LEVEL_X` entry).
+- `canvasLayers.ts` duplicating `layout.ts`'s column positions instead of importing them (caught
+  before it could actually drift, during the column-widening change).
+- Class Diagram: structurally-impossible scrolling (`max-width:100%` on the image) and no zoom.
+- **The big one:** `/api/generate`/`/api/scaffold-preview`'s Pydantic models had no `adapters`
+  field and no `zone`/`process_id` fields — every real scaffold generated through the actual UI
+  has been silently dropping all adapter data and zone data. Found while verifying
+  `detailed-design.md`, fixed, re-verified via live HTTP test.
+
+**New: `detailed-design.md`** in every generated scaffold — traceability matrix, governance/
+zero-trust notes, and a Solutions Architect checklist (not filled-in ops tables — Ravi's explicit
+scope call), with links to `k9x.ai/developer_guide` and `patterns.k9x.ai`.
+
+**Honest gaps, not silently left out:**
+- Canvas JPEG isn't auto-embedded in the scaffold yet (SA exports/attaches manually) — would need
+  the frontend to POST the captured image alongside the scaffold request.
+- The deeper Step-7 architectural goal (scaffold generated *directly* from the mapping document,
+  not from re-serialized canvas edges) isn't done — tonight's Pydantic fix patches the immediate
+  data-loss symptom, but the 3-hop chain (mapping doc → canvas → re-serialize → scaffold) still
+  exists structurally.
+- `context/CLAUDE.md`/`SKILLS.md` mismatch (from earlier in the session) still open.
+- Only the BPMN import path is gated through the Traceability tab — spec-doc import isn't.
+
+Screenshots `01`–`13` in `verification-screenshots/` cover the whole arc, in order.
