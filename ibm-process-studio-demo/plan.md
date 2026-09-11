@@ -620,3 +620,40 @@ highest-priority gap for RED-zone agents specifically, with a matching SA-checkl
 Zero Trust reframed as explicit pre-check (Zero Trust)/post-check (Governance, not enforced)
 per Ravi's framing. Verified through both direct calls and the real `/api/scaffold-preview` HTTP
 path.
+
+**Update (same morning, live review continued) — matrix legibility, Agent Base Type safety fix,
+governance wording, header branding, `studiox_v2` commits `696e967`, `56d21f1`, `c63ab46`:**
+
+1. Governance/Zero Trust/HITL cells switched from ellipsis-truncated+hover-tooltip to word-wrap
+   (Ravi: "people would not understand ... can't read the rest").
+2. **Real safety fix:** Agent Base Type was an independently-editable dropdown that could produce
+   Zone=RED + Base Type=BaseAgent — an inconsistent, dangerous combination nothing prevented.
+   Ravi: "why would the SA change it? what if they wrongly check BaseAgent, not knowing?" Fixed:
+   Base Type is now read-only, derived automatically from Zone (both inline and via CSV import),
+   matching how the backend always derives it. Verified: RED→GREEN zone change correctly flips
+   Base Type to BaseAgent automatically; zero independent Base Type selects remain.
+3. **Governance wording was inaccurate**, not just badly worded — it read like a defect. Ravi
+   caught it ("sounds like a defect... should we not say... to enforce Governance, enable it in
+   config.yaml?") and separately guessed the real mechanism correctly ("if enabled,
+   granite-guardian?"). Verified against real framework source
+   (`k9_core/governance/pipeline.py`, `k9_governance/profanity_governance.py`,
+   `config.yaml.j2`) before rewording — confirmed: NoopGovernance-by-default is intentional
+   (not a defect), a real Granite-Guardian-backed implementation (`ProfanityGovernance`) exists,
+   and the `config.yaml` `governance:` flag exists but nothing reads it automatically — enabling
+   requires code-level wiring (`governance=YourClass(config)` into the agent constructor), not
+   just flipping the flag. New wording states this accurately and actionably in both the
+   Traceability tab and `detailed-design.md`.
+4. Header badge changed from generic "K9-AIF Framework" to "K9X Studio" + a tagline: "Support for
+   IBM Process Studio generated artifacts and color schemes" (Ravi's wording, adapted to fit the
+   existing short-badge CSS by splitting into badge + subtitle line).
+5. **Answered a concurrent-users/job-id question** (Ravi: "what if 2 or more start to work?"):
+   confirmed not needed — all work-state lives client-side in each browser's own `localStorage`,
+   and scaffold generation is stateless per-request (in-memory zip, no shared-path writes for the
+   actual work); two concurrent users' canvases already don't touch each other. Found two
+   genuinely shared files (`stats.json`, `feedback.jsonl`) but they're low-stakes counters/logs,
+   unrelated to the concern raised. Same conclusion as the earlier-deferred unique-session-ID
+   discussion: no server-side per-user state exists yet to justify one.
+
+All verified via Playwright/live HTTP against a separate instance from Ravi's running one, per
+usual. `context/k9_aif_abb`-removal-grade rigor maintained: every wording change was checked
+against real source before being written, not assumed or guessed at for better optics.
