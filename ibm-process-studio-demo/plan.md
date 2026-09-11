@@ -93,6 +93,57 @@ name-keyword heuristics. Test file + response saved in `cross-domain-test/`. Thi
 directly by Ravi ("what if I upload a totally different BPMN file? will it work?") rather than
 just asserted from code-reading confidence.
 
+**Update (same evening, continued live with Ravi) — Step 6 built and verified:**
+`studiox_v2` commit `19094ab`. Canvas sub-tabs (All/Orchestrators/Squads/Adapters/HIL) — Ravi's
+design, a pure filter over the same nodes/edges (`canvasLayers.ts`), never a second layout;
+orchestrators with zero matching children hidden per layer (Ravi confirmed this is right).
+Column backgrounds ("first column is Router, and so on") — computed from `layout.ts`'s own
+`LEVEL_X` table so they can't drift from actual node positions; fixed a real pre-existing bug
+found along the way (`hil_orchestrator` had no `LEVEL_X` entry, was silently landing in the
+adapter column). JPG export button (`html-to-image`, new dep). Refresh persistence
+(`zustand`'s `persist` → `localStorage`) for a real bug Ravi hit ("if I refresh the page,
+everything disappears") — first pass persisted data but not which tab was showing, so it still
+*looked* broken after reload; caught and fixed via the same real-browser verification, not
+assumed fixed. All verified via Playwright on a separate port (not Ravi's running instance) —
+screenshots `04`–`07` in `verification-screenshots/`.
+
+**Update (same stretch) — column spacing + zoom floor, commit `17e4b5f`:** widened `layout.ts`'s
+`LEVEL_X` column spacing (Squad↔Adapter was only 160px apart, now 250px) per Ravi's "panes can be
+wider" note, and capped auto-fit at 75% zoom minimum (`minZoom={0.75}` — Ravi's own constraint:
+"25% shrink to the best... making it too small is useless") so a wide process pans instead of
+shrinking into unreadable text. Along the way, found and fixed a real instance of the session's
+recurring bug class: `canvasLayers.ts`'s `computeColumnBands()` had its **own hardcoded copy** of
+the column x-positions instead of importing `layout.ts`'s `LEVEL_X` — hadn't drifted yet, but this
+same widening change would have been the first real drift had it not been caught. Verified via
+Playwright, screenshot `08` in `verification-screenshots/`.
+
+**Confirmed, not fixed:** `theme`/`toggleTheme` exist in `store.ts` but are referenced nowhere in
+any component — orphaned state, no UI control. Every component (including everything built
+tonight) hardcodes dark-mode hex colors directly rather than theme tokens. A real light/dark
+toggle would be a substantial refactor across every component, not a quick switch — flagged to
+Ravi as its own dedicated pass, not undertaken tonight.
+
+**Open, smaller items from this stretch, not yet done:**
+- Canvas area width is whatever's left after the ~290px palette sidebar; a collapse toggle for
+  that sidebar would give the canvas more room — separate, valid UI change.
+- Class Diagram tab's "open full size" view is missing a scroll bar (right side cut off) and has
+  no zoom/magnify control, unlike the Canvas tab's +/− controls — Ravi flagged both; not yet
+  fixed (existing studiox feature, not something built tonight).
+- Session/user identity (Ravi's k9x_satan-style auto-generated unique ID idea): explicitly
+  deferred — nothing server-side currently uses per-user data, so there's nothing yet for an ID
+  scheme to key against. Revisit once real server-side persistence exists.
+- Redis: confirmed not in use and not the right fix for the refresh bug (that was a pure
+  client-side gap, `localStorage` is the correct minimal fix — done above). Would only matter for
+  genuine multi-device/multi-user session continuity, not asked for yet.
+- **Comprehensive generated document** (Ravi's idea, self-scoped down from a fuller ops-config
+  generator): traceability matrix + a subset-of-canvas JPEG + governance/static framework info +
+  the existing class diagram, **plus a checklist of things for a Solutions Architect to do**
+  (not filled-in tables for Kafka topics/DB tables/S3 buckets/vault credentials — Ravi decided
+  against building that, a checklist is enough). Ties together `ARCHITECTURE.md` generation
+  (existing), the mapping document (built tonight), canvas JPEG export (built tonight), and the
+  class diagram (existing) into one document. Not started — real next step after the smaller
+  items above.
+
 **For tomorrow's review, in one paragraph:** the full pipeline works end-to-end and is proven,
 not assumed — upload the real AP invoice BPMN, land on a new Traceability tab (not Canvas) showing
 the matrix with real governance/zero-trust/HITL findings, review or edit zone/agent-type, confirm,
