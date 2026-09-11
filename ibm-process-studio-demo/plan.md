@@ -73,9 +73,21 @@ signal something broke, cheaper to check than the full per-ID row comparison.
 
 ### Implementation steps (2026-09-10, merged — mine + Ravi's refinements, confirmed "good")
 
-Status: **1–4 done (commits `055000d`, `88f4071`, `aa65b45`), 5–8 in progress.** Working
-autonomously per Ravi's "keep implementing, I'll review tomorrow morning" — see each step below
-for what's verified and what's an open judgment call flagged for review.
+Status: **1, 2, 3, 4, 5, 8 done and verified (including a real browser click-through, not just
+direct calls) — 6, 7 not started.** Working autonomously per Ravi's "keep implementing, I'll
+review tomorrow morning." See each step below for what's verified and what's an open judgment
+call flagged for review.
+
+**For tomorrow's review, in one paragraph:** the full pipeline works end-to-end and is proven,
+not assumed — upload the real AP invoice BPMN, land on a new Traceability tab (not Canvas) showing
+the matrix with real governance/zero-trust/HITL findings, review or edit zone/agent-type, confirm,
+and the canvas builds correctly with every orchestrator wired to its own squad (screenshots in
+`verification-screenshots/`). Steps 6 (tabbed multi-flow canvas — Main + HIL) and 7 (scaffold
+generated directly from the mapping document, not re-serialized canvas edges) are genuinely
+bigger architectural changes — I deliberately did not rush into them without your input, since 6
+requires a real design decision (how to partition a flow into named tabs) and 7 changes how
+scaffold generation gets its data. Recommend reviewing 1–5+8 first, then deciding 6/7's shape
+together rather than me guessing overnight.
 
 1. **✅ DONE — carry the BPMN's own task/lane element ids through.** `classify_task()` currently looks up
    zone by task `id` (`Task_1`, `Lane_1`, ...) then discards the id. Needs to be kept — it's the
@@ -129,9 +141,13 @@ for what's verified and what's an open judgment call flagged for review.
    reverse-parsing generated files to check correctness after the fact (what I did by hand this
    session). "Match?" becomes true by construction; count-check (step 4) plus a spot audit is
    enough.
-8. **Lock down "no LLM for structured input" explicitly** — not just today's incidental default
-   (BPMN import happens to skip the LLM unless a config is present) but an enforced rule-based-only
-   path whenever the document already carries IDs/zones, regardless of LLM config state.
+8. **✅ DONE (commit `83fe3d5`) — lock down "no LLM for structured input" explicitly.** Confirmed
+   the gap was real, not hypothetical: `bpmn_import` took the LLM path whenever `llm_config` was
+   truthy, and the frontend sent it automatically whenever *any* LLM was configured
+   session-wide — with no BPMN-specific UI to opt into that deliberately. Backend now requires
+   `force_llm` alongside `llm_config` (mirrors spec_import's existing pattern); frontend stopped
+   sending `llm_config` on BPMN upload at all. BPMN import is deterministic, always, now — not
+   just by accident.
 
 Steps 1–4 are backend-only, independently verifiable via direct calls (same pattern as this
 session's bug fixes). 5–7 touch the frontend and are where the real re-architecture happens
