@@ -71,6 +71,58 @@ scaffold — exactly, not approximately. If the mapping doc says 7 agents, the c
 agent nodes and the scaffold must contain 7 agent files. Any mismatch is an immediate, legible
 signal something broke, cheaper to check than the full per-ID row comparison.
 
+### Implementation steps (2026-09-10, merged — mine + Ravi's refinements, confirmed "good")
+
+1. **Carry the BPMN's own task/lane element ids through.** `classify_task()` currently looks up
+   zone by task `id` (`Task_1`, `Lane_1`, ...) then discards the id. Needs to be kept — it's the
+   Process ID column source. Process Studio's ATS#/AGN# numbering only lives in the `.md`, not the
+   `.bpmn`, so for BPMN-only import the BPMN's own element id is the generic, always-available
+   identifier (works for *any* BPMN, not just Process Studio's convention).
+2. **Build `build_mapping_document()`** — columns wider than originally scoped, per Ravi's point:
+   not just structural wiring (Process ID | Element | Zone | Orchestrator | Squad | Agent | Agent
+   Base Type | HITL Touchpoint) but **which framework mechanisms wrap each component**:
+   - **Governance** — whether/how `require_governance()`/`enforce_governance()` applies. Not yet
+     investigated whether generated agent templates actually call `enforce_governance()` — check
+     during implementation, don't assume.
+   - **Zero Trust** — every generated orchestrator already calls `self.apply_zero_trust(payload)`
+     unconditionally (seen in `orchestrator.py.j2` this session). Open question for
+     implementation: does/should this vary by zone (e.g. stricter policy for RED), or is it
+     uniform today? Don't assume either answer yet.
+   - **Model Router** — `K9ModelRouter`'s weighted-scoring inputs (task_type, sensitivity,
+     latency_budget, cost_profile) currently collapse to a flat `model: "reasoning"|"general"`
+     field with no *why* traced. Note: actual model selection is a **runtime** decision (scored
+     per-request), not fixed at generation time — the matrix can show the static *inputs* to
+     routing (configured per agent), not a fixed routing outcome. Don't conflate the two.
+3. **Expose it from `/api/bpmn/import`, additively** — `"mapping_document": {...}` alongside the
+   existing `"suggestion"` key, so it can be tested in isolation before switching canvas-building
+   over.
+4. **Count-check** — `{"counts": {"orchestrators": N, "squads": N, "agents": N, "adapters": N}}`
+   on the mapping document response.
+5. **Surface it in the UI — editable, and a hard gate, not just advisory review.** Ravi's
+   refinement: human can verify *or modify* the mapping document; scaffold generation is blocked
+   until explicit confirmation. Nice resonance for the pitch — the studio practices the same
+   human-in-the-loop discipline on its own output that the AMBER/RED agents it generates practice
+   on theirs.
+6. **Canvas rendered from the mapping document — as tabbed, possibly-multiple flows, not one
+   canvas.** Ravi's addition: one **Main** tab for the full end-to-end flow, plus named tabs for
+   coherent sub-flows when the process is complex enough to warrant it — **HIL** being the obvious
+   first case (5 of 7 agents in the AP invoice example are AMBER/RED with HITL touchpoints; a
+   dedicated HIL-flow tab showing just that path is concretely useful here, not hypothetical).
+   Fits the existing HIL Orchestrator palette component rather than inventing something new.
+   `Palette.tsx.buildCanvas()` reads from mapping-document rows instead of the separate
+   `suggestion` shape — collapses two parallel representations into one.
+7. **Scaffold generation from the mapping document, gated on step 5's confirmation** — not
+   reverse-parsing generated files to check correctness after the fact (what I did by hand this
+   session). "Match?" becomes true by construction; count-check (step 4) plus a spot audit is
+   enough.
+8. **Lock down "no LLM for structured input" explicitly** — not just today's incidental default
+   (BPMN import happens to skip the LLM unless a config is present) but an enforced rule-based-only
+   path whenever the document already carries IDs/zones, regardless of LLM config state.
+
+Steps 1–4 are backend-only, independently verifiable via direct calls (same pattern as this
+session's bug fixes). 5–7 touch the frontend and are where the real re-architecture happens
+(tabs, edit+confirm gate). 8 is small, can slot in anywhere.
+
 **Ambition calibration (2026-09-10):** IBM Process Studio is a mature, team-built product
 (over a year of development) about to be released to IBM's Federal customers, and its output is
 correspondingly deep — a 6-phase EAEF blueprint with atomic step register, business ontology,
