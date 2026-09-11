@@ -487,3 +487,46 @@ display-only, underlying names unchanged everywhere else. Screenshot `09` in
 **Update (same stretch) — Orchestrator abbreviated to Orch, `studiox_v2` commit `53ff03f`:**
 node labels now show `...Orch` instead of `...Orchestrator` (Squad stays full, per Ravi's
 "in Canvas, it can be Squad"). Display-only, same `displayLabel()` trim point. Screenshot `10`.
+
+**Update (working overnight per Ravi's "keep working on other steps to make it much richer") —
+detailed-design.md + a real production bug fix, `studiox_v2` commits `d252f05`, `853ea7e`:**
+
+1. **Class Diagram scroll/zoom fixed** (`d252f05`). Root cause: `.classdiagram-canvas img` had
+   `max-width:100%`, which meant the image could never actually overflow its container — so
+   `overflow:auto` had structurally nothing to scroll (matches Ravi's report: "no scroll bar to
+   scroll, right side is cut off"). Removed the cap, added zoom controls (+/−/Reset, 25%-300%) per
+   Ravi's ask ("a + sign to magnify"). Verified: `scrollWidth` (6258px) now genuinely exceeds
+   `clientWidth` (1305px) after zooming — real overflow, not theoretical. Screenshot `11`.
+
+2. **`detailed-design.md` added to every generated scaffold** (`853ea7e`) — the "detailed-design.doc
+   to be expanded by the SA" Ravi asked for. Built from `build_mapping_document()` reused directly
+   (same source of truth as the Traceability tab, not reimplemented). Contains: executive summary
+   + zone breakdown, the full traceability matrix, governance/zero-trust notes (stated once, not
+   per row), and a **Solutions Architect checklist** (governance enforcement, zero trust policy,
+   Kafka topics, DB schema, object storage, secrets/vault, HITL routing, model selection,
+   observability) — a checklist, not filled-in ops tables, per Ravi's explicit scope-down. Links
+   to `https://k9x.ai/developer_guide` and `https://patterns.k9x.ai/` in both `detailed-design.md`
+   and `README.md`.
+
+3. **Found and fixed a real, previously-undiscovered production bug** while verifying the above:
+   `ProjectDef`/`AgentDef`/`SquadDef`/`OrchestratorDef` (the Pydantic models validating
+   `/api/generate` and `/api/scaffold-preview` — the actual endpoints "Generate Scaffold" calls)
+   had **no `adapters` field at all**, and no `zone`/`process_id` fields on Agent/Squad/
+   Orchestrator. Pydantic silently drops undeclared fields, so **every real scaffold-generation
+   request through the actual UI has been dropping all adapter data** and all zone/process_id
+   data, regardless of what the frontend or `bpmn_service.py` sent. Confirmed via live HTTP test
+   (sent 13 adapters, `ARCHITECTURE.md` showed 0) before fixing; re-verified after (correct count,
+   correct zone breakdown, all 18 matrix rows). This means every scaffold generated all evening —
+   including the ones used for the earlier bug-hunting session — had this gap; the direct
+   Python-function-call testing done earlier tonight bypassed it entirely, which is exactly why it
+   wasn't caught until testing the real HTTP path specifically for this feature.
+
+4. **Full real-UI verification, not just API**: logged in, uploaded the real AP invoice BPMN,
+   confirmed the mapping document, clicked "Generate Scaffold" for real (download event fired),
+   opened "View Scaffold" — `detailed-design.md` visible in the actual file tree alongside
+   `ARCHITECTURE.md`/`README.md`. Screenshot `12`. Zero console errors throughout.
+
+**Not yet done, explicitly deferred:** embedding an actual canvas JPEG into the scaffold
+automatically (would require the frontend to capture and POST the image alongside the scaffold
+request; `detailed-design.md` currently just instructs the SA to export and attach it manually).
+Sidebar collapse for a wider canvas — still open, lower priority than what's been done tonight.
