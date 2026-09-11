@@ -264,9 +264,13 @@ no `.start()` method), not a regression from this fix.
    wiring fix since both root-caused in the same investigation (see "Known bugs" above, commit
    `15041b4`). Verified against the real AP invoice BPMN: all 7 agents land in the zone Process
    Studio assigned.
-3. **Canvas zone tint** — not yet done. Add a zone-colored border/badge to agent nodes in
-   `Canvas.tsx`, sourced from the zone the backend now computes. Additive only — doesn't touch the
-   existing role-based node coloring (router/orchestrator/squad).
+3. **✅ DONE — canvas zone tint (commit `acd0a92`).** Both a per-agent badge and a per-squad
+   ("lane") top-edge accent, per the 2026-09-10 decision. `zone` threaded as its own explicit
+   field (`types.ts`: new `Zone` type) all the way from `bpmn_service.py` through `Palette.tsx` to
+   `K9Node.tsx`, additive to existing role-based coloring. Carbon strong-accent triad
+   (`#24a148`/`#f1c21b`/`#da1e28`). Verified: `npm install` + `tsc --noEmit` + `vite build` clean;
+   live HTTP round-trip against a running backend confirms the real API response carries correct
+   zone data, not just direct function-call testing.
 4. **Mapping document generator / Traceability Matrix** — not yet done. This is now the primary
    deliverable (see above) — a new small agent/service emitting the Process→Implementation
    Traceability Matrix from data already extracted during import (steps 2–3), including the
