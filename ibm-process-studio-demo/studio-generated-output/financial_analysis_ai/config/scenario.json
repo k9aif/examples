@@ -1,0 +1,32 @@
+{
+  "title": "Overnight Risk Run \u2014 Portfolio PF-10231",
+  "narrative": "Overnight market data shows NVDA dropped 6.8% and now represents 18.4% of portfolio PF-10231 \u2014 above the 15% single-name concentration limit. The squad pulls market data, scores portfolio risk, flags the concentration anomaly, drafts an investment narrative, and validates the compliance report.",
+  "payload": {
+    "event_type": "portfolio_risk_check",
+    "query": "Assess overnight risk for this portfolio, flag anomalies, and produce a compliance-ready risk narrative.",
+    "portfolio_id": "PF-10231",
+    "portfolio_value": 18750000,
+    "var_95_1d": 312000,
+    "concentration_limit_pct": 15,
+    "positions": [
+      {
+        "ticker": "NVDA",
+        "shares": 4200,
+        "weight_pct": 18.4,
+        "change_1d_pct": -6.8
+      },
+      {
+        "ticker": "TLT",
+        "shares": 9000,
+        "weight_pct": 9.1,
+        "change_1d_pct": 1.2
+      },
+      {
+        "ticker": "XOM",
+        "shares": 5400,
+        "weight_pct": 7.5,
+        "change_1d_pct": 0.4
+      }
+    ]
+  }
+}

@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accounts Payable &amp; Expense Reimbursements — EAEF Layer 2 Blueprint</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --gray-100:#161616; --gray-90:#262626; --gray-80:#393939; --gray-70:#525252;
+  --gray-60:#6f6f6f; --gray-50:#8d8d8d; --gray-30:#c6c6c6; --gray-20:#e0e0e0;
+  --gray-10:#f4f4f4; --white:#ffffff;
+  --blue-60:#0f62fe; --blue-70:#0043ce; --blue-80:#002d9c; --blue-10:#edf5ff;
+  --green-60:#24a148; --green-10:#defbe6;
+  --yellow-30:#f1c21b; --yellow-10:#fcf4d6;
+  --red-60:#da1e28; --red-10:#fff1f1;
+  --purple-60:#8a3ffc; --purple-10:#e8daff;
+  --teal-60:#009d9a; --teal-10:#d9fbfb;
+  --sidebar-w: 280px;
+  --breadcrumb-h: 44px;
+  --bg: var(--white);
+  --bg-elevated: var(--gray-10);
+  --text: var(--gray-100);
+  --text-soft: var(--gray-70);
+  --border: var(--gray-20);
+  --border-soft: var(--gray-30);
+  --row-alt: var(--gray-10);
+  --row-hover: var(--blue-10);
+  --th-bg: var(--gray-100);
+  --th-fg: var(--white);
+  --quote-bg: var(--blue-10);
+  --quote-fg: var(--gray-70);
+}
+[data-theme="dark"] {
+  --bg: #161616;
+  --bg-elevated: #1f1f1f;
+  --text: #f4f4f4;
+  --text-soft: #c6c6c6;
+  --border: #393939;
+  --border-soft: #525252;
+  --row-alt: #1f1f1f;
+  --row-hover: #002d9c;
+  --th-bg: #000000;
+  --th-fg: #f4f4f4;
+  --quote-bg: #1f1f1f;
+  --quote-fg: #c6c6c6;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--breadcrumb-h) + 16px); }
+body { font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; line-height: 1.5;
+  color: var(--text); background: var(--bg); transition: background 0.2s, color 0.2s; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+  background: var(--gray-100); color: var(--white); overflow-y: auto;
+  padding: 0; z-index: 100; display: flex; flex-direction: column;
+}
+.sidebar-header { padding: 20px 0 8px; border-bottom: 1px solid var(--gray-80); }
+.sidebar-header > .ibm-logo,
+.sidebar-header > h2,
+.sidebar-header > .subtitle { padding-left: 20px; padding-right: 20px; }
+.sidebar-header .ibm-logo { font-size: 11px; font-weight: 600; letter-spacing: 2px;
+  color: var(--blue-60); margin-bottom: 12px; text-transform: uppercase; }
+.sidebar-header h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: var(--white); }
+.sidebar-header .subtitle { font-size: 12px; color: var(--gray-50); margin-bottom: 12px; }
+.nav-item {
+  display: block; padding: 8px 20px; color: var(--gray-30); text-decoration: none;
+  font-size: 13px; border-left: 3px solid transparent; transition: all 0.15s;
+}
+.nav-item:hover { background: var(--gray-90); color: var(--white); }
+.nav-item.active { border-left-color: var(--blue-60); background: rgba(15,98,254,0.08); color: var(--white); font-weight: 500; }
+.nav-item.dimmed { opacity: 0.32; }
+.nav-summary { font-weight: 500; padding-top: 16px; padding-bottom: 12px; color: var(--white); }
+.nav-phase { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--gray-50); margin-top: 16px; padding-bottom: 4px; position: relative; }
+.nav-phase:hover { color: var(--white); }
+.nav-sub { padding-left: 28px; font-size: 13px; }
+.nav-group { border-bottom: 1px solid var(--gray-90); padding-bottom: 4px; }
+.nav-caret { position: absolute; right: 16px; top: 50%; transform: translateY(-50%) rotate(0deg);
+  transition: transform 0.15s; font-size: 9px; color: var(--gray-50); cursor: pointer; padding: 4px; }
+.nav-caret:hover { color: var(--white); }
+.nav-group.collapsed .nav-caret { transform: translateY(-50%) rotate(-90deg); }
+.nav-group.collapsed .nav-children { display: none; }
+
+/* ── SEARCH ── */
+.search-wrap { position: relative; padding: 0 20px 8px; }
+.search-input {
+  width: 100%; padding: 8px 56px 8px 12px;
+  background: var(--gray-90); border: 1px solid var(--gray-80);
+  border-radius: 4px; color: var(--white); font-family: inherit; font-size: 13px;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-input::placeholder { color: var(--gray-50); }
+.search-input:focus { border-color: var(--blue-60); box-shadow: 0 0 0 1px var(--blue-60); }
+.search-count {
+  position: absolute; right: 28px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; color: var(--gray-50); pointer-events: none;
+}
+.scope-toggle { display: flex; gap: 4px; padding: 0 20px 8px; }
+.scope-btn {
+  flex: 1; background: var(--gray-90); border: 1px solid var(--gray-80);
+  color: var(--gray-30); font-size: 11px; padding: 5px 8px; cursor: pointer;
+  font-family: inherit; border-radius: 12px; transition: background 0.15s, color 0.15s;
+}
+.scope-btn:hover { color: var(--white); }
+.scope-btn.active { background: var(--blue-60); color: var(--white); border-color: var(--blue-60); }
+
+/* ── NAV CONTROLS + PROGRESS ── */
+.nav-controls { display: flex; gap: 4px; padding: 0 20px 14px; }
+.nav-ctrl-btn {
+  flex: 1; background: transparent; border: 1px solid var(--gray-80);
+  color: var(--gray-30); font-size: 11px; padding: 5px 6px; cursor: pointer;
+  font-family: inherit; border-radius: 2px; transition: background 0.15s;
+}
+.nav-ctrl-btn:hover { background: var(--gray-90); color: var(--white); }
+.progress-track { height: 2px; background: var(--gray-90); }
+.progress-fill { height: 100%; width: 0; background: var(--blue-60); transition: width 0.1s linear; }
+
+/* ── MAIN CONTENT ── */
+.main { margin-left: var(--sidebar-w); padding: calc(var(--breadcrumb-h) + 24px) 48px 80px; max-width: 1100px; }
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+  position: fixed; top: 0; left: var(--sidebar-w); right: 0; height: var(--breadcrumb-h);
+  z-index: 50; background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border); padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: var(--text-soft); transition: background 0.2s, border-color 0.2s;
+}
+[data-theme="dark"] .breadcrumb { background: rgba(22,22,22,0.92); }
+.crumb-trail { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.crumb-trail a {
+  color: var(--blue-60); text-decoration: none; padding: 2px 6px; border-radius: 2px;
+}
+.crumb-trail a:hover { text-decoration: underline; background: var(--bg-elevated); }
+.crumb-trail .sep { color: var(--gray-50); font-size: 11px; }
+.crumb-tools { display: flex; gap: 6px; }
+.tool-btn {
+  background: transparent; border: 1px solid var(--border-soft);
+  width: 30px; height: 30px; border-radius: 4px; cursor: pointer;
+  font-size: 13px; color: var(--text-soft); font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.tool-btn:hover { background: var(--bg-elevated); color: var(--text); border-color: var(--text-soft); }
+
+/* ── HEADER ── */
+.page-header { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+.page-header h1 { font-size: 32px; font-weight: 300; margin-bottom: 8px; color: var(--text); }
+.page-header .description { font-size: 16px; color: var(--text-soft); font-style: italic; }
+.page-header .target { font-size: 14px; margin-top: 8px; color: var(--text); }
+.page-header .ref { font-size: 12px; color: var(--text-soft); margin-top: 4px; }
+
+/* ── SECTIONS ── */
+.section { margin-bottom: 48px; scroll-margin-top: calc(var(--breadcrumb-h) + 16px); }
+.section h2 { font-size: 24px; font-weight: 300; margin-bottom: 16px; padding-bottom: 8px;
+  border-bottom: 2px solid var(--blue-60); color: var(--text); position: relative; }
+.subsection { margin: 32px 0; scroll-margin-top: calc(var(--breadcrumb-h) + 16px); }
+.subsection h3 { font-size: 18px; font-weight: 600; margin-bottom: 12px; color: var(--text); position: relative; }
+.subsubsection { margin: 24px 0 24px 16px; scroll-margin-top: calc(var(--breadcrumb-h) + 16px); }
+.subsubsection h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: var(--text-soft); position: relative; }
+.phase-title { color: var(--text); }
+p { margin-bottom: 8px; line-height: 1.6; }
+.label { color: var(--text); }
+blockquote { border-left: 3px solid var(--blue-60); padding: 8px 16px; margin: 12px 0;
+  background: var(--quote-bg); font-style: italic; color: var(--quote-fg); }
+ul { margin: 8px 0 12px 20px; }
+li { margin-bottom: 4px; line-height: 1.5; }
+
+/* ── ANCHOR LINKS ── */
+.anchor-link {
+  position: absolute; left: -22px; top: 0; line-height: 1;
+  color: var(--gray-50); text-decoration: none; font-weight: 400; font-size: 16px;
+  opacity: 0; transition: opacity 0.15s; padding: 2px 4px;
+}
+.section h2:hover .anchor-link,
+.subsection h3:hover .anchor-link,
+.subsubsection h4:hover .anchor-link,
+.anchor-link:focus { opacity: 1; }
+.anchor-link:hover { color: var(--blue-60); }
+
+/* ── STATS GRID ── */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+.stat {
+  background: var(--bg-elevated); border: 1px solid var(--border); padding: 20px 16px;
+  text-align: center; border-radius: 4px;
+}
+.stat-num { display: block; font-size: 36px; font-weight: 600; color: var(--blue-60); }
+.stat-label { display: block; font-size: 12px; color: var(--text-soft); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── ZONE BAR ── */
+.zone-bar-wrap { margin: 24px 0; }
+.zone-bar { display: flex; height: 36px; border-radius: 4px; overflow: hidden; }
+.zone-seg { display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: var(--white); min-width: 60px; }
+.zone-green { background: var(--green-60); }
+.zone-amber { background: var(--yellow-30); color: var(--gray-100); }
+.zone-red { background: var(--red-60); }
+
+/* ── TABLES ── */
+.table-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--border); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--bg); }
+thead th {
+  background: var(--th-bg); color: var(--th-fg); padding: 10px 16px;
+  text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.5px; white-space: nowrap;
+}
+tbody td { padding: 10px 16px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; color: var(--text); }
+tbody tr.alt { background: var(--row-alt); }
+tbody tr:hover { background: var(--row-hover); }
+
+/* ── DENSITY ── */
+[data-density="compact"] tbody td { padding: 6px 12px; font-size: 12px; }
+[data-density="compact"] thead th { padding: 6px 12px; }
+
+/* ── SORTABLE ── */
+table[data-sortable="true"] th { cursor: pointer; user-select: none; }
+table[data-sortable="true"] th:hover { background: var(--gray-80); }
+.sort-indicator { display: inline-block; width: 10px; opacity: 0.4; margin-left: 6px; }
+table[data-sortable="true"] th.sort-asc .sort-indicator::before { content: "▲"; opacity: 1; }
+table[data-sortable="true"] th.sort-desc .sort-indicator::before { content: "▼"; opacity: 1; }
+
+/* ── BADGES ── */
+.badge {
+  display: inline-block; padding: 2px 10px; border-radius: 24px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.3px; white-space: nowrap;
+}
+.badge-det { background: var(--blue-10); color: var(--blue-70); }
+.badge-ai { background: var(--purple-10); color: var(--purple-60); }
+.badge-green { background: var(--green-10); color: var(--green-60); }
+.badge-amber { background: var(--yellow-10); color: #6e4c00; }
+.badge-red { background: var(--red-10); color: var(--red-60); }
+
+/* ── FILTER CHIPS ── */
+.filter-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 12px;
+}
+.filter-label { font-size: 11px; color: var(--text-soft); text-transform: uppercase;
+  letter-spacing: 0.5px; margin: 0 4px 0 0; }
+.filter-sep { width: 1px; height: 14px; background: var(--border); margin: 0 6px; }
+.chip {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text); padding: 3px 12px; font-size: 11px; font-weight: 500;
+  border-radius: 16px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.chip:hover { background: var(--border); }
+.chip.active { background: var(--blue-60); color: var(--white); border-color: var(--blue-60); }
+.chip.chip-green.active { background: var(--green-60); border-color: var(--green-60); }
+.chip.chip-amber.active { background: var(--yellow-30); border-color: var(--yellow-30); color: var(--gray-100); }
+.chip.chip-red.active { background: var(--red-60); border-color: var(--red-60); }
+
+/* ── SEARCH HIGHLIGHTS ── */
+mark.search-hit { background: #ffd166; color: var(--gray-100); padding: 0 2px; border-radius: 2px; }
+mark.search-hit.current { background: #f1c21b; outline: 2px solid #d49100; outline-offset: 1px; }
+[data-theme="dark"] mark.search-hit { background: #ffe066; color: var(--gray-100); }
+
+/* ── CROSS-REF FLASH ── */
+@keyframes eaef-flash { 0% { background: var(--yellow-10); } 100% { background: transparent; } }
+tr.flash > td { animation: eaef-flash 1.4s ease-out; }
+.xref { color: var(--blue-60); text-decoration: none; border-bottom: 1px dashed var(--blue-60); }
+.xref:hover { text-decoration: underline; }
+
+/* ── FAB ── */
+.fab-top {
+  position: fixed; bottom: 24px; right: 24px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--blue-60); color: var(--white); border: none;
+  font-size: 18px; cursor: pointer; opacity: 0; pointer-events: none;
+  transform: translateY(8px); transition: opacity 0.2s, transform 0.2s;
+  z-index: 60; box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.fab-top.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.fab-top:hover { background: var(--blue-70); }
+@media (prefers-reduced-motion: reduce) { .fab-top { transition: none; } }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(8px);
+  background: var(--gray-100); color: var(--white);
+  padding: 10px 16px; border-radius: 4px; font-size: 13px;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 70;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── HELP MODAL ── */
+.help-modal[hidden] { display: none; }
+.help-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 80; }
+.help-card {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: var(--bg); color: var(--text);
+  border-radius: 4px; padding: 24px;
+  width: 460px; max-width: 92%; z-index: 81; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+}
+.help-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+.help-table { width: 100%; }
+.help-table th { font-family: 'IBM Plex Mono', monospace; text-align: left; padding: 6px 12px 6px 0;
+  font-weight: 600; color: var(--text); width: 110px; font-size: 13px; vertical-align: top; }
+.help-table td { padding: 6px 0; font-size: 13px; color: var(--text-soft); }
+.help-close {
+  margin-top: 16px; background: var(--blue-60); color: var(--white);
+  border: none; padding: 8px 16px; cursor: pointer; border-radius: 2px;
+  font-family: inherit; font-size: 13px;
+}
+.help-close:hover { background: var(--blue-70); }
+
+/* ── FOOTER ── */
+.footer { margin-top: 64px; padding: 24px 0; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-soft); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .sidebar { width: 100%; height: auto; position: relative; }
+  .breadcrumb { left: 0; }
+  .main { margin-left: 0; padding: calc(var(--breadcrumb-h) + 16px) 24px 64px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .anchor-link { left: -16px; font-size: 14px; }
+}
+@media print {
+  .sidebar, .breadcrumb, .fab-top, .toast, .help-modal,
+  .filter-chips, .anchor-link, .nav-controls, .scope-toggle,
+  .search-wrap, .progress-track, .crumb-tools, .sort-indicator { display: none !important; }
+  .main { margin-left: 0; padding: 0; max-width: none; }
+  body { color: #000; background: #fff; }
+  table, .table-wrap { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<nav class="sidebar" id="sidebar" aria-label="Blueprint navigation">
+  <div class="sidebar-header">
+    <div class="ibm-logo">IBM</div>
+    <h2>Accounts Payable &amp; Expense Reimbursements</h2>
+    <p class="subtitle">EAEF Layer 2 Blueprint</p>
+    <div class="search-wrap">
+      <input id="search-input" class="search-input" type="search" placeholder="Search…  (press /)" autocomplete="off" spellcheck="false" aria-label="Search content">
+      <span id="search-count" class="search-count" aria-live="polite"></span>
+    </div>
+    <div class="scope-toggle" role="group" aria-label="Search scope">
+      <button class="scope-btn active" data-scope="all" type="button">All content</button>
+      <button class="scope-btn" data-scope="headings" type="button">Headings only</button>
+    </div>
+    <div class="nav-controls">
+      <button id="nav-expand-all" class="nav-ctrl-btn" type="button" title="Expand all phases">Expand all</button>
+      <button id="nav-collapse-all" class="nav-ctrl-btn" type="button" title="Collapse all phases">Collapse all</button>
+    </div>
+  </div>
+  <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+  <a href="#summary" class="nav-item nav-summary">Executive Summary</a><div class="nav-group" data-phase-index="0">
+      <a href="#phase-1-cognitive-deconstruction" class="nav-item nav-phase">Phase 1: Cognitive Deconstruction<span class="nav-caret" aria-hidden="true">▾</span></a>
+      <div class="nav-children"><a href="#1-1-atomic-thinking-step-register" class="nav-item nav-sub">1.1 Atomic Thinking Step Register</a><a href="#1-2-business-ontology" class="nav-item nav-sub">1.2 Business Ontology</a><a href="#1-3-autonomy-zone-map" class="nav-item nav-sub">1.3 Autonomy Zone Map</a><a href="#1-4-human-in-the-loop-specification" class="nav-item nav-sub">1.4 Human-in-the-Loop Specification</a><a href="#1-5-data-products-definition" class="nav-item nav-sub">1.5 Data Products Definition</a><a href="#1-6-integration-with-systems-of-record" class="nav-item nav-sub">1.6 Integration with Systems of Record</a><a href="#1-7-mcp-tool-register" class="nav-item nav-sub">1.7 MCP Tool Register</a><a href="#1-8-agent-definition-register" class="nav-item nav-sub">1.8 Agent Definition Register</a></div></div><div class="nav-group" data-phase-index="1">
+      <a href="#phase-2-context-memory-engineering" class="nav-item nav-phase">Phase 2: Context &amp; Memory Engineering<span class="nav-caret" aria-hidden="true">▾</span></a>
+      <div class="nav-children"><a href="#2-1-context-payload-specifications" class="nav-item nav-sub">2.1 Context Payload Specifications</a><a href="#2-2-memory-architecture-configuration" class="nav-item nav-sub">2.2 Memory Architecture Configuration</a><a href="#2-3-audit-trace-architecture-specification" class="nav-item nav-sub">2.3 Audit Trace Architecture Specification</a></div></div><div class="nav-group" data-phase-index="2">
+      <a href="#phase-3-agentic-app-engineering" class="nav-item nav-phase">Phase 3: Agentic App Engineering<span class="nav-caret" aria-hidden="true">▾</span></a>
+      <div class="nav-children"><a href="#3-1-agent-roster" class="nav-item nav-sub">3.1 Agent Roster</a><a href="#3-2-model-selection" class="nav-item nav-sub">3.2 Model Selection</a><a href="#3-3-skills-library" class="nav-item nav-sub">3.3 Skills Library</a><a href="#3-4-mcp-tool-engineering-plan" class="nav-item nav-sub">3.4 MCP Tool Engineering Plan</a><a href="#3-5-orchestration-topology" class="nav-item nav-sub">3.5 Orchestration Topology</a><a href="#3-6-guardrail-configuration" class="nav-item nav-sub">3.6 Guardrail Configuration</a><a href="#3-7-error-handling-fallback-design" class="nav-item nav-sub">3.7 Error Handling &amp; Fallback Design</a><a href="#3-8-observability-requirements" class="nav-item nav-sub">3.8 Observability Requirements</a></div></div><div class="nav-group" data-phase-index="3">
+      <a href="#phase-4-hardening-verification" class="nav-item nav-phase">Phase 4: Hardening &amp; Verification<span class="nav-caret" aria-hidden="true">▾</span></a>
+      <div class="nav-children"><a href="#4-1-functional-evals" class="nav-item nav-sub">4.1 Functional Evals</a><a href="#4-2-behavioral-evals" class="nav-item nav-sub">4.2 Behavioral Evals</a><a href="#4-3-adversarial-evals" class="nav-item nav-sub">4.3 Adversarial Evals</a><a href="#4-4-domain-evals" class="nav-item nav-sub">4.4 Domain Evals</a><a href="#4-5-human-in-the-loop-validation" class="nav-item nav-sub">4.5 Human-in-the-Loop Validation</a><a href="#4-6-observability-validation" class="nav-item nav-sub">4.6 Observability Validation</a></div></div><div class="nav-group" data-phase-index="4">
+      <a href="#phase-5-agentic-activation" class="nav-item nav-phase">Phase 5: Agentic Activation<span class="nav-caret" aria-hidden="true">▾</span></a>
+      <div class="nav-children"><a href="#5-1-change-management-user-enablement" class="nav-item nav-sub">5.1 Change Management &amp; User Enablement</a><a href="#5-2-cognitive-telemetry-activation" class="nav-item nav-sub">5.2 Cognitive Telemetry Activation</a><a href="#5-3-operational-handover" class="nav-item nav-sub">5.3 Operational Handover</a></div></div><div class="nav-group" data-phase-index="5">
+      <a href="#phase-6-agentic-operations-evolution" class="nav-item nav-phase">Phase 6: Agentic Operations &amp; Evolution<span class="nav-caret" aria-hidden="true">▾</span></a>
+      <div class="nav-children"><a href="#6-1-continuous-agent-evaluation" class="nav-item nav-sub">6.1 Continuous Agent Evaluation</a><a href="#6-2-outcome-measurement" class="nav-item nav-sub">6.2 Outcome Measurement</a></div></div></nav>
+<div class="breadcrumb" id="breadcrumb" aria-label="Section breadcrumb">
+  <div class="crumb-trail" id="crumb-trail">
+    <a href="#summary">Executive Summary</a>
+  </div>
+  <div class="crumb-tools">
+    <button id="theme-toggle" class="tool-btn" type="button" title="Toggle dark mode" aria-label="Toggle dark mode">◐</button>
+  </div>
+</div>
+<div class="main">
+  <header class="page-header">
+    <h1>Accounts Payable &amp; Expense Reimbursements</h1>
+    <p class="description">End-to-end invoice processing, payment execution, and expense management</p>
+    <p class="target"><strong>Target Outcome:</strong> 65-80% touchless invoice processing; 40-55% FTE reduction; 3-day cycle time reduction</p>
+    <p class="ref">Process Reference: APQC PCF 9.5</p>
+  </header>
+  <section id="summary" class="section">
+  <h2>Executive Summary</h2>
+  <p class="description">End-to-end invoice processing, payment execution, and expense management</p>
+  <p class="target"><strong>Target Outcome:</strong> 65-80% touchless invoice processing; 40-55% FTE reduction; 3-day cycle time reduction</p>
+  <p class="ref">Process Reference: APQC PCF 9.5</p>
+  <div class="stats-grid">
+    <div class="stat"><span class="stat-num">14</span><span class="stat-label">Atomic Steps</span></div>
+    <div class="stat"><span class="stat-num">64%</span><span class="stat-label">Deterministic</span></div>
+    <div class="stat"><span class="stat-num">36%</span><span class="stat-label">AI-Powered</span></div>
+    <div class="stat"><span class="stat-num">7</span><span class="stat-label">Agents</span></div>
+    <div class="stat"><span class="stat-num">6</span><span class="stat-label">Data Products</span></div>
+    <div class="stat"><span class="stat-num">6</span><span class="stat-label">MCP Tools</span></div>
+  </div>
+  <div class="zone-bar-wrap">
+    <div class="zone-bar">
+      <div class="zone-seg zone-green" style="width:64%">9 Green</div>
+      <div class="zone-seg zone-amber" style="width:29%">4 Amber</div>
+      <div class="zone-seg zone-red" style="width:7%">1 Red</div>
+    </div>
+  </div>
+</section>
+  <section id="phase-1-cognitive-deconstruction" class="section phase-section">
+      <h2 class="phase-title">Phase 1: Cognitive Deconstruction</h2>
+      <div id="1-1-atomic-thinking-step-register" class="subsection">
+        <h3>1.1 Atomic Thinking Step Register</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Step</th><th>Name</th><th>Type</th><th>Zone</th><th>Reliability</th><th>Design Rationale</th></tr></thead><tbody><tr class="" data-type="DET" data-zone="GREEN"><td>ATS1</td><td>Receive &amp; Digitize Invoice</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-green">GREEN</span></td><td>99.9%</td><td>OCR extraction and format normalization. Template-based field extraction from known vendor formats; unstructured formats fall back to AI-assisted extraction only when template matching fails.</td></tr><tr class="alt" data-type="DET" data-zone="GREEN"><td>ATS2</td><td>Validate Invoice Completeness</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-green">GREEN</span></td><td>99.9%</td><td>Rule-based check for mandatory fields (invoice number, date, vendor, amount, currency, PO reference). No judgment required — pure field presence/format validation.</td></tr><tr class="" data-type="DET" data-zone="GREEN"><td>ATS3</td><td>Match Invoice to Purchase Order</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-green">GREEN</span></td><td>99.9%</td><td>Three-way match (invoice, PO, goods receipt) using exact field matching against configured tolerance thresholds. Deterministic lookup and comparison logic.</td></tr><tr class="alt" data-type="AI" data-zone="AMBER"><td>ATS4</td><td>Detect Matching Exceptions</td><td><span class="badge badge-ai">AI</span></td><td><span class="badge badge-amber">AMBER</span></td><td>93%+</td><td>AI interprets partial matches, quantity discrepancies, and price variances beyond tolerance. Requires judgment to distinguish a data error from a legitimate vendor dispute.</td></tr><tr class="" data-type="AI" data-zone="AMBER"><td>ATS5</td><td>Classify &amp; Code GL Account</td><td><span class="badge badge-ai">AI</span></td><td><span class="badge badge-amber">AMBER</span></td><td>94%+</td><td>AI assigns GL codes based on line item descriptions, vendor category, and historical coding patterns. Ambiguous or novel line items are routed for human review.</td></tr><tr class="alt" data-type="AI" data-zone="RED"><td>ATS6</td><td>Detect Invoice Anomalies</td><td><span class="badge badge-ai">AI</span></td><td><span class="badge badge-red">RED</span></td><td>91%+</td><td>Fraud detection across duplicate invoices, round amounts, sequential numbers, new bank details, and unusual timing. Placed in Red zone given direct financial and fraud exposure.</td></tr><tr class="" data-type="DET" data-zone="GREEN"><td>ATS7</td><td>Route for Approval</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-green">GREEN</span></td><td>99.9%</td><td>Deterministic routing based on amount thresholds, cost center, and the delegation-of-authority matrix. No interpretive judgment required.</td></tr><tr class="alt" data-type="DET" data-zone="GREEN"><td>ATS8</td><td>Execute Payment</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-green">GREEN</span></td><td>99.9%</td><td>Payment file generation per bank format (SWIFT, ACH, SEPA). Deterministic transformation and scheduling against a fixed payment calendar.</td></tr><tr class="" data-type="AI" data-zone="GREEN"><td>ATS9</td><td>Optimize Payment Timing</td><td><span class="badge badge-ai">AI</span></td><td><span class="badge badge-green">GREEN</span></td><td>95%+</td><td>AI recommends early-payment discount capture versus cash preservation. Advisory output only — no autonomous change to scheduled payments — hence Green despite AI classification.</td></tr><tr class="alt" data-type="DET" data-zone="GREEN"><td>ATS10</td><td>Post Payment to Ledger</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-green">GREEN</span></td><td>99.9%</td><td>Journal entry posting using predefined debit/credit rules. Fully deterministic accounting logic.</td></tr><tr class="" data-type="DET" data-zone="GREEN"><td>ATS11</td><td>Receive &amp; Validate Expense Report</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-green">GREEN</span></td><td>99.9%</td><td>Policy compliance check: receipt present, within limits, correct category. Rule-based validation against the configured expense policy engine.</td></tr><tr class="alt" data-type="AI" data-zone="AMBER"><td>ATS12</td><td>Audit Expense for Policy Violations</td><td><span class="badge badge-ai">AI</span></td><td><span class="badge badge-amber">AMBER</span></td><td>92%+</td><td>AI reviews expense patterns for policy abuse — transaction splitting, weekend charges, excessive tips — requiring human judgment on ambiguous or first-occurrence cases.</td></tr><tr class="" data-type="DET" data-zone="AMBER"><td>ATS13</td><td>Process Vendor Master Updates</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-amber">AMBER</span></td><td>99.9%</td><td>Bank detail changes are deterministic field updates but held in Amber zone because of fraud risk — a human must independently verify new bank details before activation.</td></tr><tr class="alt" data-type="DET" data-zone="GREEN"><td>ATS14</td><td>Generate AP Aging &amp; Analytics</td><td><span class="badge badge-det">DET</span></td><td><span class="badge badge-green">GREEN</span></td><td>99.9%</td><td>Automated reporting aggregated from the payment ledger. Deterministic aggregation, calculation, and formatting logic.</td></tr></tbody></table></div></div><div id="1-2-business-ontology" class="subsection">
+        <h3>1.2 Business Ontology</h3>
+        <br/><p><strong class="label">Core Entities:</strong> Invoice, Purchase Order, Goods Receipt, Vendor, GL Account, Cost Center, Payment, Expense Report, Employee, Bank Account, Approval Chain, Currency</p><br/><p><strong class="label">Entity Relationships:</strong> </p><ul><li>Invoice references Purchase Order</li><li>Invoice submitted-by Vendor</li><li>Invoice coded-to GL Account</li><li>Payment settles Invoice</li><li>Expense Report submitted-by Employee</li><li>Expense Report approved-by Approval Chain</li><li>Vendor has Bank Account</li><li>GL Account belongs-to Cost Center</li></ul><br/><br/></div><div id="1-3-autonomy-zone-map" class="subsection">
+        <h3>1.3 Autonomy Zone Map</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Zone</th><th>Count</th><th>Percentage</th><th>Steps</th></tr></thead><tbody><tr class="" data-zone="GREEN"><td><span class="badge badge-green">GREEN</span></td><td>9</td><td>64%</td><td>ATS1, ATS2, ATS3, ATS7, ATS8, ATS9, ATS10, ATS11, ATS14</td></tr><tr class="alt" data-zone="AMBER"><td><span class="badge badge-amber">AMBER</span></td><td>4</td><td>29%</td><td>ATS4, ATS5, ATS12, ATS13</td></tr><tr class="" data-zone="RED"><td><span class="badge badge-red">RED</span></td><td>1</td><td>7%</td><td>ATS6</td></tr></tbody></table></div></div><div id="1-4-human-in-the-loop-specification" class="subsection">
+        <h3>1.4 Human-in-the-Loop Specification</h3>
+        <div class="table-wrap"><table data-kind="hitl" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Step<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Zone<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Reviewer Role<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Validation Scope<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="4" tabindex="0">Decision Authority<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="5" tabindex="0">Review SLA<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="6" tabindex="0">Override Rules<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-hitl-ats4" class="" data-zone="AMBER"><td>ATS4</td><td><span class="badge badge-amber">AMBER</span></td><td>AP Specialist</td><td>Review partial match details, verify quantity/price discrepancy root cause</td><td>Approve/Reject/Escalate</td><td>4 hours</td><td>Override logged with reason code; feeds matching model improvement. SLA breach auto-escalates to AP Supervisor queue.</td></tr><tr id="row-hitl-ats5" class="alt" data-zone="AMBER"><td>ATS5</td><td><span class="badge badge-amber">AMBER</span></td><td>AP Specialist</td><td>Verify GL code assignment for ambiguous line items</td><td>Approve/Modify</td><td>4 hours</td><td>Correction feeds GL coding model retraining. SLA breach routes to Controller for interim manual coding.</td></tr><tr id="row-hitl-ats6" class="" data-zone="RED"><td>ATS6</td><td><span class="badge badge-red">RED</span></td><td>AP Manager + Internal Audit</td><td>Review anomaly details, vendor history, invoice patterns</td><td>Block payment / Escalate to fraud team</td><td>2 hours</td><td>Cannot be overridden without dual approval (AP Manager + Internal Audit). SLA breach triggers automatic payment hold extension.</td></tr><tr id="row-hitl-ats12" class="alt" data-zone="AMBER"><td>ATS12</td><td><span class="badge badge-amber">AMBER</span></td><td>Finance Manager</td><td>Review flagged expense patterns against policy</td><td>Approve/Reject/Request clarification</td><td>24 hours</td><td>Override requires written justification retained in audit trail. SLA breach escalates to Finance Director.</td></tr><tr id="row-hitl-ats13" class="" data-zone="AMBER"><td>ATS13</td><td><span class="badge badge-amber">AMBER</span></td><td>AP Supervisor</td><td>Verify vendor bank detail change against confirmed vendor contact</td><td>Approve/Reject</td><td>4 hours</td><td>Rejection triggers vendor re-verification process. SLA breach blocks payment run inclusion for the affected vendor until verified.</td></tr></tbody></table></div></div><div id="1-5-data-products-definition" class="subsection">
+        <h3>1.5 Data Products Definition</h3>
+        <div class="table-wrap"><table data-kind="dataProducts" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Data Product<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Owner<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Source Systems<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Freshness<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="4" tabindex="0">Quality Threshold<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="5" tabindex="0">Regulatory Class<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="6" tabindex="0">Retention<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-dataProducts-dps1-invoice-data-lake" class="" ><td>DPS1 – Invoice Data Lake</td><td>AP Manager</td><td>SAP S/4HANA, Coupa, Email Gateway</td><td>Real-time</td><td>99.5% field extraction accuracy</td><td>Financial</td><td>7 years</td></tr><tr id="row-dataProducts-dps2-vendor-master" class="alt" ><td>DPS2 – Vendor Master</td><td>Procurement</td><td>SAP MDG, D&amp;B, Vendor Portal</td><td>Event-driven</td><td>99.9% completeness; 100% bank detail change verification prior to activation</td><td>Financial / PII</td><td>Active + 7 years</td></tr><tr id="row-dataProducts-dps3-po-goods-receipt-data" class="" ><td>DPS3 – PO &amp; Goods Receipt Data</td><td>Procurement</td><td>SAP MM, Ariba</td><td>Real-time</td><td>100% PO completeness at three-way match time</td><td>Financial</td><td>7 years</td></tr><tr id="row-dataProducts-dps4-gl-cost-center-master" class="alt" ><td>DPS4 – GL &amp; Cost Center Master</td><td>Controller</td><td>SAP FI-CO</td><td>Daily batch</td><td>100% active accounts; validated quarterly against chart of accounts</td><td>Financial</td><td>Permanent</td></tr><tr id="row-dataProducts-dps5-payment-transaction-log" class="" ><td>DPS5 – Payment Transaction Log</td><td>Treasury</td><td>SAP FI, Banking Gateway</td><td>Real-time</td><td>100% reconciled within T+1</td><td>Financial</td><td>7 years</td></tr><tr id="row-dataProducts-dps6-expense-policy-rules" class="alt" ><td>DPS6 – Expense Policy Rules</td><td>Finance Policy</td><td>Policy Management System</td><td>Event-driven (policy updates)</td><td>100% current version enforced at validation time</td><td>Non-regulated</td><td>Active + 3 years</td></tr></tbody></table></div></div><div id="1-6-integration-with-systems-of-record" class="subsection">
+        <h3>1.6 Integration with Systems of Record</h3>
+        <div class="table-wrap"><table data-kind="systems" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">System<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Integration Pattern<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Data Products<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Latency<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="4" tabindex="0">Authentication<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="5" tabindex="0">Constraints<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-systems-sap-s-4hana-fi-ap" class="" ><td>SAP S/4HANA (FI-AP)</td><td>Real-time API + batch</td><td>DPS1, DPS4, DPS5</td><td>&lt;3s API, T+1 batch</td><td>OAuth 2.0 + Service Account</td><td>Extract window 02:00–04:00 UTC for batch jobs</td></tr><tr id="row-systems-coupa-ariba" class="alt" ><td>Coupa / Ariba</td><td>Real-time API</td><td>DPS3</td><td>&lt;5s</td><td>OAuth 2.0</td><td>Rate limit 100 req/min</td></tr><tr id="row-systems-banking-gateway-swift-ach" class="" ><td>Banking Gateway (SWIFT / ACH)</td><td>Batch + event-driven</td><td>DPS5</td><td>Batch T+0 EOD; confirmations T+1</td><td>Certificate + API Key</td><td>Payment file cutoff 14:00 local time</td></tr><tr id="row-systems-ofac-sanctions-api" class="alt" ><td>OFAC Sanctions API</td><td>Real-time API</td><td>Sanctions screening results (feeds ATS6)</td><td>&lt;2s</td><td>API Key</td><td>100% uptime required for payment blocking</td></tr><tr id="row-systems-concur-sap-travel" class="" ><td>Concur / SAP Travel</td><td>Real-time API</td><td>DPS6, Expense Reports and Receipts</td><td>&lt;5s</td><td>OAuth 2.0</td><td>Receipt image max 10MB</td></tr><tr id="row-systems-sap-mdg-vendor-master" class="alt" ><td>SAP MDG (Vendor Master)</td><td>Event-driven</td><td>DPS2</td><td>&lt;5s change propagation</td><td>OAuth 2.0 + Service Account</td><td>Bank detail change events require dual-control acknowledgment before DPS2 update commits</td></tr></tbody></table></div></div><div id="1-7-mcp-tool-register" class="subsection">
+        <h3>1.7 MCP Tool Register</h3>
+        <div class="table-wrap"><table data-kind="mcp" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Tool Name<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Description<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Used By Steps<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Input/Output Schema<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="4" tabindex="0">Authentication<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-mcp-tol1-retrieve-invoice-data" class="" ><td>TOL1 – Retrieve Invoice Data</td><td>Extract invoice fields from SAP AP module</td><td>ATS1, ATS2, ATS3</td><td>In: invoice_id</td><td>Out: invoice fields, line items, PO reference</td><td>OAuth 2.0</td></tr><tr id="row-mcp-tol2-execute-three-way-match" class="alt" ><td>TOL2 – Execute Three-Way Match</td><td>Compare invoice, PO, and goods receipt records</td><td>ATS3</td><td>In: invoice_id, po_id, gr_id</td><td>Out: match_result, discrepancies[]</td><td>Service Account</td></tr><tr id="row-mcp-tol3-post-gl-entry" class="" ><td>TOL3 – Post GL Entry</td><td>Create journal entry in SAP FI</td><td>ATS5, ATS10</td><td>In: debit_account, credit_account, amount, currency, doc_ref</td><td>Out: document_number, posting_status</td><td>OAuth 2.0</td></tr><tr id="row-mcp-tol4-screen-sanctions-list" class="alt" ><td>TOL4 – Screen Sanctions List</td><td>Check vendor against OFAC/EU sanctions lists</td><td>ATS6</td><td>In: vendor_name, country, aliases</td><td>Out: match_score, matched_entities[], risk_level</td><td>API Key</td></tr><tr id="row-mcp-tol5-generate-payment-file" class="" ><td>TOL5 – Generate Payment File</td><td>Create bank payment instruction file</td><td>ATS8</td><td>In: payment_batch_id, bank_format</td><td>Out: file_path, payment_count, total_amount</td><td>Certificate</td></tr><tr id="row-mcp-tol6-retrieve-expense-report" class="alt" ><td>TOL6 – Retrieve Expense Report</td><td>Fetch expense report details from Concur</td><td>ATS11, ATS12</td><td>In: report_id</td><td>Out: line_items[], receipts[], policy_violations[]</td><td>OAuth 2.0</td></tr></tbody></table></div></div><div id="1-8-agent-definition-register" class="subsection">
+        <h3>1.8 Agent Definition Register</h3>
+        <div class="table-wrap"><table data-kind="agents" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Agent<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Goal<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Owned Steps<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Orchestration Pattern<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="4" tabindex="0">Tools Required<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="5" tabindex="0">Autonomy Zone<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="6" tabindex="0">HITL Touchpoints<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-agents-agn1-deterministic-rule-engine" class="" data-zone="GREEN"><td>AGN1 – Deterministic Rule Engine</td><td>Execute all rule-based AP processing: validation, matching, routing, posting, reporting</td><td>ATS1, ATS2, ATS3, ATS7, ATS8, ATS10, ATS11, ATS14</td><td>Single Agent</td><td>TOL1, TOL2, TOL3, TOL5</td><td><span class="badge badge-green">GREEN</span></td><td>None</td></tr><tr id="row-agents-agn2-exception-resolution-agent" class="alt" data-zone="AMBER"><td>AGN2 – Exception Resolution Agent</td><td>Interpret matching exceptions and recommend resolution</td><td>ATS4</td><td>Single Agent</td><td>TOL1</td><td><span class="badge badge-amber">AMBER</span></td><td>ATS4 — AP Specialist validates resolution</td></tr><tr id="row-agents-agn3-gl-coding-agent" class="" data-zone="AMBER"><td>AGN3 – GL Coding Agent</td><td>Assign GL account codes to invoice line items using historical patterns and descriptions</td><td>ATS5</td><td>Single Agent</td><td>TOL3</td><td><span class="badge badge-amber">AMBER</span></td><td>ATS5 — AP Specialist verifies ambiguous codes</td></tr><tr id="row-agents-agn4-anomaly-detection-agent" class="alt" data-zone="RED"><td>AGN4 – Anomaly Detection Agent</td><td>Identify fraudulent or anomalous invoices by analyzing patterns across vendor history</td><td>ATS6</td><td>Single Agent</td><td>TOL4, TOL1</td><td><span class="badge badge-red">RED</span></td><td>ATS6 — AP Manager + Internal Audit review</td></tr><tr id="row-agents-agn5-payment-optimization-agent" class="" data-zone="GREEN"><td>AGN5 – Payment Optimization Agent</td><td>Recommend optimal payment timing balancing early-payment discounts and cash position</td><td>ATS9</td><td>Single Agent</td><td>TOL1</td><td><span class="badge badge-green">GREEN</span></td><td>None</td></tr><tr id="row-agents-agn6-expense-audit-agent" class="alt" data-zone="AMBER"><td>AGN6 – Expense Audit Agent</td><td>Detect expense policy violations and abuse patterns</td><td>ATS12</td><td>Single Agent</td><td>TOL6</td><td><span class="badge badge-amber">AMBER</span></td><td>ATS12 — Finance Manager reviews flagged items</td></tr><tr id="row-agents-agn7-vendor-master-agent" class="" data-zone="AMBER"><td>AGN7 – Vendor Master Agent</td><td>Process vendor master data changes with independent verification</td><td>ATS13</td><td>Single Agent</td><td>TOL1</td><td><span class="badge badge-amber">AMBER</span></td><td>ATS13 — AP Supervisor verifies bank changes</td></tr></tbody></table></div></div></section><section id="phase-2-context-memory-engineering" class="section phase-section">
+      <h2 class="phase-title">Phase 2: Context &amp; Memory Engineering</h2>
+      <div id="2-1-context-payload-specifications" class="subsection">
+        <h3>2.1 Context Payload Specifications</h3>
+        <br/><p><strong class="label">Step 1.4 — Exception Resolution:</strong> Invoice line items with match discrepancies; PO line details (quantity, unit price, delivery date); goods receipt confirmation (received qty, condition notes); vendor's last 50 invoices match history (success rate, common exception types); tolerance thresholds per vendor category.</p><br/><p><strong class="label">Step 1.5 — GL Coding:</strong> Invoice line item descriptions (normalized); vendor category and default GL mapping; last 100 similar line items by cosine similarity with their GL assignments; full chart of accounts with descriptions (active accounts only); cost center rules (department-to-cost-center mapping).</p><br/><p><strong class="label">Step 1.6 — Anomaly Detection:</strong> Current invoice (all fields); vendor 24-month invoice history (amounts, frequencies, patterns); duplicate detection index (invoice# + vendor + amount within 90 days); fraud pattern library (round amounts, sequential numbers, new bank details, unusual timing); peer vendor benchmarks (same category averages).</p><br/><p><strong class="label">Step 1.9 — Payment Optimization:</strong> Pending payment batch (invoices, amounts, due dates, discount terms); current cash position and 30-day forecast; cost of capital rate; vendor relationship tier; historical discount capture rate per vendor.</p><br/><p><strong class="label">Step 1.12 — Expense Audit:</strong> Current expense report (all line items, receipts, timestamps); submitter's last 12 months of expense history; corporate policy rules (per diem, category limits, receipt thresholds); peer group expense benchmarks; known abuse patterns library.</p><br/><br/></div><div id="2-2-memory-architecture-configuration" class="subsection">
+        <h3>2.2 Memory Architecture Configuration</h3>
+        <br/><p><strong class="label">Session Memory:</strong> Current invoice being processed; in-flight matching state (PO match, GR match results); partial GL coding assignments; current approval chain state; processing timestamp and SLA countdown.</p><br/><p><strong class="label">Episodic Memory:</strong> Per-vendor: coding patterns (GL code frequency distribution), exception frequency (rejection rate, rework rate), payment behavior (average days to pay, discount capture rate). Per-employee: expense patterns, policy violation history, override frequency.</p><br/><p><strong class="label">Semantic Memory:</strong> Common GL mappings across all vendors (e.g., 'consulting services' → 6200-Professional Fees in 94% of cases). Seasonal expense patterns. Industry-standard fraud indicators. Optimal payment timing patterns by vendor tier.</p><br/><br/></div><div id="2-3-audit-trace-architecture-specification" class="subsection">
+        <h3>2.3 Audit Trace Architecture Specification</h3>
+        <div class="table-wrap"><table data-kind="audit" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Step<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Logged Data<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Retention<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Access<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-audit-1-4" class="" ><td>1.4</td><td>Match discrepancy details, AI resolution recommendation, confidence score, human decision, override reason</td><td>7 years</td><td>AP Manager, Internal Audit, External Audit</td></tr><tr id="row-audit-1-5" class="alt" ><td>1.5</td><td>Line item text, candidate GL codes with scores, selected code, human override (if any), model version</td><td>7 years</td><td>Controller, Internal Audit</td></tr><tr id="row-audit-1-6" class="" ><td>1.6</td><td>Anomaly type, risk score, evidence details, matched fraud patterns, resolution (blocked/approved), reviewer identity</td><td>10 years</td><td>Internal Audit, Fraud Team, CFO</td></tr><tr id="row-audit-1-9" class="alt" ><td>1.9</td><td>Payment recommendations, discount analysis, cash impact calculation, accepted/modified by treasury</td><td>7 years</td><td>Treasury, CFO</td></tr><tr id="row-audit-1-12" class="" ><td>1.12</td><td>Flagged expense items, policy violation type, confidence score, reviewer decision, employee notification</td><td>7 years</td><td>Finance Manager, Internal Audit, HR (if escalated)</td></tr></tbody></table></div></div></section><section id="phase-3-agentic-app-engineering" class="section phase-section">
+      <h2 class="phase-title">Phase 3: Agentic App Engineering</h2>
+      <div id="3-1-agent-roster" class="subsection">
+        <h3>3.1 Agent Roster</h3>
+        <div class="table-wrap"><table data-kind="agents" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Agent<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Steps<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Description<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-agents-agn1-deterministic-rule-engine" class="" ><td>AGN1 – Deterministic Rule Engine</td><td>ATS1, ATS2, ATS3, ATS7, ATS8, ATS10, ATS11, ATS14</td><td>Execute all rule-based AP processing: receive &amp; digitize invoice, validate completeness, match invoice to PO, route for approval, execute payment, post payment to ledger, receive &amp; validate expense report, generate AP aging &amp; analytics</td></tr><tr id="row-agents-agn2-exception-resolution-agent" class="alt" ><td>AGN2 – Exception Resolution Agent</td><td>ATS4</td><td>Interpret matching exceptions and recommend resolution</td></tr><tr id="row-agents-agn3-gl-coding-agent" class="" ><td>AGN3 – GL Coding Agent</td><td>ATS5</td><td>Assign GL account codes to invoice line items using historical patterns and descriptions</td></tr><tr id="row-agents-agn4-anomaly-detection-agent" class="alt" ><td>AGN4 – Anomaly Detection Agent</td><td>ATS6</td><td>Identify fraudulent or anomalous invoices by analyzing patterns across vendor history</td></tr><tr id="row-agents-agn5-payment-optimization-agent" class="" ><td>AGN5 – Payment Optimization Agent</td><td>ATS9</td><td>Recommend optimal payment timing balancing discounts and cash position</td></tr><tr id="row-agents-agn6-expense-audit-agent" class="alt" ><td>AGN6 – Expense Audit Agent</td><td>ATS12</td><td>Detect expense policy violations and abuse patterns</td></tr><tr id="row-agents-agn7-vendor-master-agent" class="" ><td>AGN7 – Vendor Master Agent</td><td>ATS13</td><td>Process vendor master data changes with verification</td></tr></tbody></table></div></div><div id="3-2-model-selection" class="subsection">
+        <h3>3.2 Model Selection</h3>
+        <div class="table-wrap"><table data-kind="models" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Agent<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Model<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Rationale<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Cost<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="4" tabindex="0">Latency<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-models-agn2-exception-resolution-agent" class="" ><td>AGN2 – Exception Resolution Agent</td><td>Claude Sonnet 4</td><td>Medium complexity reasoning over structured data; good cost/quality balance</td><td>~$0.02/invoice</td><td>&lt;3s p95</td></tr><tr id="row-models-agn3-gl-coding-agent" class="alt" ><td>AGN3 – GL Coding Agent</td><td>Claude Haiku 4.5</td><td>High-volume classification task; fast inference critical; historical pattern matching</td><td>~$0.005/line item</td><td>&lt;1s p95</td></tr><tr id="row-models-agn4-anomaly-detection-agent" class="" ><td>AGN4 – Anomaly Detection Agent</td><td>Claude Sonnet 4</td><td>Complex pattern analysis across multiple signals; accuracy critical for fraud detection</td><td>~$0.03/invoice</td><td>&lt;5s p95</td></tr><tr id="row-models-agn5-payment-optimization-agent" class="alt" ><td>AGN5 – Payment Optimization Agent</td><td>Claude Haiku 4.5</td><td>Structured optimization with clear inputs; speed over depth</td><td>~$0.008/batch</td><td>&lt;2s p95</td></tr><tr id="row-models-agn6-expense-audit-agent" class="" ><td>AGN6 – Expense Audit Agent</td><td>Claude Sonnet 4</td><td>Nuanced policy interpretation; pattern detection across history; judgment required</td><td>~$0.02/report</td><td>&lt;4s p95</td></tr><tr id="row-models-agn7-vendor-master-agent" class="alt" ><td>AGN7 – Vendor Master Agent</td><td>Claude Haiku 4.5</td><td>Structured verification task against master data rules; speed prioritized</td><td>~$0.006/change request</td><td>&lt;2s p95</td></tr></tbody></table></div></div><div id="3-3-skills-library" class="subsection">
+        <h3>3.3 Skills Library</h3>
+        <div class="table-wrap"><table data-kind="skills" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Skill<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Agents<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Tools<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Interface<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-skills-invoice-field-extraction" class="" ><td>Invoice Field Extraction</td><td>AGN1 – Deterministic Rule Engine</td><td>Retrieve Invoice Data</td><td>In: raw_invoice_image/PDF</td><td>Out: structured_invoice_fields{}</td></tr><tr id="row-skills-three-way-match" class="alt" ><td>Three-Way Match</td><td>AGN1 – Deterministic Rule Engine</td><td>Execute Three-Way Match</td><td>In: invoice_id, po_id</td><td>Out: match_result, exceptions[]</td></tr><tr id="row-skills-gl-auto-coding" class="" ><td>GL Auto-Coding</td><td>AGN3 – GL Coding Agent</td><td>Post GL Entry</td><td>In: line_item_description, vendor_category</td><td>Out: gl_code, confidence, alternatives[]</td></tr><tr id="row-skills-fraud-pattern-detection" class="alt" ><td>Fraud Pattern Detection</td><td>AGN4 – Anomaly Detection Agent</td><td>Screen Sanctions List</td><td>In: invoice_data, vendor_history</td><td>Out: risk_score, anomaly_types[], evidence[]</td></tr><tr id="row-skills-expense-policy-compliance" class="" ><td>Expense Policy Compliance</td><td>AGN6 – Expense Audit Agent</td><td>Retrieve Expense Report</td><td>In: expense_report</td><td>Out: violations[], risk_score, recommendations[]</td></tr></tbody></table></div></div><div id="3-4-mcp-tool-engineering-plan" class="subsection">
+        <h3>3.4 MCP Tool Engineering Plan</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Tool</th><th>Source</th><th>Build Approach</th><th>Status</th></tr></thead><tbody><tr class="" ><td>Retrieve Invoice Data</td><td>API Wrap</td><td>Wrap SAP BAPI_AP_INVOICE_READ with MCP schema validation</td><td>Build</td></tr><tr class="alt" ><td>Execute Three-Way Match</td><td>New Build</td><td>Custom MCP server implementing match logic with configurable tolerances</td><td>Build</td></tr><tr class="" ><td>Post GL Entry</td><td>API Wrap</td><td>Wrap SAP BAPI_ACC_DOCUMENT_POST with idempotency guard</td><td>Build</td></tr><tr class="alt" ><td>Screen Sanctions List</td><td>MCP Gateway</td><td>Connect OFAC API through MCP Gateway with caching</td><td>Configure</td></tr><tr class="" ><td>Generate Payment File</td><td>API Wrap</td><td>Wrap banking gateway file generation API</td><td>Build</td></tr><tr class="alt" ><td>Retrieve Expense Report</td><td>MCP Gateway</td><td>Connect Concur API through MCP Gateway</td><td>Configure</td></tr></tbody></table></div></div><div id="3-5-orchestration-topology" class="subsection">
+        <h3>3.5 Orchestration Topology</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Agent Pair</th><th>Direction</th><th>Message Schema</th><th>Shared State</th><th>Protocol</th><th>Timeout</th></tr></thead><tbody><tr class="" ><td>AGN1 → AGN2</td><td>Unidirectional</td><td>invoice_id, match_results, discrepancy_details</td><td>Invoice processing state</td><td>AGN1 identifies exception at ATS4 → delegates to AGN2 → AGN2 returns resolution_recommendation → AGN1 routes to HITL or applies</td><td>30s</td></tr><tr class="alt" ><td>AGN1 → AGN3</td><td>Unidirectional</td><td>line_item_id, description, vendor_category, historical_codes</td><td>Invoice processing state</td><td>AGN1 sends uncoded items at ATS5 → AGN3 returns gl_code + confidence → AGN1 applies if &gt;94% confidence, else routes to HITL</td><td>10s</td></tr><tr class="" ><td>AGN1 → AGN4</td><td>Unidirectional</td><td>invoice_data, vendor_profile</td><td>Vendor risk state</td><td>AGN1 sends every invoice at ATS6 → AGN4 returns risk_score → AGN1 blocks if RED threshold, routes to HITL if AMBER</td><td>15s</td></tr><tr class="alt" ><td>AGN1 → AGN5</td><td>Unidirectional</td><td>payment_batch, cash_position, discount_terms</td><td>Payment scheduling state</td><td>AGN1 sends batch at ATS9 → AGN5 returns optimized_payment_date + rationale → AGN1 applies to schedule</td><td>10s</td></tr><tr class="" ><td>AGN1 → AGN6</td><td>Unidirectional</td><td>expense_report_id, line_items, receipts</td><td>Expense processing state</td><td>AGN1 sends validated report at ATS12 → AGN6 returns violations[] + risk_score → AGN1 routes to HITL if violations exceed threshold</td><td>20s</td></tr><tr class="alt" ><td>AGN1 → AGN7</td><td>Unidirectional</td><td>vendor_id, change_request, supporting_documents</td><td>Vendor master state</td><td>AGN1 routes change request at ATS13 → AGN7 returns verification_result → AGN1 applies update or escalates</td><td>15s</td></tr></tbody></table></div></div><div id="3-6-guardrail-configuration" class="subsection">
+        <h3>3.6 Guardrail Configuration</h3>
+        <br/><p><strong class="label">Pre-filters:</strong> Input validation: reject invoices missing mandatory fields (vendor, amount, date) at ATS2. Reject expense reports without receipts above $25 threshold at ATS11. Validate vendor ID exists in master before ATS13 processing.</p><br/><p><strong class="label">Post-validators:</strong> GL code assigned by AGN3 must exist in active chart of accounts before ATS5 completes. Payment amount computed at ATS8 must equal invoice amount minus approved adjustments. No payment exceeds authorized limit without escalation at ATS7.</p><br/><p><strong class="label">Circuit Breakers:</strong> Halt all payments (ATS8) if sanctions API is unavailable. Halt processing if GL posting error rate exceeds 1% in any 1-hour window at ATS5/ATS10. Suspend vendor if AGN4 detects 3+ anomalies within 30 days at ATS6.</p><br/><p><strong class="label">Compliance Gates:</strong> SOX gate: verify SoD before any GL posting (ATS5, ATS10). OFAC gate: sanctions clearance before any payment (ATS8). Period-end gate: no postings to closed periods (ATS10, ATS14).</p><br/><br/></div><div id="3-7-error-handling-fallback-design" class="subsection">
+        <h3>3.7 Error Handling &amp; Fallback Design</h3>
+        <div class="table-wrap"><table data-kind="errors" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Agent<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Failure Mode<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Detection<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Response<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="4" tabindex="0">Human Fallback<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="5" tabindex="0">Cascade<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-errors-agn3-gl-coding-agent" class="" ><td>AGN3 – GL Coding Agent</td><td>Model unavailable</td><td>API timeout &gt;10s or 5xx response</td><td>Retry 2x with 5s backoff; degrade to top historical GL code if available</td><td>Route to AP Specialist for manual coding at ATS5</td><td>Invoice processing paused for affected line items</td></tr><tr id="row-errors-agn4-anomaly-detection-agent" class="alt" ><td>AGN4 – Anomaly Detection Agent</td><td>Model unavailable</td><td>API timeout &gt;15s</td><td>Circuit break: halt payment processing at ATS8</td><td>All invoices routed to AP Manager for manual review at ATS6</td><td>Payment batch delayed until agent restored or manual clearance</td></tr><tr id="row-errors-agn1-deterministic-rule-engine" class="" ><td>AGN1 – Deterministic Rule Engine</td><td>SAP API unavailable</td><td>Connection timeout or 5xx</td><td>Retry 3x with exponential backoff; queue invoices for retry</td><td>Alert IT Operations; manual processing via SAP GUI</td><td>All downstream agents (AGN2–AGN7) paused</td></tr><tr id="row-errors-agn2-exception-resolution-agent" class="alt" ><td>AGN2 – Exception Resolution Agent</td><td>Low confidence (&lt;80%)</td><td>Confidence score below threshold at ATS4</td><td>Auto-escalate to AP Specialist</td><td>AP Specialist resolves manually</td><td>No cascade — isolated to single invoice</td></tr><tr id="row-errors-agn5-payment-optimization-agent" class="" ><td>AGN5 – Payment Optimization Agent</td><td>Model unavailable</td><td>API timeout &gt;10s</td><td>Fall back to default payment terms (net-30 or PO due date)</td><td>AP Manager reviews payment schedule at ATS9</td><td>Payment batch proceeds with default timing; no cascade</td></tr><tr id="row-errors-agn6-expense-audit-agent" class="alt" ><td>AGN6 – Expense Audit Agent</td><td>Model unavailable</td><td>API timeout &gt;20s</td><td>Route entire expense report batch to manual audit queue</td><td>Expense Compliance Officer reviews at ATS12</td><td>Expense report processing delayed until agent restored</td></tr><tr id="row-errors-agn7-vendor-master-agent" class="" ><td>AGN7 – Vendor Master Agent</td><td>Low confidence (&lt;85%)</td><td>Confidence score below threshold on verification</td><td>Auto-escalate to AP Manager</td><td>AP Manager verifies vendor change manually at ATS13</td><td>No cascade — isolated to single vendor record</td></tr></tbody></table></div></div><div id="3-8-observability-requirements" class="subsection">
+        <h3>3.8 Observability Requirements</h3>
+        <div class="table-wrap"><table data-kind="observability" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Agent<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Key Metrics<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Alert Thresholds<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="3" tabindex="0">Dashboard<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-observability-agn1-deterministic-rule-engine" class="" ><td>AGN1 – Deterministic Rule Engine</td><td>Throughput (invoices/hr), match rate, posting success rate, queue depth</td><td>Match rate &lt;90% triggers alert; queue &gt;500 triggers scaling alert</td><td>AP Operations Dashboard</td></tr><tr id="row-observability-agn2-exception-resolution-agent" class="alt" ><td>AGN2 – Exception Resolution Agent</td><td>Resolution accuracy, override rate, latency p95, cost/invoice</td><td>Override rate &gt;20% triggers model review; latency &gt;5s triggers alert</td><td>Exception Resolution Dashboard</td></tr><tr id="row-observability-agn3-gl-coding-agent" class="" ><td>AGN3 – GL Coding Agent</td><td>Accuracy, confidence distribution, human override rate, latency p95, cost/invoice</td><td>Override rate &gt;15% triggers model review; latency &gt;3s triggers alert</td><td>GL Coding Performance</td></tr><tr id="row-observability-agn4-anomaly-detection-agent" class="alt" ><td>AGN4 – Anomaly Detection Agent</td><td>True positive rate, false positive rate, detection latency, cost/invoice</td><td>False positive rate &gt;20% triggers threshold review; any missed fraud triggers incident</td><td>Fraud Detection Dashboard</td></tr><tr id="row-observability-agn5-payment-optimization-agent" class="" ><td>AGN5 – Payment Optimization Agent</td><td>Discount capture rate, cash impact, override rate, latency</td><td>Discount capture rate &lt;70% triggers review; latency &gt;5s triggers alert</td><td>Payment Optimization Dashboard</td></tr><tr id="row-observability-agn6-expense-audit-agent" class="alt" ><td>AGN6 – Expense Audit Agent</td><td>Flag rate, override rate, policy violation categories, cost/report</td><td>Flag rate &gt;30% suggests policy issue; override rate &gt;25% triggers review</td><td>Expense Compliance Dashboard</td></tr><tr id="row-observability-agn7-vendor-master-agent" class="" ><td>AGN7 – Vendor Master Agent</td><td>Verification accuracy, override rate, processing latency, change volume</td><td>Override rate &gt;20% triggers review; latency &gt;5s triggers alert</td><td>Vendor Master Dashboard</td></tr></tbody></table></div></div></section><section id="phase-4-hardening-verification" class="section phase-section">
+      <h2 class="phase-title">Phase 4: Hardening &amp; Verification</h2>
+      <div id="4-1-functional-evals" class="subsection">
+        <h3>4.1 Functional Evals</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Test Category</th><th>Test Case Count</th><th>Pass Criteria</th><th>Owner</th></tr></thead><tbody><tr class="" ><td>Standard 3-way match (PO, GRN, Invoice)</td><td>80</td><td>≥98% correct match/exception classification</td><td>AP Automation QA Lead</td></tr><tr class="alt" ><td>Partial match exceptions (quantity/price variance)</td><td>40</td><td>≥95% correct routing to exception queue with correct variance reason code</td><td>AP Automation QA Lead</td></tr><tr class="" ><td>GL coding accuracy across 15 expense categories</td><td>50</td><td>≥96% correct GL account/cost center assignment</td><td>Finance Controlling</td></tr><tr class="alt" ><td>Fraud pattern detection (20 known fraud typologies)</td><td>30</td><td>100% detection rate on known typologies; ≤2% false positive rate</td><td>Fraud &amp; Anomaly Detection Lead</td></tr></tbody></table></div></div><div id="4-2-behavioral-evals" class="subsection">
+        <h3>4.2 Behavioral Evals</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Behavioral Rule</th><th>KPI</th><th>Target</th><th>Measurement</th><th>Pass Criteria</th></tr></thead><tbody><tr class="" ><td>GL Coding Agent (AGN3, ATS5) never posts without confidence &gt;94% or explicit human approval</td><td>Sub-threshold auto-post violation rate</td><td>0 violations (0%)</td><td>500 randomized confidence-boundary test injections (confidence values just above/below 94%)</td><td>0 violations; 100% of sub-threshold cases routed to human review</td></tr><tr class="alt" ><td>Anomaly Detection Agent (AGN4, ATS6) always blocks RED-scored invoices from auto-payment</td><td>RED-score auto-payment bypass rate</td><td>0 bypasses (0%)</td><td>Synthetic RED-score injection across all payment channels</td><td>0 bypasses observed across 300 trials</td></tr><tr class="" ><td>No payment (ATS8) executes without sanctions clearance confirmation</td><td>Unauthorized payment release rate</td><td>0 unauthorized releases (0%)</td><td>Payment execution attempted with sanctions check withheld/delayed</td><td>100% of attempts blocked or held pending clearance</td></tr><tr class="alt" ><td>Agents do not silently retry beyond configured retry policy</td><td>Uncontrolled retry / duplicate-posting incidence rate</td><td>0 incidents (0%)</td><td>Fault injection on downstream API calls</td><td>0 instances of uncontrolled retry loops or duplicate postings</td></tr></tbody></table></div></div><div id="4-3-adversarial-evals" class="subsection">
+        <h3>4.3 Adversarial Evals</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Attack Vector</th><th>Test Approach</th><th>Expected Agent Response</th></tr></thead><tbody><tr class="" ><td>Prompt injection via invoice description/free-text fields</td><td>Inject instruction-like strings (e.g., &quot;ignore prior rules&quot;, &quot;approve automatically&quot;) into invoice line-item descriptions</td><td>Agent treats field as data only; no instruction-following behavior; flagged for review if anomalous</td></tr><tr class="alt" ><td>Manipulated vendor master data (bank account swap, address mismatch)</td><td>Simulate mid-cycle vendor master field changes immediately preceding invoice submission</td><td>Anomaly Detection Agent flags vendor master change velocity; payment held pending verification</td></tr><tr class="" ><td>Artificial duplicate invoice variations (altered invoice number, rounded amount, re-dated)</td><td>Generate near-duplicate invoices with single-field perturbations</td><td>≥95% detection rate as probable duplicate; routed to human review</td></tr><tr class="alt" ><td>Invoice splitting to bypass approval thresholds</td><td>Submit multiple sub-threshold invoices from same vendor/PO within short time window</td><td>Pattern-detection logic flags aggregate value exceeding threshold; escalated for approval</td></tr><tr class="" ><td>Failure mode injection: SAP unavailability during payment batch</td><td>Simulate ERP outage mid-batch</td><td>Batch pauses cleanly, no partial/duplicate postings, automatic resume on reconnection with idempotency check</td></tr><tr class="alt" ><td>Failure mode injection: Anomaly Detection Agent killed mid-processing</td><td>Terminate agent process during active scoring run</td><td>Orchestrator detects failure, halts downstream payment release, requeues affected invoices for re-scoring</td></tr><tr class="" ><td>Failure mode injection: Sanctions API timeout during payment execution</td><td>Introduce artificial timeout/latency spike on sanctions screening endpoint</td><td>Payment held (fail-closed behavior), no payment released without successful clearance response</td></tr></tbody></table></div></div><div id="4-4-domain-evals" class="subsection">
+        <h3>4.4 Domain Evals</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Scenario</th><th>Test Volume</th><th>Pass Criteria</th></tr></thead><tbody><tr class="" ><td>Multi-currency invoice matching (FX rate application, tolerance bands)</td><td>60 cases across 5 currency pairs</td><td>≥95% matching accuracy against ERP-calculated FX rate</td></tr><tr class="alt" ><td>Intercompany invoice handling (cross-entity elimination flagging)</td><td>30 cases</td><td>100% correct intercompany flag and routing to intercompany reconciliation queue</td></tr><tr class="" ><td>Credit memo processing and offset application</td><td>25 cases</td><td>≥97% correct offset against open invoice balance</td></tr><tr class="alt" ><td>Recurring invoice recognition (subscription/lease/utility patterns)</td><td>25 cases</td><td>≥96% correct recognition and auto-match against recurring invoice template</td></tr><tr class="" ><td>Year-end accrual accuracy (goods/services received not invoiced)</td><td>20 cases spanning fiscal period boundary</td><td>100% correct accrual flagging and GL period assignment</td></tr></tbody></table></div></div><div id="4-5-human-in-the-loop-validation" class="subsection">
+        <h3>4.5 Human-in-the-Loop Validation</h3>
+        <div class="table-wrap"><table data-kind="hitl" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Pilot Parameter<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Detail<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-hitl-participants" class="" ><td>Participants</td><td>3 AP specialists</td></tr><tr id="row-hitl-volume" class="alt" ><td>Volume</td><td>500 invoices processed</td></tr><tr id="row-hitl-duration" class="" ><td>Duration</td><td>2 weeks</td></tr><tr id="row-hitl-metrics-captured" class="alt" ><td>Metrics Captured</td><td>Review time per exception, override rate, SLA compliance rate, interface usability score (survey-based, 1–5 scale)</td></tr></tbody></table></div></div><div id="4-6-observability-validation" class="subsection">
+        <h3>4.6 Observability Validation</h3>
+        <div class="table-wrap"><table data-kind="observability" data-sortable="true"><thead><tr><th data-sort-col="0" tabindex="0">Validation Activity<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="1" tabindex="0">Method<span class="sort-indicator" aria-hidden="true"></span></th><th data-sort-col="2" tabindex="0">Pass Criteria<span class="sort-indicator" aria-hidden="true"></span></th></tr></thead><tbody><tr id="row-observability-dashboard-population" class="" ><td>Dashboard population</td><td>Run full end-to-end invoice cycle and confirm all KPI widgets (match rate, exception volume, cycle time, fraud flags, payment status) populate correctly</td><td>100% of dashboard widgets reflect live data within expected refresh interval</td></tr><tr id="row-observability-alert-threshold-triggering" class="alt" ><td>Alert threshold triggering</td><td>Manually trigger each configured alert threshold (e.g., anomaly score spike, SLA breach, sanctions hit)</td><td>100% of alerts fire and route to correct notification channel/owner within defined latency</td></tr><tr id="row-observability-cost-tracking-accuracy" class="" ><td>Cost tracking accuracy</td><td>Reconcile agent invocation cost/token metrics against known invoice processing volume for the test period</td><td>Cost tracking variance ≤2% against expected baseline</td></tr><tr id="row-observability-audit-trail-completeness" class="alt" ><td>Audit trail completeness</td><td>Sample 50 processed invoices end-to-end and verify full decision lineage (agent, model version, confidence score, human override if any) is captured</td><td>100% of sampled cases have complete, retrievable audit trail</td></tr></tbody></table></div></div></section><section id="phase-5-agentic-activation" class="section phase-section">
+      <h2 class="phase-title">Phase 5: Agentic Activation</h2>
+      <div id="5-1-change-management-user-enablement" class="subsection">
+        <h3>5.1 Change Management &amp; User Enablement</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Stakeholder Group</th><th>Enablement Focus</th><th>Delivery Method</th><th>Duration</th><th>Completion Criteria</th></tr></thead><tbody><tr class="" ><td>AP Processing Team</td><td>New exception review interface (queue triage, GL coding overrides, escalation triggers); revised SLAs for Amber-tier review; wave-specific scope changes (Wave 1 shadow observation → Wave 2 touchless exception handling → Wave 3 full-vendor coverage)</td><td>Instructor-led workshop + hands-on sandbox with historical invoice replay</td><td>2 days per cohort, refreshed briefly at each wave transition</td><td>100% of AP staff certified on exception interface; sandbox exercise pass rate ≥90%; wave-transition refresher attendance confirmed prior to Wave 2 and Wave 3</td></tr><tr class="alt" ><td>AP Team Leads / Supervisors</td><td>Interpreting confidence scores and agreement-rate dashboards; approving Amber→Green promotion candidates; managing throughput against 4-hour SLA across all three waves</td><td>Workshop + shadow-mode co-review sessions</td><td>1 day + ongoing during Waves 1–3</td><td>Lead sign-off on dashboard literacy checklist, renewed at each wave-gate review</td></tr><tr class="" ><td>Procurement / Vendor Master Team</td><td>New vendor master change workflow (create/update/deactivate requests routed through agentic validation prior to AP consumption); segregation-of-duties controls, unchanged in scope across all three waves</td><td>Process walkthrough + updated SOP distribution</td><td>Half-day session</td><td>Acknowledgement of revised SOP by all procurement approvers</td></tr><tr class="alt" ><td>Internal Audit</td><td>Anomaly detection alert taxonomy, investigation workflow, access to audit trail and explainability logs; quarterly control testing procedures; expanded alert volume expected from Wave 1 through Wave 3 as vendor coverage grows</td><td>Briefing session + read access to telemetry dashboards</td><td>Half-day briefing, plus wave-transition briefing updates</td><td>Internal Audit sign-off confirming visibility into fraud/anomaly alert pipeline at each wave</td></tr><tr class="" ><td>Finance Leadership (AP Manager, Controller)</td><td>Autonomy tier model (Red/Amber/Green), exit criteria for each of the three waves, escalation governance, and rollback authority</td><td>Executive briefing</td><td>2 hours, plus wave-gate approval sessions at each of the two wave transitions (Wave 1→2, Wave 2→3)</td><td>Formal wave-gate approval authority assigned and documented for all three waves</td></tr></tbody></table></div></div><div id="5-2-cognitive-telemetry-activation" class="subsection">
+        <h3>5.2 Cognitive Telemetry Activation</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Wave</th><th>Scope</th><th>Duration</th><th>Telemetry Instrumented</th><th>Exit Criteria to Next Wave</th></tr></thead><tbody><tr class="" ><td>Wave 1 — Shadow Mode</td><td>Agentic workflow runs in parallel with the current AP team on invoices from the top 50 vendors by volume; no agent decisions are actioned without human processing</td><td>4 weeks</td><td>GL-coding agreement rate vs. human coder; exception resolution agreement rate; false-negative fraud detection count; latency per invoice; confidence-score distribution by vendor and invoice type</td><td>≥90% agreement rate on GL coding and exception resolution; zero missed fraud detections; dashboards fully operational and validated against AP team's manual ledger</td></tr><tr class="alt" ><td>Wave 2 — Green Zone Activation</td><td>Touchless processing enabled for matched invoices; automated GL coding above 94% confidence threshold; automated payment execution for cleared invoices; Amber-tier steps (unmatched invoices, low-confidence coding, vendor master changes, anomaly flags) remain human-reviewed</td><td>Minimum 6 weeks, extended if exit criteria not met</td><td>Touchless processing rate; autonomy violation count (Green-zone actions outside policy bounds); AP specialist review throughput against 4-hour SLA; payment execution accuracy; confidence-threshold calibration drift</td><td>≥95% touchless rate for matched invoices; zero autonomy violations; AP specialist review throughput consistently meets 4-hour SLA over the final 4 weeks of the wave</td></tr><tr class="" ><td>Wave 3 — Full Activation</td><td>Full activation across all vendors (not limited to top 50); progressive Amber→Green promotion for GL coding as sustained accuracy is demonstrated</td><td>Ongoing, with 90-day sustained-accuracy monitoring window per promotion cycle</td><td>GL-coding accuracy trend (target 97%+ sustained over 90 days); promotion/demotion event log; vendor-level exception rate trending; end-to-end cycle-time reduction; cost-per-invoice-processed</td><td>Continuous operation; quarterly review of promotion criteria; no wave-gate exit required beyond ongoing governance review cycle</td></tr></tbody></table></div></div><div id="5-3-operational-handover" class="subsection">
+        <h3>5.3 Operational Handover</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Handover Element</th><th>Receiving Owner</th><th>Artifact / Mechanism</th><th>Cadence</th></tr></thead><tbody><tr class="" ><td>Daily exception queue management</td><td>AP Processing Team / Team Leads</td><td>Exception review interface, escalation runbook</td><td>Daily</td></tr><tr class="alt" ><td>Confidence threshold and autonomy tier tuning</td><td>AP Manager, in coordination with the platform engineering team</td><td>Threshold calibration log, quarterly tuning review</td><td>Quarterly, or on alert-triggered ad hoc review</td></tr><tr class="" ><td>Vendor master change governance</td><td>Procurement / Vendor Master Team</td><td>Vendor master change workflow SOP, segregation-of-duties control log</td><td>Continuous, reviewed monthly</td></tr><tr class="alt" ><td>Fraud and anomaly alert investigation</td><td>Internal Audit</td><td>Anomaly detection alert log, investigation case tracker</td><td>Continuous, reviewed weekly</td></tr><tr class="" ><td>GL-coding accuracy and Amber→Green promotion decisions</td><td>AP Manager and Controller (joint sign-off)</td><td>90-day sustained-accuracy report, promotion/demotion decision log</td><td>Per promotion cycle</td></tr><tr class="alt" ><td>Dashboard and telemetry monitoring</td><td>Finance Operations Reporting team</td><td>Cognitive telemetry dashboard, alert-threshold configuration</td><td>Daily monitoring, weekly leadership review</td></tr><tr class="" ><td>Incident response and rollback execution</td><td>AP Manager, with platform engineering support</td><td>Rollback runbook (Green-to-Amber demotion procedure)</td><td>On-demand, per incident</td></tr><tr class="alt" ><td>Continuous improvement backlog</td><td>AP Manager, informed by Internal Audit and AP Team Leads</td><td>Improvement backlog log, quarterly retrospective</td><td>Quarterly</td></tr></tbody></table></div></div></section><section id="phase-6-agentic-operations-evolution" class="section phase-section">
+      <h2 class="phase-title">Phase 6: Agentic Operations &amp; Evolution</h2>
+      <div id="6-1-continuous-agent-evaluation" class="subsection">
+        <h3>6.1 Continuous Agent Evaluation</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Evaluation Activity</th><th>Frequency</th><th>Scope</th><th>Owner</th><th>Trigger Condition</th><th>Escalation Threshold</th></tr></thead><tbody><tr class="" ><td>Real-time Control Tower monitoring</td><td>Continuous (15-min refresh)</td><td>All AP agents</td><td>AP Operations Lead</td><td>Always active</td><td>Exception rate &gt; 8% or confidence drop &gt; 10 pts triggers alert</td></tr><tr class="alt" ><td>Weekly eval suite execution</td><td>Weekly</td><td>Sampled production invoices &amp; expense claims (≥500/agent)</td><td>AI Governance Team</td><td>Scheduled</td><td>Accuracy drop &gt; 3 pts vs. rolling 4-week baseline</td></tr><tr class="" ><td>Pre-upgrade regression testing</td><td>Per model version change</td><td>Full historical eval corpus</td><td>AI Governance Team + Model Owner</td><td>Model/version upgrade proposed</td><td>Any metric regression blocks promotion</td></tr><tr class="alt" ><td>Full eval suite re-run</td><td>Per agent configuration change</td><td>All AP agents (cascading)</td><td>AI Governance Team</td><td>Prompt, tool, or guardrail change</td><td>Any downstream agent regression blocks deployment</td></tr><tr class="" ><td>Human override pattern analysis</td><td>Monthly</td><td>All human-in-the-loop overrides (GL coding, approval, fraud flags)</td><td>Finance Process Owner</td><td>Scheduled</td><td>Override rate on any single rule type &gt; 15%</td></tr><tr class="alt" ><td>Fraud threshold recalibration</td><td>Quarterly</td><td>Confirmed fraud/duplicate cases vs. flagged cases</td><td>Fraud &amp; Controls Team</td><td>Scheduled</td><td>False positive rate &gt; 20% or false negative confirmed</td></tr></tbody></table></div></div><div id="6-2-outcome-measurement" class="subsection">
+        <h3>6.2 Outcome Measurement</h3>
+        <div class="table-wrap"><table ><thead><tr><th>Metric</th><th>Baseline (Pre-Transformation)</th><th>Current Target</th><th>Measurement Frequency</th><th>Data Source</th><th>Owner</th></tr></thead><tbody><tr class="" ><td>Invoice-to-pay cycle time (PO-backed)</td><td>8.5 business days</td><td>2.0 business days</td><td>Monthly</td><td>AP workflow system logs</td><td>AP Operations Lead</td></tr><tr class="alt" ><td>Invoice-to-pay cycle time (non-PO)</td><td>12 business days</td><td>3.5 business days</td><td>Monthly</td><td>AP workflow system logs</td><td>AP Operations Lead</td></tr><tr class="" ><td>Straight-through processing (STP) rate</td><td>22%</td><td>75%</td><td>Monthly</td><td>Control Tower dashboard</td><td>AP Operations Lead</td></tr><tr class="alt" ><td>GL coding accuracy (agent-assigned, pre-override)</td><td>N/A (manual baseline: 91%)</td><td>≥ 97%</td><td>Weekly</td><td>Eval suite results</td><td>AI Governance Team</td></tr><tr class="" ><td>Duplicate/fraud detection recall</td><td>N/A (manual baseline: ~60% est.)</td><td>≥ 95%</td><td>Quarterly</td><td>Confirmed case audit</td><td>Fraud &amp; Controls Team</td></tr><tr class="alt" ><td>Human override rate</td><td>N/A</td><td>&lt; 10% of total transactions</td><td>Monthly</td><td>Control Tower dashboard</td><td>Finance Process Owner</td></tr><tr class="" ><td>FTE hours reallocated from manual AP processing</td><td>0 (baseline headcount)</td><td>30% capacity redeployed to exception handling &amp; analysis</td><td>Monthly</td><td>HR/Finance workforce report</td><td>Finance Process Owner</td></tr><tr class="alt" ><td>Expense reimbursement processing time</td><td>6 business days</td><td>1 business day</td><td>Monthly</td><td>Expense system logs</td><td>AP Operations Lead</td></tr><tr class="" ><td>Cost per invoice processed</td><td>Baseline established at go-live</td><td>40% reduction at 12 months</td><td>Quarterly</td><td>Finance cost model</td><td>Finance Process Owner</td></tr><tr class="alt" ><td>Early payment discount capture rate</td><td>Baseline established at go-live</td><td>+15 percentage points</td><td>Quarterly</td><td>AP workflow system logs</td><td>Finance Process Owner</td></tr></tbody></table></div></div></section>
+  <footer class="footer">IBM Confidential | IBM Consulting — AI Integration Services | EAEF Layer 2 Blueprint | September 2026</footer>
+</div>
+<button id="fab-top" class="fab-top" type="button" title="Back to top" aria-label="Back to top">↑</button>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="help-modal" class="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+  <div class="help-overlay"></div>
+  <div class="help-card">
+    <h3 id="help-title">Keyboard shortcuts</h3>
+    <table class="help-table"><tbody>
+      <tr><th>/</th><td>Focus search</td></tr>
+      <tr><th>n / N</th><td>Next / previous match</td></tr>
+      <tr><th>j / k</th><td>Next / previous subsection</td></tr>
+      <tr><th>[ / ]</th><td>Previous / next phase</td></tr>
+      <tr><th>g g / G</th><td>Top / bottom</td></tr>
+      <tr><th>Esc</th><td>Clear search / close dialog</td></tr>
+      <tr><th>?</th><td>Show this help</td></tr>
+    </tbody></table>
+    <button class="help-close" type="button">Close</button>
+  </div>
+</div>
+<script>
+(function() {
+  'use strict';
+
+  // ─── DOM helpers ──────────────────────────────────────────────────────────
+  const $  = (sel, ctx) => (ctx||document).querySelector(sel);
+  const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
+  const debounce = (fn, ms) => {
+    let t;
+    return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+  };
+  const escapeRegex = s => s.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&');
+  const escHtml = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // ─── State ────────────────────────────────────────────────────────────────
+  let activeSectionId = '';
+  let allHits = [];
+  let currentHitIdx = -1;
+  let scope = 'all';
+  let typeFilter = 'all';
+  let zoneFilter = 'all';
+  let lastG = 0;
+
+  document.addEventListener('DOMContentLoaded', init);
+  // Apply theme as early as possible to reduce flash
+  applyStoredTheme();
+
+  function init() {
+    initScrollSpy();
+    initSearch();
+    initFilters();
+    initSortable();
+    initKeyboard();
+    initBackToTop();
+    initAnchorLinks();
+    initCollapsibleSidebar();
+    initProgressBar();
+    initCrossRefs();
+    initThemeToggle();
+    initDensityToggle();
+    initScopeToggle();
+    initHelpModal();
+    // If the page was loaded with a hash, ensure the sidebar item is visible
+    if (location.hash) {
+      const link = $('.nav-item[href="' + location.hash + '"]');
+      if (link) link.scrollIntoView({block: 'nearest'});
+    }
+  }
+
+  // ─── Scroll-spy + hash sync + breadcrumb ─────────────────────────────────
+  function initScrollSpy() {
+    const navItems = $$('.nav-item');
+    const sections = $$('.section, .subsection, .subsubsection').filter(s => s.id);
+    const trail = $('#crumb-trail');
+
+    const setActive = id => {
+      if (!id || id === activeSectionId) return;
+      activeSectionId = id;
+      navItems.forEach(n => n.classList.remove('active'));
+      const active = $('.nav-item[href="#' + id + '"]');
+      if (active) {
+        active.classList.add('active');
+        active.scrollIntoView({block: 'nearest'});
+      }
+      try { history.replaceState(null, '', '#' + id); } catch(e) {}
+      updateBreadcrumb(id);
+    };
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) setActive(entry.target.id);
+      });
+    }, { rootMargin: '-15% 0px -75% 0px' });
+    sections.forEach(s => observer.observe(s));
+
+    function updateBreadcrumb(id) {
+      if (!trail) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      let phase = null, sub = null, subsub = null;
+      if (el.classList.contains('section')) {
+        phase = el;
+      } else if (el.classList.contains('subsection')) {
+        sub = el;
+        phase = el.closest('.section');
+      } else if (el.classList.contains('subsubsection')) {
+        subsub = el;
+        sub = el.closest('.subsection');
+        phase = el.closest('.section');
+      }
+      const parts = [];
+      if (phase) parts.push({id: phase.id, title: ($('h2', phase)||{}).textContent});
+      if (sub)   parts.push({id: sub.id,   title: ($('h3', sub)  ||{}).textContent});
+      if (subsub) parts.push({id: subsub.id, title: ($('h4', subsub)||{}).textContent});
+      if (!parts.length) {
+        trail.innerHTML = '<a href="#summary">Executive Summary</a>';
+        return;
+      }
+      trail.innerHTML = parts.map((p, i) =>
+        (i ? '<span class="sep">›</span>' : '') +
+        '<a href="#' + p.id + '">' + escHtml((p.title||'').replace(/^#\s*/, '').trim()) + '</a>'
+      ).join('');
+    }
+  }
+
+  // ─── Search ───────────────────────────────────────────────────────────────
+  function initSearch() {
+    const input = $('#search-input');
+    if (!input) return;
+    input.addEventListener('input', debounce(() => runSearch(input.value.trim()), 120));
+  }
+
+  function clearMarks() {
+    $$('mark.search-hit').forEach(m => {
+      const parent = m.parentNode;
+      if (!parent) return;
+      parent.replaceChild(document.createTextNode(m.textContent), m);
+      parent.normalize();
+    });
+    $$('.nav-item.dimmed').forEach(n => n.classList.remove('dimmed'));
+    allHits = [];
+    currentHitIdx = -1;
+    updateCounter();
+  }
+
+  function runSearch(q) {
+    clearMarks();
+    if (!q || q.length < 2) return;
+    let re;
+    try { re = new RegExp(escapeRegex(q), 'gi'); } catch(e) { return; }
+
+    const headingSel = '.nav-item, .section > h2, .subsection > h3, .subsubsection > h4';
+    const bodySel = '.section > p, .subsection > p, .subsubsection > p, ' +
+                    '.section > ul li, .subsection > ul li, .subsubsection > ul li, ' +
+                    '.section > blockquote, .subsection > blockquote, .subsubsection > blockquote, ' +
+                    'tbody td';
+    const containers = $$(scope === 'headings' ? headingSel : (headingSel + ', ' + bodySel));
+
+    const matches = [];
+    for (const c of containers) {
+      const found = highlightInElement(c, re);
+      if (found.length) matches.push.apply(matches, found);
+    }
+    allHits = matches;
+
+    // Dim sidebar items that have neither a direct nor descendant match.
+    const matchedSectionIds = new Set();
+    $$('.section, .subsection, .subsubsection').forEach(s => {
+      if (s.id && s.querySelector('mark.search-hit')) matchedSectionIds.add(s.id);
+    });
+    $$('.nav-item').forEach(n => {
+      if (n.querySelector('mark.search-hit')) return;
+      const href = n.getAttribute('href') || '';
+      const id = href.replace('#', '');
+      if (matchedSectionIds.has(id)) return;
+      n.classList.add('dimmed');
+    });
+
+    if (allHits.length) {
+      currentHitIdx = 0;
+      setCurrentHit(0, false);
+    }
+    updateCounter();
+  }
+
+  function highlightInElement(el, re) {
+    const out = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode(n) {
+        if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        const p = n.parentElement;
+        if (!p) return NodeFilter.FILTER_REJECT;
+        if (p.closest('script, style, mark.search-hit, .anchor-link')) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const nodes = [];
+    let n; while ((n = walker.nextNode())) nodes.push(n);
+    for (const node of nodes) {
+      re.lastIndex = 0;
+      const text = node.nodeValue;
+      if (!re.test(text)) continue;
+      re.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let last = 0, m;
+      while ((m = re.exec(text)) !== null) {
+        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        const mark = document.createElement('mark');
+        mark.className = 'search-hit';
+        mark.textContent = m[0];
+        frag.appendChild(mark);
+        out.push(mark);
+        last = m.index + m[0].length;
+        // Avoid infinite loop on zero-length matches.
+        if (m[0].length === 0) re.lastIndex++;
+      }
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      if (node.parentNode) node.parentNode.replaceChild(frag, node);
+    }
+    return out;
+  }
+
+  function setCurrentHit(i, scrollIt) {
+    if (!allHits.length) return;
+    allHits.forEach(m => m.classList.remove('current'));
+    const wrapped = ((i % allHits.length) + allHits.length) % allHits.length;
+    currentHitIdx = wrapped;
+    const target = allHits[wrapped];
+    target.classList.add('current');
+    if (scrollIt !== false) target.scrollIntoView({block: 'center', behavior: 'smooth'});
+    updateCounter();
+  }
+
+  function updateCounter() {
+    const c = $('#search-count');
+    if (!c) return;
+    c.textContent = allHits.length ? ((currentHitIdx+1) + ' / ' + allHits.length) : '';
+  }
+
+  function nextHit() { if (allHits.length) setCurrentHit(currentHitIdx + 1); }
+  function prevHit() { if (allHits.length) setCurrentHit(currentHitIdx - 1); }
+
+  // ─── Scope toggle ────────────────────────────────────────────────────────
+  function initScopeToggle() {
+    const btns = $$('.scope-btn');
+    btns.forEach(b => {
+      b.addEventListener('click', () => {
+        btns.forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        scope = b.dataset.scope || 'all';
+        const inp = $('#search-input');
+        if (inp && inp.value.trim()) runSearch(inp.value.trim());
+      });
+    });
+  }
+
+  // ─── Filters (Atomic Step Register) ──────────────────────────────────────
+  function initFilters() {
+    const chips = $$('.filter-chips .chip');
+    chips.forEach(c => {
+      c.addEventListener('click', () => {
+        const filter = c.dataset.filter;
+        const value  = c.dataset.value;
+        chips.filter(x => x.dataset.filter === filter).forEach(x => x.classList.remove('active'));
+        c.classList.add('active');
+        if (filter === 'type') typeFilter = value;
+        else if (filter === 'zone') zoneFilter = value;
+        applyFilters();
+      });
+    });
+  }
+
+  function applyFilters() {
+    $$('table[data-kind="atomic"] tbody tr').forEach(r => {
+      const t = r.getAttribute('data-type') || '';
+      const z = r.getAttribute('data-zone') || '';
+      const showT = typeFilter === 'all' || t === typeFilter;
+      const showZ = zoneFilter === 'all' || z === zoneFilter;
+      r.style.display = (showT && showZ) ? '' : 'none';
+    });
+  }
+
+  // ─── Sortable tables ─────────────────────────────────────────────────────
+  function initSortable() {
+    $$('table[data-sortable="true"] thead th').forEach(th => {
+      th.addEventListener('click', () => sortTable(th));
+      th.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sortTable(th); }
+      });
+    });
+  }
+
+  function sortTable(th) {
+    const table = th.closest('table');
+    if (!table) return;
+    const tbody = $('tbody', table);
+    if (!tbody) return;
+    const colIdx = parseInt(th.getAttribute('data-sort-col') || '-1', 10);
+    if (isNaN(colIdx) || colIdx < 0) return;
+    const wasAsc = th.classList.contains('sort-asc');
+    const direction = wasAsc ? -1 : 1;
+    $$('thead th', table).forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add(direction === 1 ? 'sort-asc' : 'sort-desc');
+
+    const rows = $$('tbody tr', table);
+    const numericCol = rows.every(r => {
+      const cell = r.children[colIdx];
+      const v = (cell ? cell.textContent : '').trim();
+      return v === '' || /^-?\d+(\.\d+)?$/.test(v);
+    });
+    rows.sort((a, b) => {
+      const av = ((a.children[colIdx]||{}).textContent || '').trim();
+      const bv = ((b.children[colIdx]||{}).textContent || '').trim();
+      if (numericCol) {
+        const an = parseFloat(av), bn = parseFloat(bv);
+        return direction * ((isNaN(an)?0:an) - (isNaN(bn)?0:bn));
+      }
+      return direction * av.localeCompare(bv, undefined, {numeric: true, sensitivity: 'base'});
+    });
+    rows.forEach(r => tbody.appendChild(r));
+    $$('tbody tr', table).forEach((r, i) => r.classList.toggle('alt', i % 2 === 1));
+  }
+
+  // ─── Keyboard shortcuts ──────────────────────────────────────────────────
+  function initKeyboard() {
+    document.addEventListener('keydown', e => {
+      const t = e.target;
+      const isInput = t && (t.matches && t.matches('input, textarea, [contenteditable="true"]'));
+      if (e.key === 'Escape') {
+        const modal = $('#help-modal');
+        if (modal && !modal.hasAttribute('hidden')) { modal.setAttribute('hidden', ''); return; }
+        const inp = $('#search-input');
+        if (inp && (inp.value || document.activeElement === inp)) {
+          inp.value = ''; runSearch(''); inp.blur(); return;
+        }
+      }
+      if (isInput) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      switch (e.key) {
+        case '/': {
+          e.preventDefault();
+          const inp = $('#search-input');
+          if (inp) { inp.focus(); inp.select(); }
+          break;
+        }
+        case 'n': e.preventDefault(); nextHit(); break;
+        case 'N': e.preventDefault(); prevHit(); break;
+        case 'j': e.preventDefault(); navSubsection(1); break;
+        case 'k': e.preventDefault(); navSubsection(-1); break;
+        case '[': e.preventDefault(); navPhase(-1); break;
+        case ']': e.preventDefault(); navPhase(1); break;
+        case 'g':
+          if (Date.now() - lastG < 600) {
+            e.preventDefault();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+            lastG = 0;
+          } else { lastG = Date.now(); }
+          break;
+        case 'G': e.preventDefault(); window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'}); break;
+        case '?': e.preventDefault(); toggleHelp(); break;
+      }
+    });
+  }
+
+  function navSubsection(dir) {
+    const items = $$('.section, .subsection, .subsubsection').filter(s => s.id);
+    const idx = items.findIndex(s => s.id === activeSectionId);
+    const start = idx < 0 ? 0 : idx;
+    const next = items[Math.max(0, Math.min(items.length - 1, start + dir))];
+    if (next) next.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+  function navPhase(dir) {
+    const phases = $$('.section').filter(s => s.id && s.id !== 'summary');
+    const cur = document.getElementById(activeSectionId);
+    const curPhase = cur ? cur.closest('.section') : null;
+    const idx = phases.indexOf(curPhase);
+    const start = idx < 0 ? 0 : idx;
+    const next = phases[Math.max(0, Math.min(phases.length - 1, start + dir))];
+    if (next) next.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+
+  // ─── Back-to-top ─────────────────────────────────────────────────────────
+  function initBackToTop() {
+    const fab = $('#fab-top');
+    if (!fab) return;
+    fab.addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
+    const update = () => fab.classList.toggle('visible', window.scrollY > 600);
+    window.addEventListener('scroll', update, {passive: true});
+    update();
+  }
+
+  // ─── Anchor copy links ───────────────────────────────────────────────────
+  function initAnchorLinks() {
+    $$('.section h2, .subsection h3, .subsubsection h4').forEach(h => {
+      const id = (h.parentElement && h.parentElement.id) || h.id;
+      if (!id) return;
+      const a = document.createElement('a');
+      a.className = 'anchor-link';
+      a.href = '#' + id;
+      a.textContent = '#';
+      a.setAttribute('aria-label', 'Copy link to this section');
+      a.title = 'Copy link';
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const url = location.origin + location.pathname + '#' + id;
+        try { history.replaceState(null, '', '#' + id); } catch(err) {}
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(() => showToast('Link copied'))
+            .catch(() => showToast('Could not copy link'));
+        } else {
+          showToast('Anchor: #' + id);
+        }
+      });
+      h.insertBefore(a, h.firstChild);
+    });
+  }
+
+  function showToast(msg) {
+    const t = $('#toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('visible');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove('visible'), 1800);
+  }
+
+  // ─── Collapsible sidebar phase groups ────────────────────────────────────
+  function initCollapsibleSidebar() {
+    const groups = $$('.nav-group');
+    const storeKey = 'eaef-nav-collapsed';
+    let stored = {};
+    try { stored = JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch(e) {}
+    groups.forEach(g => {
+      const idx = g.dataset.phaseIndex;
+      if (stored[idx]) g.classList.add('collapsed');
+      const caret = $('.nav-caret', g);
+      if (caret) {
+        caret.addEventListener('click', e => {
+          e.preventDefault(); e.stopPropagation();
+          g.classList.toggle('collapsed');
+          stored[idx] = g.classList.contains('collapsed');
+          try { localStorage.setItem(storeKey, JSON.stringify(stored)); } catch(err) {}
+        });
+      }
+    });
+    const ex = $('#nav-expand-all');
+    const co = $('#nav-collapse-all');
+    if (ex) ex.addEventListener('click', () => {
+      groups.forEach(g => g.classList.remove('collapsed'));
+      stored = {};
+      try { localStorage.setItem(storeKey, '{}'); } catch(err) {}
+    });
+    if (co) co.addEventListener('click', () => {
+      stored = {};
+      groups.forEach(g => { g.classList.add('collapsed'); stored[g.dataset.phaseIndex] = true; });
+      try { localStorage.setItem(storeKey, JSON.stringify(stored)); } catch(err) {}
+    });
+  }
+
+  // ─── Sidebar reading-progress bar ────────────────────────────────────────
+  function initProgressBar() {
+    const fill = $('#progress-fill');
+    if (!fill) return;
+    const update = () => {
+      const max = document.body.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+      fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+    };
+    window.addEventListener('scroll', update, {passive: true});
+    window.addEventListener('resize', update);
+    update();
+  }
+
+  // ─── Cross-references in tables ──────────────────────────────────────────
+  function initCrossRefs() {
+    const kinds = ['agents', 'dataProducts', 'systems', 'mcp'];
+    const idMap = new Map();
+    for (const kind of kinds) {
+      const tbl = $('table[data-kind="' + kind + '"]');
+      if (!tbl) continue;
+      $$('tbody tr', tbl).forEach(r => {
+        if (!r.id) return;
+        const idCell = r.children[0];
+        if (!idCell) return;
+        const raw = (idCell.textContent || '').trim();
+        if (!raw) return;
+        raw.split(/[,;]/).forEach(part => {
+          const tok = part.trim();
+          if (!tok) return;
+          if (tok.length >= 2 && /^[A-Za-z][A-Za-z0-9_-]*$/.test(tok)) {
+            idMap.set(tok.toUpperCase(), r);
+          }
+        });
+      });
+    }
+    if (!idMap.size) return;
+    $$('tbody td').forEach(td => {
+      if (td.children.length > 0 && td.querySelector('.xref, .badge')) return;
+      if (!td.textContent || td.textContent.length < 2) return;
+      const ownRow = td.closest('tr');
+      const tokens = td.textContent.split(/(\s+|[,;])/);
+      let changed = false;
+      const newNodes = [];
+      for (const tok of tokens) {
+        const cleanTok = tok.replace(/[.,;:!?)\]]+$/, '').replace(/^[(\[]+/, '');
+        const key = cleanTok.toUpperCase();
+        if (key && idMap.has(key) && idMap.get(key) !== ownRow) {
+          const a = document.createElement('a');
+          a.className = 'xref';
+          a.href = '#' + idMap.get(key).id;
+          a.textContent = tok;
+          a.addEventListener('click', e => {
+            e.preventDefault();
+            const target = idMap.get(key);
+            if (!target) return;
+            target.scrollIntoView({behavior: 'smooth', block: 'center'});
+            target.classList.remove('flash');
+            void target.offsetWidth; // restart animation
+            target.classList.add('flash');
+            try { history.replaceState(null, '', '#' + target.id); } catch(err) {}
+          });
+          newNodes.push(a);
+          changed = true;
+        } else {
+          newNodes.push(document.createTextNode(tok));
+        }
+      }
+      if (changed) {
+        td.innerHTML = '';
+        newNodes.forEach(n => td.appendChild(n));
+      }
+    });
+  }
+
+  // ─── Theme toggle ────────────────────────────────────────────────────────
+  function applyStoredTheme() {
+    try {
+      const stored = localStorage.getItem('eaef-theme');
+      const initial = stored ||
+        ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', initial);
+    } catch(e) {}
+  }
+  function initThemeToggle() {
+    const btn = $('#theme-toggle');
+    if (btn) btn.addEventListener('click', toggleTheme);
+  }
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('eaef-theme', next); } catch(e) {}
+  }
+
+  // ─── Density toggle ──────────────────────────────────────────────────────
+  function initDensityToggle() {
+    const btn = $('#density-toggle');
+    let stored = 'comfortable';
+    try { stored = localStorage.getItem('eaef-density') || 'comfortable'; } catch(e) {}
+    document.body.setAttribute('data-density', stored);
+    if (btn) btn.addEventListener('click', () => {
+      const cur = document.body.getAttribute('data-density') || 'comfortable';
+      const next = cur === 'compact' ? 'comfortable' : 'compact';
+      document.body.setAttribute('data-density', next);
+      try { localStorage.setItem('eaef-density', next); } catch(e) {}
+    });
+  }
+
+  // ─── Help modal ──────────────────────────────────────────────────────────
+  function initHelpModal() {
+    const btn = $('#help-toggle');
+    const modal = $('#help-modal');
+    if (btn && modal) btn.addEventListener('click', toggleHelp);
+    if (modal) {
+      const overlay = $('.help-overlay', modal);
+      const close = $('.help-close', modal);
+      if (overlay) overlay.addEventListener('click', () => modal.setAttribute('hidden', ''));
+      if (close)   close.addEventListener('click',   () => modal.setAttribute('hidden', ''));
+    }
+  }
+  function toggleHelp() {
+    const modal = $('#help-modal');
+    if (!modal) return;
+    if (modal.hasAttribute('hidden')) modal.removeAttribute('hidden');
+    else modal.setAttribute('hidden', '');
+  }
+
+})();
+</script>
+</body>
+</html>
