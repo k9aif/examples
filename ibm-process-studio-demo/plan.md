@@ -665,3 +665,40 @@ either action even though canvas nodes correctly cleared. This also explained hi
 logout/login report ("I see the same status ... the matrix"). Fixed both; verified end-to-end:
 27 nodes → Clear → 0 nodes, Traceability falls back to its empty placeholder, and a fresh upload
 right after works cleanly (18 rows, same as a first import).
+
+**Update (same morning, major feature) — implementation-plan.md round-trip, `studiox_v2` commits
+`2cfbe85`, `ba36ea5`:**
+
+Ravi's ask: a second downloadable document alongside `scaffold.zip` that can be re-uploaded to
+resume a project exactly where it left off. Recalled "implementation-plan.md" from before (not
+actually found anywhere in this codebase — confirmed via grep — may be a different project or a
+concept, not something built here). Decision: **don't create a third overlapping artifact**
+(design-document.zip + implementation-plan.md + detailed-design.md would be confusing) —
+extended `detailed-design.md` (built earlier tonight) instead, renamed to `implementation-plan.md`:
+
+- **"What To Do Next" section** right after the header — explicit onboarding (Ravi: "otherwise, I
+  as a new user, would be stuck not knowing what to do next").
+- **"Infrastructure & Platform Selections" section** — the left-column palette choices (WatsonX,
+  Agent Frameworks, Messaging, Database, Object Storage, Docling/OCR, Deployment Target), sharing
+  the exact categorization logic `config.yaml` generation already uses (`_categorize_platforms()`,
+  extracted so both can't drift).
+- **"Project State Snapshot"** — the exact payload the scaffold was generated from, embedded as a
+  JSON block. Not a separate format; can't drift from what actually produced the scaffold.
+- New backend endpoint `/api/mapping-document/from-project` — rebuilds the matrix from a restored
+  project via `build_mapping_document()` directly, no client-side reimplementation.
+- New "Import Implementation Plan" control (Intake tab) — restores via the same
+  mapping-document-first gate as BPMN import, not a shortcut.
+- `Generate Scaffold` now fires two downloads: `scaffold.zip` and `implementation-plan_*.md`.
+
+**Verified with a real full-cycle test**, not just the pieces: upload → confirm (27 nodes) →
+generate (both downloads fire) → Clear (0 nodes) → import the downloaded plan back → 18 rows +
+project name restored → Confirm → **27 nodes again, matching the original build exactly**. Zero
+console errors. Sample file saved to `cross-domain-test/sample_implementation_plan.md`.
+
+**Also this stretch:** confirmed scaffold generation never uses an LLM (pure Jinja2 templating) —
+"Setup LLM" in About now says "(optional)". Confirmed PDF/DOCX aren't supported for spec-doc
+upload at all today, and the "Docling/OCR" palette checkbox has zero effect on this (it's a
+downstream scaffold-config flag, not wired into the Studio's own upload endpoint) — fixed the
+Intake tab's note to state this plainly and always-visibly instead of a hover-only "coming soon"
+that overpromised. Actually wiring PDF/DOCX support (via Docling and/or LLM extraction) is a real,
+separate, larger feature — not attempted tonight, flagged as a future item.
