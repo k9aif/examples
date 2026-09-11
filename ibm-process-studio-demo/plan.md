@@ -73,12 +73,16 @@ signal something broke, cheaper to check than the full per-ID row comparison.
 
 ### Implementation steps (2026-09-10, merged — mine + Ravi's refinements, confirmed "good")
 
-1. **Carry the BPMN's own task/lane element ids through.** `classify_task()` currently looks up
+Status: **1–4 done (commits `055000d`, `88f4071`, `aa65b45`), 5–8 in progress.** Working
+autonomously per Ravi's "keep implementing, I'll review tomorrow morning" — see each step below
+for what's verified and what's an open judgment call flagged for review.
+
+1. **✅ DONE — carry the BPMN's own task/lane element ids through.** `classify_task()` currently looks up
    zone by task `id` (`Task_1`, `Lane_1`, ...) then discards the id. Needs to be kept — it's the
    Process ID column source. Process Studio's ATS#/AGN# numbering only lives in the `.md`, not the
    `.bpmn`, so for BPMN-only import the BPMN's own element id is the generic, always-available
    identifier (works for *any* BPMN, not just Process Studio's convention).
-2. **Build `build_mapping_document()`** — columns wider than originally scoped, per Ravi's point:
+2. **✅ DONE — build `build_mapping_document()`** — columns wider than originally scoped, per Ravi's point:
    not just structural wiring (Process ID | Element | Zone | Orchestrator | Squad | Agent | Agent
    Base Type | HITL Touchpoint) but **which framework mechanisms wrap each component**:
    - **Governance** — whether/how `require_governance()`/`enforce_governance()` applies. Not yet
@@ -93,11 +97,10 @@ signal something broke, cheaper to check than the full per-ID row comparison.
      field with no *why* traced. Note: actual model selection is a **runtime** decision (scored
      per-request), not fixed at generation time — the matrix can show the static *inputs* to
      routing (configured per agent), not a fixed routing outcome. Don't conflate the two.
-3. **Expose it from `/api/bpmn/import`, additively** — `"mapping_document": {...}` alongside the
-   existing `"suggestion"` key, so it can be tested in isolation before switching canvas-building
-   over.
-4. **Count-check** — `{"counts": {"orchestrators": N, "squads": N, "agents": N, "adapters": N}}`
-   on the mapping document response.
+3. **✅ DONE — expose it from `/api/bpmn/import`, additively** — `"mapping_document": {...}`
+   alongside the existing `"suggestion"` key. Verified via live HTTP round-trip.
+4. **✅ DONE (came for free from step 2's design) — count-check** —
+   `mapping_document.counts = {orchestrators, squads, agents, adapters}` already in the response.
 5. **Surface it in the UI — editable, and a hard gate, not just advisory review.** Ravi's
    refinement: human can verify *or modify* the mapping document; scaffold generation is blocked
    until explicit confirmation. Nice resonance for the pitch — the studio practices the same
@@ -326,6 +329,21 @@ BPMN) — **more urgent than the zone-color gap**, since this breaks correctness
    `DetectInvoiceAnomaliesAgent` now generates as `K9CriticActorAgent`.
 3. **`config/scenario.json` is generic/unrelated** ("Overnight Risk Run — Portfolio PF-10231"),
    not derived from the imported AP invoice process at all. Lower severity, not yet fixed.
+4. **Confirmed (2026-09-10, not a bug fix — a scoping finding for the mapping document): GREEN
+   zone (adapters) generate zero executable code.** Checked `scaffold_service.py` for every
+   "adapter" reference — all of them are inside `ARCHITECTURE.md` generation (descriptive
+   markdown only). No `.py` file is ever produced for an adapter, and a GREEN-only orchestrator's
+   `execute_flow()` calls `execute_squads([])` — a no-op, confirmed via the earlier `_SQUAD_IDS =
+   []` verification. In the AP invoice example this is 9 of 14 steps (the majority — AGN1 +
+   AGN5). Not something to silently paper over in the mapping document — the Agent Base Type
+   column should say plainly "no code generated" for adapter rows, not a fabricated class name.
+   Also checked governance: no generated agent template (`agent_base.py.j2`,
+   `agent_validation_loop.py.j2`) calls `enforce_governance()` — every generated agent silently
+   runs under `NoopGovernance` regardless of environment. Zero Trust *is* real: every generated
+   orchestrator calls `self.apply_zero_trust(payload)` unconditionally, but it's uniform, not
+   zone-differentiated. These three facts (no adapter code, unenforced governance, uniform zero
+   trust) are what the mapping document's new Governance/Zero-Trust/Agent-Base-Type columns will
+   actually report — verified, not assumed.
 
 **Regression check:** `backend/tests/test_scaffold_service.py` — 8/9 pass (all previously
 unrunnable without `K9X_GENERATOR_TEMPLATES_DIR` set, an undocumented requirement this exposed).
