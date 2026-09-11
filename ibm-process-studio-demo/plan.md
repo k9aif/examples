@@ -607,3 +607,16 @@ Screenshots `01`–`13` in `verification-screenshots/` cover the whole arc, in o
 **Open question for Ravi:** `detailed-design.md` already links to `patterns.k9x.ai` but doesn't
 have a substantive "Patterns Applied" section referencing specific named patterns — worth building
 that out further, or is the link sufficient for now?
+
+**Update (same morning) — real Patterns Applied section, `studiox_v2` commit `25335c1`:**
+answered Ravi's direct question ("do we have rules that process a BPMN and generate framework
+components automatically?" — yes, confirmed and re-verified through the real API). Then built the
+Patterns Applied section he asked for, grounded in the actual Jinja2 templates
+(`agent_validation_loop.py.j2`, `agent_critic_actor.py.j2`), not written from memory:
+ValidationLoop's grading rule (confidence >= threshold → FINALIZE; max_iterations + confidence <
+0.3 → ESCALATE) is real working code in the stub; CriticActor's `critique()` is a **TODO
+placeholder** — nothing is actually graded until the SA implements it, flagged as the
+highest-priority gap for RED-zone agents specifically, with a matching SA-checklist item. Governance/
+Zero Trust reframed as explicit pre-check (Zero Trust)/post-check (Governance, not enforced)
+per Ravi's framing. Verified through both direct calls and the real `/api/scaffold-preview` HTTP
+path.
