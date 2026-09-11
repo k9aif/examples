@@ -657,3 +657,11 @@ governance wording, header branding, `studiox_v2` commits `696e967`, `56d21f1`, 
 All verified via Playwright/live HTTP against a separate instance from Ravi's running one, per
 usual. `context/k9_aif_abb`-removal-grade rigor maintained: every wording change was checked
 against real source before being written, not assumed or guessed at for better optics.
+
+**Update (same morning) — Clear button fixed, `studiox_v2` commit `f89a0a9`:** Ravi found a real
+gap — `clearCanvas()`/`clearSession()` (Clear button / logout) were written before
+`pendingMappingDocument` existed and never updated, so the Traceability matrix stayed stale after
+either action even though canvas nodes correctly cleared. This also explained his separate
+logout/login report ("I see the same status ... the matrix"). Fixed both; verified end-to-end:
+27 nodes → Clear → 0 nodes, Traceability falls back to its empty placeholder, and a fresh upload
+right after works cleanly (18 rows, same as a first import).
