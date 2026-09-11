@@ -78,6 +78,21 @@ direct calls) — 6, 7 not started.** Working autonomously per Ravi's "keep impl
 review tomorrow morning." See each step below for what's verified and what's an open judgment
 call flagged for review.
 
+**Update (same evening, Ravi reviewed live):** found and fixed a real bug in step 5 — the
+Traceability tab went blank after clicking Confirm (`handleConfirm()` was nulling out the exact
+state the tab renders from). Fixed with a `mappingDocumentConfirmed` flag that persists the matrix
+instead of clearing it (`studiox_v2` commit `6d40d40`). Also wrote `studio_rules.md` (studiox_v2
+root) consolidating the Arch Guide tab's classification rules with this session's zone-mapping
+rules and the HIL Orchestrator gap Ravi flagged ("HIL is a separate orchestrator," "canvas has no
+HIL") — confirmed in code that HIL wiring is Kafka-direct/event-driven and currently
+manual-only with generic placeholders, not derived from real AMBER/RED agents; stated as an open
+Step 6 design item. **Also ran the generic-studio verification that was outstanding**: a second,
+deliberately different BPMN (insurance claims, 3 lanes not 7, zero color extension at all) against
+the live running backend — correct output throughout, including graceful zone=None fallback to
+name-keyword heuristics. Test file + response saved in `cross-domain-test/`. This was asked for
+directly by Ravi ("what if I upload a totally different BPMN file? will it work?") rather than
+just asserted from code-reading confidence.
+
 **For tomorrow's review, in one paragraph:** the full pipeline works end-to-end and is proven,
 not assumed — upload the real AP invoice BPMN, land on a new Traceability tab (not Canvas) showing
 the matrix with real governance/zero-trust/HITL findings, review or edit zone/agent-type, confirm,
