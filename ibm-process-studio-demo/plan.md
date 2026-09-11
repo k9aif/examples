@@ -483,3 +483,7 @@ no `.start()` method), not a regression from this fix.
 `Agn4AnomalyDetectionSquad`) since the type badge above each box already says SQUAD/ORCHESTRATOR —
 display-only, underlying names unchanged everywhere else. Screenshot `09` in
 `verification-screenshots/`.
+
+**Update (same stretch) — Orchestrator abbreviated to Orch, `studiox_v2` commit `53ff03f`:**
+node labels now show `...Orch` instead of `...Orchestrator` (Squad stays full, per Ravi's
+"in Canvas, it can be Squad"). Display-only, same `displayLabel()` trim point. Screenshot `10`.
