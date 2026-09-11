@@ -101,7 +101,18 @@ for what's verified and what's an open judgment call flagged for review.
    alongside the existing `"suggestion"` key. Verified via live HTTP round-trip.
 4. **✅ DONE (came for free from step 2's design) — count-check** —
    `mapping_document.counts = {orchestrators, squads, agents, adapters}` already in the response.
-5. **Surface it in the UI — editable, and a hard gate, not just advisory review.** Ravi's
+5. **✅ DONE, real-browser-verified (commits `4c7f5fe`, `40daffe`) — surface it in the UI, editable,
+   as a hard gate.** New "Traceability" tab, `MappingDocumentPanel.tsx`. Verified via Playwright
+   against the actual running app (not just direct calls/HTTP — first real browser-level check
+   this session): logged in, uploaded the real AP invoice BPMN, landed on Traceability
+   automatically (not Canvas), matrix rendered correctly, clicked "Confirm & Build Canvas", canvas
+   rendered with every orchestrator wired to its own squad — Agn4's squad visibly has a **red top
+   border** (the exact wiring bug, now proven fixed end-to-end in the real UI). Zero console/page
+   errors. Screenshots in `verification-screenshots/`. Found and fixed a real row-height bug along
+   the way (governance/zero-trust/HITL text was wrapping to 8-10 lines per row — now truncated
+   with a hover tooltip).
+   Scope note: only the BPMN import path is gated — spec-doc import and template paths still go
+   straight to canvas, not touched in this pass. Ravi's
    refinement: human can verify *or modify* the mapping document; scaffold generation is blocked
    until explicit confirmation. Nice resonance for the pitch — the studio practices the same
    human-in-the-loop discipline on its own output that the AMBER/RED agents it generates practice
