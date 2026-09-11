@@ -43,6 +43,34 @@ column, no hardcoded AGN1–7 assumption. A differently-shaped BPMN (different l
 explicit ID scheme at all) must still produce a matrix, using whatever identifiers are available
 (task IDs, lane names) if Process Studio's ATS#/AGN# convention isn't present.
 
+### Pipeline order — decision (2026-09-10): mapping document first, no LLM for structured input
+
+**Do not use the backend LLM (e.g. qwen3.8:27b) to generate the canvas for structured Process
+Studio input.** The `.md`/`.bpmn` already carries everything needed — coded IDs, explicit
+GREEN/AMBER/RED zones, explicit HITL specs — via deterministic parsing (exactly what
+`bpmn_service.py`/`spec_parsing_service.py` already do, rule-based, no LLM). Feeding an
+already-structured document through an LLM "suggest" step (`force_llm`, `LLMGroupingAgent`) would
+trade a traceable extraction for a probabilistic one, for input that doesn't need interpreting.
+The LLM-suggest path still has a real job — genuinely unstructured input (free-text description, a
+hand-drawn BPMN with no ID/zone convention) — just not this.
+
+**Reorders the pipeline, not just "skip the LLM":** today's flow is *import → suggestion JSON →
+canvas (nodes/edges) → re-serialize edges → scaffold* — three independent re-representations of
+the same relationships. That's the same shape of problem as the orchestrator/squad wiring bug we
+just fixed (which was pure array-indexing, not an LLM issue at all — the risk is re-deriving
+relationships at each hop, with or without an LLM in the loop). The fix: generate the **mapping
+document first**, as a deterministic crosswalk (this *is* the Traceability Matrix above, built at
+import time rather than reconstructed after the fact) — then canvas and scaffold are both
+**rendered from the mapping document**, not independently re-derived from raw parsing or from
+each other. The "Match?" column becomes true by construction instead of something to verify by
+parsing generated code after the fact.
+
+**Cheapest concrete check, falls out for free from this architecture:** orchestrator/squad/agent
+*counts* in the mapping document must equal counts in the generated canvas and in the generated
+scaffold — exactly, not approximately. If the mapping doc says 7 agents, the canvas must show 7
+agent nodes and the scaffold must contain 7 agent files. Any mismatch is an immediate, legible
+signal something broke, cheaper to check than the full per-ID row comparison.
+
 **Ambition calibration (2026-09-10):** IBM Process Studio is a mature, team-built product
 (over a year of development) about to be released to IBM's Federal customers, and its output is
 correspondingly deep — a 6-phase EAEF blueprint with atomic step register, business ontology,
