@@ -168,6 +168,12 @@ def _render_category(category_id: str, nav_html: str) -> bytes:
 
 def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
     body = """
+    <p style="font-size:1.05em"><strong>The goal of this example:</strong> show that a governed,
+    architecture-first multi-agent framework doesn't need an LLM everywhere to prove its value.
+    Reasoning is used only where genuine uncertainty exists -- one step, in the whole storefront.
+    Everything else here runs deterministically, on purpose, not because the agentic path wasn't
+    built.</p>
+
     <h2>The original Java Pet Store</h2>
     <p>Java Pet Store was Sun Microsystems' J2EE BluePrints demo application (2001) --
     a reference implementation showing how to structure an enterprise Java app with
@@ -272,6 +278,9 @@ def _about_page(user: Optional[dict], cart_count: int = 0) -> bytes:
 
     <p class="muted" style="margin-top:24px">Source: <a href="https://github.com/k9aif/examples" target="_blank" rel="noopener">github.com/k9aif/examples</a>
     (this project lives under <code>Work-In-Progress/K9-AIF-and-Claude-Agent-SDK/</code>).</p>
+
+    <p class="muted" style="margin-top:8px"><em>Note: no LLMs were used for this demo
+    application, built on the K9-AIF Framework. No LLMs were harmed.</em></p>
     """
     return _page("About", body, _nav(user, None, cart_count))
 

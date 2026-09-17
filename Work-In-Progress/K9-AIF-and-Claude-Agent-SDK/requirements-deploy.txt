@@ -1,0 +1,7 @@
+# Runtime dependencies for the hosted storefront (webui/webui_server.py) only.
+#
+# Deliberately excludes claude-agent-sdk and pytest/pytest-asyncio: the
+# running storefront never imports petstore/abb or petstore/sbb (the
+# diagnosis agents), so the deployed container needs neither the SDK nor
+# the test toolchain. See requirements.txt for the full dev/test set.
+psycopg2-binary>=2.9

@@ -50,11 +50,32 @@ Gates are enforced by framework-level mechanisms — hooks, middleware, explicit
 
 A prompt is a request the model can be talked out of, forget under context pressure, or lose to compaction. A hook querying an external registry on every invocation can't be argued with, because it isn't part of the argument.
 
+**How this project actually enforces it.** The livestock-fulfillment gate is not a note in the system prompt — it is `GateRegistry` state (`SimpleGateRegistry`, SQLite-backed, `petstore/gates/simple_gate_registry.py`), and `SdkDiagnosisAgent` queries it on every tool call through the Claude Agent SDK's `can_use_tool` callback, not the `hooks["PreToolUse"]` mechanism the original spec assumed — see `DEVIATIONS.md` #2 for why the swap was necessary once the installed SDK's actual API was checked. The sequence diagram below is the adversarial case: an authoritative-framing prompt trying to talk its way past the gate, denied because `can_use_tool` checks the registry directly rather than trusting anything the model said.
+
+![Gate enforcement sequence](diagrams/03-gate-enforcement-sequence.png)
+
+`tests/test_gate_cannot_be_bypassed.py` is what actually backs this claim — an adversarial test, not a happy-path one; per `CLAUDE.md` it is "the highest-value artifact in the repo" for exactly this reason. The general principle (router as first enforcement point, orchestrator as control authority, external frameworks wrapped rather than trusted) is written up at the framework level in [How K9-AIF Enforces Governance in Agentic Systems](https://blog.k9x.ai/how-k9-aif-enforces-governance/) — this project is that principle's most adversarial, most concretely tested instance to date, not just a restatement of it.
+
 ---
 
 ## 6. Verify-before-build
 
 Installed package signatures win over any spec, including this one and `project.md`. When an external SDK's actual API differs from what was assumed, the difference gets recorded (`DEVIATIONS.md`) and the spec adjusts — never the reverse. A missing capability is useful information; a fabricated stand-in corrupts the reference implementation's value as a reference.
+
+---
+
+## 7. Model routing is a governed slot, not a per-call choice
+
+`BaseModelRouter` is an ABB contract, not a convenience function — a model call is never "just call the API," it's "ask the router, and let policy decide." This project's two diagnosis substrates make that concrete rather than abstract, because they land on opposite sides of the same seam:
+
+- `DirectApiDiagnosisAgent` builds an `InferenceRequest` and calls `llm_invoke()` — the standard chain, which resolves through the K9 Model Router before any model is touched (`petstore/sbb/direct_diagnosis.py`).
+- `SdkDiagnosisAgent` does not, and cannot: the Claude Agent SDK owns its own inference loop end to end, with no seam for K9-AIF to intercept (documented explicitly in `Detailed_Design.md` as the one exception to standard K9-AIF agent convention in this project).
+
+Both still satisfy the same `DiagnosisAgent` ABB contract and the same gate enforcement in Principle 5 — routing is the one axis where the two substrates are honestly not equivalent, and that asymmetry is the point, not a gap to paper over.
+
+![K9 Model Router](diagrams/05-model-router.png)
+
+The router's own architecture — policy-driven, YAML-configured, session-persisted (SQLite by default, Postgres for enterprise), and isolated behind the ABB contract so a smarter routing strategy can be swapped in as an SBB without touching call sites — is written up in full in [K9-AIF Model Router vs. NotDiamond: An Architectural Comparison](https://blog.k9x.ai/k9-model-router-vs-notdiamond/). One clarification worth making explicit here: the hybrid NotDiamond-backed router described in that post is a worked example of the *extensibility* the ABB contract provides, not something wired into Pet Store Agentic today — `DirectApiDiagnosisAgent` runs on the default rule-based router, unmodified.
 
 ---
 
@@ -67,4 +88,4 @@ Installed package signatures win over any spec, including this one and `project.
 | `project.md` | *What* — the concrete Pet Store Agentic build spec |
 | `CLAUDE.md` | *Rules* — project-specific invariants and load-bearing tests |
 | `PLAN.md` | *Status* — build order, current phase, pre-build verification steps |
-| `diagrams/` | *Pictures* — four PlantUML views of the architecture in `project.md` |
+| `diagrams/` | *Pictures* — four PlantUML views of the architecture in `project.md`, plus one framework-level diagram (`05-model-router.png`, reused from the Model Router blog post, no project-local `.puml` source) |
