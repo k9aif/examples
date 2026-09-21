@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: Apache-2.0
+# k9chat — generic, no-op-by-default reference Containerfile (no real
+# secrets). Build context must be ai/ (parent of both k9-aif-framework/
+# and this repo, k9-aif-examples/) -- k9chat imports k9_aif_abb/ directly
+# rather than pip-installing it (PyPI's k9-aif lags behind the framework
+# repo), so both repos need to be in the build context together. Clone
+# k9-aif-framework as a sibling of this repo first -- see this repo's
+# k9chat/README.md.
+#
+# Build (from ai/, the parent of both repos):
+#   podman build -t k9chat:latest \
+#     --build-arg K9AIF_DIR=k9-aif-framework \
+#     --build-arg K9EXAMPLES_DIR=k9-aif-examples \
+#     -f k9-aif-examples/k9chat/ubuntu/Containerfile .
+# (build-run.sh does this for you.)
+
+ARG K9AIF_DIR=k9-aif-framework
+ARG K9EXAMPLES_DIR=k9-aif-examples
+
+FROM registry.access.redhat.com/ubi9/python-311:latest
+ARG K9AIF_DIR
+ARG K9EXAMPLES_DIR
+
+USER root
+WORKDIR /app
+
+COPY ${K9AIF_DIR}/requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip
+# CPU-only torch first, from PyTorch's own CPU wheel index -- a plain
+# `pip install torch` on Linux x86_64 pulls the multi-GB CUDA-bundled
+# build by default, which this container has no use for (no GPU access;
+# Ollama runs outside it entirely). requirements.txt's own torch==...
+# line is stripped before the second install below -- PEP 440
+# local-version matching does not reliably hold across two *separate*
+# pip invocations (confirmed live 2026-09-20: pip re-resolved against
+# the default index anyway and pulled the full CUDA 13 stack).
+RUN pip install --no-cache-dir torch==2.14.0 \
+      --index-url https://download.pytorch.org/whl/cpu
+RUN grep -v '^torch==' requirements.txt > requirements.no-torch.txt \
+ && pip install --no-cache-dir -r requirements.no-torch.txt
+
+COPY ${K9AIF_DIR}/k9_aif_abb ./k9_aif_abb
+COPY ${K9EXAMPLES_DIR}/k9chat ./k9chat
+
+# /app/data (bind-mounted at runtime) holds .chroma/ and the projects
+# sqlite db, so they persist across image rebuilds -- see build-run.sh's
+# K9CHAT_CHROMA_PATH/K9CHAT_PROJECTS_DB overrides.
+RUN mkdir -p /app/data \
+ && chown -R 1001:0 /app \
+ && chmod -R g+rwX /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=7777
+
+EXPOSE 7777
+
+HEALTHCHECK --interval=30s --timeout=8s --start-period=15s --retries=3 \
+  CMD python -c "import socket; socket.create_connection(('localhost', 7777), timeout=3).close()" \
+      || exit 1
+
+USER 1001
+
+CMD ["python", "-m", "uvicorn", "k9chat.app:app", "--host", "0.0.0.0", "--port", "7777"]

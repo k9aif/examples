@@ -13,7 +13,7 @@ This example showcases:
 - Guest identity with no password (`auth.py`) — every visitor gets a display name/codename, scoping Projects per-visitor without gating access
 - A real concurrency + GPU-thermal admission guard (`queue_control.py`/`gpu_telemetry.py`) protecting the backing GPU host from being overrun
 - Toggleable "fun dials" (Unhinged/Profanity/Length), an LLM-as-judge **Eval** toggle, and a **Streaming** toggle — all genuinely wired, not decorative
-- Ubuntu/Podman container deployment (`scripts/ubuntu/k9chat/`)
+- Ubuntu/Podman container deployment (`ubuntu/`)
 
 ## Setup
 
@@ -65,7 +65,7 @@ The following class diagram illustrates the core K9Chat object-oriented structur
 - `doc/` — Supporting documentation for the example
 - `.env.example` — Full environment template (copy to `.env`, gitignored)
 
-Deployment scripts (`scripts/ubuntu/k9chat/Containerfile`/`build-run.sh`) live at the repo root, not in this directory — see below.
+Deployment scripts (`ubuntu/Containerfile`/`build-run.sh`) live alongside this directory — see below.
 
 ---
 
@@ -88,32 +88,29 @@ pip install fastapi uvicorn jinja2
 
 ## Running K9Chat (Browser UI)
 
-From the root of the k9-aif-framework repository, run:
+From the root of this repo (k9-aif-examples), with k9-aif-framework cloned
+as a sibling (see Setup above):
 
 ``` bash
-./run_k9chat.sh
-```
-The above scipt runs:
-
-``` bash
-uvicorn examples.k9chat.app:app --reload
+cd k9chat
+uvicorn app:app --reload
 ```
 
 ## Running K9Chat (Ubuntu / Podman container)
 
-Deployment scripts live at `scripts/ubuntu/k9chat/` (repo root), not in this
-directory, since the build context is the whole repo (k9_aif_abb/ +
-examples/k9chat/ together).
+Deployment scripts live at `ubuntu/`, next to this directory. Build context
+is `ai/` (the parent of both this repo and k9-aif-framework), since the
+image needs `k9_aif_abb/` and `k9chat/` together.
 
 ```bash
-cp examples/k9chat/.env.example examples/k9chat/.env   # fill in your own values
-scripts/ubuntu/k9chat/build-run.sh all                  # build + start, port 7777
-scripts/ubuntu/k9chat/build-run.sh seed                 # one-time: seed the knowledge base
-scripts/ubuntu/k9chat/build-run.sh logs
-scripts/ubuntu/k9chat/build-run.sh stop
+cp k9chat/.env.example k9chat/.env   # fill in your own values
+k9chat/ubuntu/build-run.sh all       # build + start, port 7777
+k9chat/ubuntu/build-run.sh seed      # one-time: seed the knowledge base
+k9chat/ubuntu/build-run.sh logs
+k9chat/ubuntu/build-run.sh stop
 ```
 
 `.chroma/` and the Projects sqlite db persist across rebuilds via a bind
-mount at `examples/k9chat/data/` on the host. Override the published port
-with `HOST_PORT=<port> scripts/ubuntu/k9chat/build-run.sh start`.
+mount at `k9chat/data/` on the host. Override the published port with
+`HOST_PORT=<port> k9chat/ubuntu/build-run.sh start`.
 
