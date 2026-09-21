@@ -602,6 +602,22 @@ body {
   white-space: nowrap;
 }
 
+.badge-guardian {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  cursor: default;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+}
+
+.badge-guardian.on {
+  background: rgba(34, 197, 94, 0.14);
+  color: #4ade80;
+}
+
 .badge-stream {
   display: flex;
   align-items: center;

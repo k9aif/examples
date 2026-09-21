@@ -221,6 +221,15 @@
       .catch(() => {});
   });
 
+  // ---------------- Guardian status (read-only, no toggle) ----------------
+  fetch("/chat/guardian").then(r => r.json()).then(cfg => {
+    const wrap  = document.getElementById("badge-guardian-wrap");
+    const label = document.getElementById("badge-guardian");
+    if (!wrap || !label) return;
+    label.textContent = cfg.guardian_enabled ? "ON" : "OFF";
+    wrap.classList.toggle("on", !!cfg.guardian_enabled);
+  }).catch(() => {});
+
   // ---------------- Health check ----------------
   const healthBanner = document.getElementById("health-banner");
   function refreshHealth() {

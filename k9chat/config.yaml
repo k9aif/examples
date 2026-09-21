@@ -34,13 +34,15 @@ correction_learning:
   # Auto-detects when a user's next message corrects something the
   # assistant just said, then writes the corrected fact straight into the
   # shared knowledge base (k9x_knowledge_base) for future retrieval -- no
-  # review queue. Safe only because this k9chat instance is single-user/
-  # internal (home network, no public exposure) -- every "visitor" is the
-  # same trusted person on a different device. Auto-merge without a review
-  # step would be a real corpus-poisoning risk on a publicly-hosted,
-  # no-password k9chat; revisit before ever exposing this instance beyond
-  # the home network.
-  enabled: true            # toggle at runtime via POST /chat/learning/toggle
+  # review queue. Off by default -- of all the toggles here, this is the
+  # riskiest one to leave on unintentionally (it writes unreviewed content
+  # into shared state every future visitor's replies get grounded from,
+  # not just supplementary context for one reply like internet_search).
+  # Explicitly enable via K9CHAT_CORRECTION_LEARNING for a trusted
+  # single-user/home deployment where every "visitor" is the same person
+  # on a different device -- never on a publicly-hosted, no-password
+  # k9chat, where this would be a real corpus-poisoning risk.
+  enabled: "${K9CHAT_CORRECTION_LEARNING:-false}"  # toggle at runtime via POST /chat/learning/toggle
   judge_model: reasoning   # model alias used to detect + extract corrections
 
 faq_shortcut:
@@ -57,7 +59,10 @@ faq_shortcut:
   sources: [k9chat/faq, k9chat/glossary]
 
 guardrails:
-  enabled: false   # set true once the guardian model below is pulled
+  # Read-only in the UI (Guardian badge), not a click-to-toggle like the
+  # other badges -- a safety gate shouldn't be something a visitor can
+  # switch off themselves. Driven entirely by K9CHAT_GUARDIAN_ENABLED.
+  enabled: "${K9CHAT_GUARDIAN_ENABLED:-false}"
   model_alias: guardian
   fail_closed: false   # if the guardian call errors, allow the message through (true = block)
   refusal_message: "I can't help with that request."

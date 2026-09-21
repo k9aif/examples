@@ -75,6 +75,7 @@ from k9chat.chat import (
     is_internet_search_enabled,
     toggle_internet_search,
     is_framework_mode_locked,
+    is_guardian_enabled,
 )
 from k9chat.project_manager import ProjectNotFoundError
 from k9chat.auth import (
@@ -231,12 +232,14 @@ def chat(payload: ChatRequest):
 
     start = time.monotonic()
     with QueueSlot():
-        reply = send_message(
+        result = send_message(
             message, session_id=payload.session_id, project_id=payload.project_id,
             unhinged_level=payload.unhinged_level, profanity_level=payload.profanity_level,
             length_level=payload.length_level,
         )
     elapsed_ms = round((time.monotonic() - start) * 1000)
+    reply = result.get("text", "")
+    blocked = bool(result.get("blocked"))
     runtime = get_chat_runtime_info()
     response = {
         "reply": reply,
@@ -245,12 +248,18 @@ def chat(payload: ChatRequest):
         "provider": runtime["provider"],
         "base_url": runtime["base_url"],
     }
-    eval_result = evaluate_response(message, reply)
-    if eval_result:
-        response["evaluation"] = eval_result
-    learned = learn_from_correction(prior_reply, message, session_id=payload.session_id)
-    if learned:
-        response["learned_correction"] = learned
+    if blocked:
+        response["blocked"] = True
+    else:
+        # Skip eval/learn on a Guardian refusal -- there's nothing to
+        # judge or learn from in a canned "I can't help with that"
+        # response, and both would otherwise burn an extra LLM call on it.
+        eval_result = evaluate_response(message, reply)
+        if eval_result:
+            response["evaluation"] = eval_result
+        learned = learn_from_correction(prior_reply, message, session_id=payload.session_id)
+        if learned:
+            response["learned_correction"] = learned
     return JSONResponse(response)
 
 
@@ -377,6 +386,12 @@ def faq_shortcut_status():
 def faq_shortcut_toggle():
     enabled = toggle_faq_shortcut()
     return JSONResponse({"faq_shortcut_enabled": enabled})
+
+
+@app.get("/chat/guardian")
+def guardian_status():
+    # Read-only, no /toggle counterpart on purpose.
+    return JSONResponse({"guardian_enabled": is_guardian_enabled()})
 
 
 @app.get("/chat/internet-search")

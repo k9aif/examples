@@ -95,6 +95,14 @@ def build_chat_agent():
     return _AGENT
 
 
+def is_guardian_enabled() -> bool:
+    """Read-only status for the Guardian badge -- no toggle endpoint
+    exists for this one on purpose (see config.yaml's guardrails comment):
+    a safety gate shouldn't be something a visitor can switch off
+    themselves. Driven entirely by K9CHAT_GUARDIAN_ENABLED (.env)."""
+    return build_chat_agent().guard_agent.enabled
+
+
 def get_project_manager() -> ProjectManager:
     global _PROJECT_MANAGER
     if _PROJECT_MANAGER is None:
@@ -209,13 +217,20 @@ def _clamp_tone_for_framework_mode(unhinged_level: int, profanity_level: int) ->
 def send_message(
     text: str, session_id: str = "default", project_id: str | None = None,
     unhinged_level: int = 0, profanity_level: int = 0, length_level: int = 1,
-) -> str:
+) -> dict:
+    """Returns the full result dict, not just the reply text -- callers
+    need "blocked" too (ChatAgent.execute() sets it when GuardAgent
+    refuses input, but this function used to return result.get("text", "")
+    alone, silently discarding it; app.py's /chat had no way to know a
+    reply was actually a Guardian refusal vs. a real answer). Dormant
+    since guardrails.enabled defaulted to false -- only surfaced once
+    Guardian was actually turned on and tested live, 2026-09-21."""
     unhinged_level, profanity_level = _clamp_tone_for_framework_mode(unhinged_level, profanity_level)
     agent = build_chat_agent()
     instructions, context = _resolve_project_context(project_id, text)
     knowledge_context = _resolve_knowledge_context(text)
     web_context = _resolve_web_context(text)
-    result = agent.execute({
+    return agent.execute({
         "text": text,
         "session_id": session_id,
         "project_instructions": instructions,
@@ -226,7 +241,6 @@ def send_message(
         "profanity_level": profanity_level,
         "length_level": length_level,
     })
-    return result.get("text", "")
 
 
 _STREAM_OVERRIDE: bool | None = None  # None = defer to config.yaml's chat.stream
@@ -554,11 +568,15 @@ def evaluate_response(user_message: str, actual_output: str) -> dict | None:
 # ── Correction Auto-Learning ────────────────────────────────────────────────
 
 def is_correction_learning_enabled() -> bool:
+    """Config value is now env-driven (K9CHAT_CORRECTION_LEARNING), so
+    it's a string via config_loader's ${VAR:-default} expansion -- parsed
+    explicitly here, never bool(), which would treat the literal string
+    "false" as truthy (same fix already applied to
+    is_framework_mode_locked())."""
     global _LEARNING_ENABLED
     if _LEARNING_ENABLED is None:
-        _LEARNING_ENABLED = bool(
-            load_config().get("correction_learning", {}).get("enabled", False)
-        )
+        raw = str(load_config().get("correction_learning", {}).get("enabled", "false"))
+        _LEARNING_ENABLED = raw.strip().lower() in ("true", "1", "yes")
     return _LEARNING_ENABLED
 
 

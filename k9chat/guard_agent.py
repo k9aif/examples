@@ -34,7 +34,10 @@ class GuardAgent(BaseAgent):
         super().__init__(config)
 
         guard_cfg = config.get("guardrails", {})
-        self.enabled = bool(guard_cfg.get("enabled", False))
+        # enabled is env-driven (K9CHAT_GUARDIAN_ENABLED) -- a string via
+        # config_loader's ${VAR:-default} expansion, parsed explicitly
+        # rather than bool(), which would treat "false" as truthy.
+        self.enabled = str(guard_cfg.get("enabled", "false")).strip().lower() in ("true", "1", "yes")
         self.fail_closed = bool(guard_cfg.get("fail_closed", False))
         self.refusal_message = guard_cfg.get(
             "refusal_message", "I can't help with that request."
