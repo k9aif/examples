@@ -689,8 +689,7 @@ body {
   70%  { box-shadow: 0 0 0 7px rgba(139, 92, 246, 0); }
   100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 }
-.badge-learn { cursor: pointer; user-select: none; }
-.badge-learn:hover { opacity: 0.8; }
+.badge-learn { cursor: default; user-select: none; }
 .badge-learn.active { outline: 2px solid #8b5cf6; }
 
 /* ── FAQ retrieve-then-rerank shortcut badge ── */

@@ -580,12 +580,6 @@ def is_correction_learning_enabled() -> bool:
     return _LEARNING_ENABLED
 
 
-def toggle_correction_learning() -> bool:
-    global _LEARNING_ENABLED
-    _LEARNING_ENABLED = not is_correction_learning_enabled()
-    return _LEARNING_ENABLED
-
-
 def learn_from_correction(
     prior_reply: str | None, new_message: str, session_id: str = "default"
 ) -> dict | None:

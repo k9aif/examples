@@ -131,7 +131,12 @@
       .catch(() => {});
   });
 
-  // ---------------- Correction auto-learning toggle ----------------
+  // ---------------- Correction auto-learning status (read-only) ----------------
+  // Display only, same reasoning as Guardian -- writes unreviewed content
+  // into shared state every future visitor's replies get grounded from,
+  // so it shouldn't be something any visitor can switch on themselves.
+  // Driven entirely by K9CHAT_CORRECTION_LEARNING (.env); no toggle
+  // endpoint exists server-side either (removed, not just this handler).
   function refreshLearnBadge() {
     fetch("/chat/learning").then(r => r.json()).then(cfg => {
       const dot   = document.getElementById("learn-dot");
@@ -144,11 +149,6 @@
     }).catch(() => {});
   }
   refreshLearnBadge();
-  document.getElementById("badge-learn-wrap").addEventListener("click", () => {
-    fetch("/chat/learning/toggle", { method: "POST" })
-      .then(() => refreshLearnBadge())
-      .catch(() => {});
-  });
 
   // ---------------- FAQ retrieve-then-rerank shortcut toggle ----------------
   function refreshFaqBadge() {

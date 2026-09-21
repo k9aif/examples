@@ -66,7 +66,6 @@ from k9chat.chat import (
     remove_project_file,
     get_last_assistant_reply,
     is_correction_learning_enabled,
-    toggle_correction_learning,
     learn_from_correction,
     get_k9chat_version,
     check_faq_shortcut,
@@ -368,13 +367,9 @@ def evaluation_toggle():
 
 @app.get("/chat/learning")
 def learning_status():
+    # Read-only, no /toggle counterpart on purpose -- see the badge's
+    # tooltip in index.html for why.
     return JSONResponse({"learning_enabled": is_correction_learning_enabled()})
-
-
-@app.post("/chat/learning/toggle")
-def learning_toggle():
-    enabled = toggle_correction_learning()
-    return JSONResponse({"learning_enabled": enabled})
 
 
 @app.get("/chat/faq-shortcut")
