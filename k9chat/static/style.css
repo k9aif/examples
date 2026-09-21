@@ -1488,6 +1488,55 @@ button:disabled {
   display: none;
 }
 
+/* ---------------- Topic picker card ---------------- */
+
+.topic-picker-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 680px;
+  background: var(--bg-elevated);
+}
+
+.topic-picker-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.topic-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.topic-pill {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.topic-pill:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.topic-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
 /* ---------------- Starter prompts ---------------- */
 
 .starter-prompts {

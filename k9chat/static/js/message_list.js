@@ -7,26 +7,58 @@
 const MessageList = (() => {
   const chatHistoryEl = document.getElementById("chat-history");
 
-  // Starter prompts -- 5 picked at random from this pool on every empty/
-  // new chat, clickable straight into ChatInput.send() so there's no
-  // typing needed to get a first real answer out of the knowledge base.
-  const STARTER_PROMPTS = [
-    "What does ABB stand for, and how is it different from an SBB?",
-    "Explain the Router → Orchestrator → Squad → Agent hierarchy.",
-    "What is k9x_Shield and what does it actually check?",
-    "What's the difference between k9x_Shield and Zero Trust?",
-    "Show me a minimal BaseAgent subclass.",
-    "When should I use K9ValidationLoopAgent instead of BaseAgent?",
-    "What does K9ModelRouter actually do?",
-    "What is K9-AIF's stance on TOGAF and OOD?",
-    "What does 'Not just agents. Architecture.' actually mean?",
-    "How does K9-AIF handle governance for an agent?",
-    "What's the difference between K9-AIF and a framework like LangChain?",
-    "What is a Squad, and why doesn't it know about its Orchestrator?",
-  ];
+  // Topic-organized starter prompts -- shown as a picker card on every
+  // empty/new chat instead of one flat random pool, so a visitor can
+  // browse by what they're actually curious about rather than hoping a
+  // relevant question shows up by chance. Every topic here is in-scope
+  // regardless of Framework Mode (all pure K9-AIF/K9X content), so this
+  // shows the same way in both states.
+  const TOPIC_PROMPTS = {
+    "ABB": [
+      "What does ABB stand for, and how is it different from an SBB?",
+      "What is a Squad, and why doesn't it know about its Orchestrator?",
+      "Explain the Router → Orchestrator → Squad → Agent hierarchy.",
+      "What does K9ModelRouter actually do?",
+    ],
+    "SBB": [
+      "Show me a minimal BaseAgent subclass.",
+      "When should I use K9ValidationLoopAgent instead of BaseAgent?",
+      "What's the difference between K9PlanningLoopAgent and K9ValidationLoopAgent?",
+      "How does a generated agent actually invoke an LLM?",
+    ],
+    "Ecosystem": [
+      "What is k9x_Shield and what does it actually check?",
+      "What's the difference between k9x_Shield and Zero Trust?",
+      "What is K9X HIL, and when would I need it?",
+      "What does k9x_satan actually test?",
+    ],
+    "Patterns": [
+      "What does 'Not just agents. Architecture.' actually mean?",
+      "What's the difference between K9-AIF and a framework like LangChain?",
+      "What is K9-AIF's stance on TOGAF and OOD?",
+      "What's the Critic-Actor pattern, and when should I use it instead of a validation loop?",
+    ],
+    "Best Practices": [
+      "How does K9-AIF handle governance for an agent?",
+      "Why must agents call llm_invoke() instead of the router directly?",
+      "What's the three-layer decoupling rule, and why does it matter?",
+      "When is it actually safe to use NoopGovernance?",
+    ],
+    "How to start": [
+      "How do I run an example app locally, like this one (k9chat)?",
+      "What's the fastest way to scaffold a new K9-AIF agent?",
+      "What do I need installed before I can build with K9-AIF?",
+    ],
+    "Developer Studio": [
+      "What is K9X Studio, and how do I generate a project from it?",
+      "How do I run K9X Studio locally?",
+      "Does K9X Studio replace the CLI generator, or complement it?",
+    ],
+  };
+  const TOPICS = Object.keys(TOPIC_PROMPTS);
 
-  function pickStarterPrompts(n = 5) {
-    const pool = [...STARTER_PROMPTS];
+  function pickFromTopic(topic, n = 4) {
+    const pool = [...(TOPIC_PROMPTS[topic] || [])];
     const picked = [];
     while (picked.length < n && pool.length > 0) {
       const i = Math.floor(Math.random() * pool.length);
@@ -36,22 +68,57 @@ const MessageList = (() => {
   }
 
   function renderStarterPrompts() {
-    const wrap = document.createElement("div");
-    wrap.className = "starter-prompts";
-    pickStarterPrompts(5).forEach(q => {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "starter-chip";
-      chip.textContent = q;
-      chip.addEventListener("click", () => {
-        const input = document.getElementById("message-input");
-        input.value = q;
-        wrap.remove();
-        ChatInput.send();
+    const card = document.createElement("div");
+    card.className = "topic-picker-card";
+
+    const title = document.createElement("div");
+    title.className = "topic-picker-title";
+    title.textContent = "Explore a topic";
+    card.appendChild(title);
+
+    const topicRow = document.createElement("div");
+    topicRow.className = "topic-picker-row";
+    card.appendChild(topicRow);
+
+    const chipRow = document.createElement("div");
+    chipRow.className = "starter-prompts";
+    card.appendChild(chipRow);
+
+    function renderChipsFor(topic) {
+      chipRow.innerHTML = "";
+      pickFromTopic(topic).forEach(q => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "starter-chip";
+        chip.textContent = q;
+        chip.addEventListener("click", () => {
+          const input = document.getElementById("message-input");
+          input.value = q;
+          card.remove();
+          ChatInput.send();
+        });
+        chipRow.appendChild(chip);
       });
-      wrap.appendChild(chip);
+    }
+
+    TOPICS.forEach((topic, i) => {
+      const pill = document.createElement("button");
+      pill.type = "button";
+      pill.className = "topic-pill";
+      pill.textContent = topic;
+      pill.addEventListener("click", () => {
+        topicRow.querySelectorAll(".topic-pill").forEach(p => p.classList.remove("active"));
+        pill.classList.add("active");
+        renderChipsFor(topic);
+      });
+      topicRow.appendChild(pill);
+      if (i === 0) {
+        pill.classList.add("active");
+        renderChipsFor(topic);
+      }
     });
-    chatHistoryEl.appendChild(wrap);
+
+    chatHistoryEl.appendChild(card);
   }
 
   function loadMessages(sessionId) {
