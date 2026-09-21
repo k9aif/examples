@@ -23,7 +23,7 @@
 #   stop    — stop the container
 #   logs    — tail logs
 #   seed    — run seed_knowledge_base.py once against the mounted data volume
-#   all     — build + start
+#   all     — build + start + seed
 
 set -euo pipefail
 
@@ -67,6 +67,11 @@ case "$cmd" in
     echo "Starting $CONTAINER on port $HOST_PORT ..."
     sudo podman rm -f "$CONTAINER" 2>/dev/null || true
     mkdir -p "$K9CHAT_DIR/data"
+    # Container runs as USER 1001 internally (Containerfile) regardless of
+    # who invoked podman -- world-writable rather than chown'ing to 1001
+    # since this host user's own UID varies by machine. Home-network
+    # deployment, not multi-tenant, so this tradeoff is fine here.
+    chmod -R a+rwX "$K9CHAT_DIR/data"
     sudo podman run -d \
       --name "$CONTAINER" \
       --restart=always \
@@ -102,6 +107,7 @@ case "$cmd" in
     fi
     echo "Seeding the knowledge base into the mounted data volume ..."
     mkdir -p "$K9CHAT_DIR/data"
+    chmod -R a+rwX "$K9CHAT_DIR/data"
     sudo podman run --rm \
       --env-file "$K9CHAT_DIR/.env" \
       -e K9CHAT_CHROMA_PATH=/app/data/.chroma \
@@ -112,6 +118,7 @@ case "$cmd" in
   all)
     "$0" build
     "$0" start
+    "$0" seed
     ;;
 
   help|*)
@@ -123,7 +130,7 @@ case "$cmd" in
     echo "  stop    — stop the container"
     echo "  logs    — tail logs"
     echo "  seed    — run seed_knowledge_base.py once against the mounted data volume"
-    echo "  all     — build + start"
+    echo "  all     — build + start + seed"
     ;;
 
 esac
