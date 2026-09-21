@@ -56,13 +56,13 @@ body {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 260px 1fr 240px;
+  grid-template-columns: 260px 1fr;
   height: 100vh;
   transition: grid-template-columns 0.18s ease;
 }
 
 .app-shell.sidebar-collapsed {
-  grid-template-columns: 0 1fr 240px;
+  grid-template-columns: 0 1fr;
 }
 
 .app-shell.sidebar-collapsed .sidebar {
@@ -92,13 +92,6 @@ body {
   border-color: var(--accent);
 }
 
-@media (max-width: 1100px) {
-  /* Telemetry panel is a nice-to-have, not core chat UI -- drop it
-     before the chat/sidebar columns get uncomfortably cramped. */
-  .app-shell { grid-template-columns: 260px 1fr; }
-  .app-shell.sidebar-collapsed { grid-template-columns: 0 1fr; }
-  .telemetry-panel { display: none; }
-}
 
 /* ---------------- Sidebar ---------------- */
 
@@ -1402,90 +1395,6 @@ button:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .waitlist-widget .dot { animation: none; }
-}
-
-/* ---------------- Telemetry panel ---------------- */
-/* Real data from gpu_telemetry.py (proxying the actual nvidia-smi-backed
-   server), same numbers queue_control.py's thermal guard enforces
-   against -- not a decorative readout. */
-
-.telemetry-panel {
-  background: var(--bg-elevated);
-  border-left: 1px solid var(--border);
-  padding: 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-}
-
-.telemetry-panel h2 {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 4px;
-}
-
-.telemetry-row {
-  background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
-.telemetry-row .label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: 3px;
-}
-
-.telemetry-row .value {
-  font-size: 1.05rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.telemetry-row.warn .value { color: #f97316; }
-.telemetry-row.critical { border-color: #ef4444; }
-.telemetry-row.critical .value { color: #ef4444; }
-
-.telemetry-bar-track {
-  margin-top: 6px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--border);
-  overflow: hidden;
-}
-
-.telemetry-bar-fill {
-  height: 100%;
-  background: #22c55e;
-  transition: width 0.4s ease, background 0.4s ease;
-}
-
-.telemetry-row.warn .telemetry-bar-fill { background: #f97316; }
-.telemetry-row.critical .telemetry-bar-fill { background: #ef4444; }
-
-.telemetry-offline {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  text-align: center;
-  padding: 16px 8px;
-}
-
-.telemetry-throttle-banner {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #ef4444;
-  font-size: 0.76rem;
-  border-radius: 8px;
-  padding: 8px 10px;
-  text-align: center;
-  display: none;
 }
 
 /* ---------------- Topic picker card ---------------- */

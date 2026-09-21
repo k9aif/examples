@@ -16,7 +16,7 @@
     applyTheme(next);
   });
 
-  // Sidebar collapse -- more canvas for the chat/telemetry columns.
+  // Sidebar collapse -- more canvas for the chat column.
   // Persisted like theme so it doesn't reset on reload.
   const appShell = document.querySelector(".app-shell");
   const sidebarCollapseBtn = document.getElementById("sidebar-collapse-btn");
@@ -418,75 +418,13 @@
     setInterval(pollQueueStatus, 4000);
   }
 
-  // ---------------- Telemetry panel ----------------
-  // Real numbers from gpu_telemetry.py (proxying the actual nvidia-smi
-  // server) -- same source queue_control.py's thermal guard checks
-  // against, not a separate/decorative readout. 2s poll matches the
-  // standalone RTX-5090 dashboard's own cadence.
-  const telemetryBody = document.getElementById("telemetry-body");
-  const telemetryBanner = document.getElementById("telemetry-throttle-banner");
-
-  function telemetryRow(label, value, pct, level) {
-    const cls = level ? ` ${level}` : "";
-    const bar = pct != null
-      ? `<div class="telemetry-bar-track"><div class="telemetry-bar-fill" style="width:${Math.min(100, Math.max(0, pct))}%"></div></div>`
-      : "";
-    return `<div class="telemetry-row${cls}"><div class="label">${label}</div><div class="value">${value}</div>${bar}</div>`;
-  }
-
-  async function pollTelemetry() {
-    if (!telemetryBody) return;
-    try {
-      const resp = await fetch("/telemetry");
-      const d = await resp.json();
-      if (d.error || d.temperatureC == null) {
-        telemetryBody.innerHTML = '<div class="telemetry-offline">Telemetry server unreachable</div>';
-        telemetryBanner.style.display = "none";
-        return;
-      }
-
-      const limit = d.temp_limit_c ?? 85;
-      const temp = d.temperatureC;
-      const tempLevel = temp >= limit ? "critical" : temp >= limit - 10 ? "warn" : "";
-      const gpuLoadLevel = d.gpuUtilizationPct >= 90 ? "warn" : "";
-      const memPct = d.memoryTotalMiB ? (d.memoryUsedMiB / d.memoryTotalMiB) * 100 : null;
-
-      let html = "";
-      html += telemetryRow("GPU Load", `${d.gpuUtilizationPct ?? "--"}%`, d.gpuUtilizationPct, gpuLoadLevel);
-      html += telemetryRow("GPU Temperature", `${temp}°C`, (temp / limit) * 100, tempLevel);
-      html += telemetryRow(
-        "GPU Memory",
-        `${d.memoryUsedMiB ?? "--"} / ${d.memoryTotalMiB ?? "--"} MiB`,
-        memPct,
-        memPct != null && memPct >= 90 ? "warn" : "",
-      );
-      if (d.cpuLoadPct != null) {
-        html += telemetryRow("CPU Load", `${d.cpuLoadPct}%`, d.cpuLoadPct, d.cpuLoadPct >= 90 ? "warn" : "");
-      }
-      if (d.cpuMemory) {
-        const cpuMemPct = d.cpuMemory.totalMiB ? (d.cpuMemory.usedMiB / d.cpuMemory.totalMiB) * 100 : null;
-        html += telemetryRow(
-          "CPU Memory",
-          `${d.cpuMemory.usedMiB} / ${d.cpuMemory.totalMiB} MiB`,
-          cpuMemPct,
-          cpuMemPct != null && cpuMemPct >= 90 ? "warn" : "",
-        );
-      }
-      if (d.cpuTempC != null) {
-        html += telemetryRow("CPU Temperature", `${d.cpuTempC}°C`, null, "");
-      }
-
-      telemetryBody.innerHTML = html;
-      telemetryBanner.style.display = temp >= limit ? "block" : "none";
-    } catch (err) {
-      telemetryBody.innerHTML = '<div class="telemetry-offline">Telemetry server unreachable</div>';
-      telemetryBanner.style.display = "none";
-    }
-  }
-  if (telemetryBody) {
-    pollTelemetry();
-    setInterval(pollTelemetry, 2000);
-  }
+  // Live Telemetry panel removed 2026-09-21 -- PowerAI is a shared
+  // machine, and GPU/CPU load+memory numbers reflected *everything*
+  // running on it, not k9chat's own activity (misleading: "is my chat
+  // using the GPU?" -- not necessarily). Temperature alone (the one
+  // metric queue_control.py's thermal guard actually enforces against)
+  // was considered but dropped too, per Ravi's call -- simpler with
+  // nothing in the right pane rather than one lonely metric.
 
   // ---------------- Init ----------------
   SessionSidebar.onSwitch = (id) => MessageList.renderHistory(id);

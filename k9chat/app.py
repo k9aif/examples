@@ -85,7 +85,6 @@ from k9chat.auth import (
 )
 from k9chat.queue_control import QueueSlot
 from k9chat import queue_control
-from k9chat import gpu_telemetry
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -192,17 +191,6 @@ def home(request: Request):
 def chat_queue_status():
     """Polled by the frontend's waitlist widget -- see queue_control.py."""
     return JSONResponse(queue_control.status())
-
-
-@app.get("/telemetry")
-def telemetry():
-    """Polled by the right-side telemetry panel -- real nvidia-smi/os-module
-    data proxied from gpu_telemetry.py, cached briefly there. Same data
-    queue_control.py's thermal guard actually enforces against, not a
-    separate/fake readout."""
-    data = gpu_telemetry.get_telemetry()
-    data["temp_limit_c"] = gpu_telemetry.temp_limit_c()
-    return JSONResponse(data)
 
 
 @app.post("/chat")
