@@ -108,10 +108,39 @@ case "$cmd" in
     echo "Seeding the knowledge base into the mounted data volume ..."
     mkdir -p "$K9CHAT_DIR/data"
     chmod -R a+rwX "$K9CHAT_DIR/data"
+
+    # seed_knowledge_base.py also reads from sibling repos and the
+    # framework's own root docs (k9x-ecosystem/, dow-k9-aif/, k9-aif-blogs/,
+    # doit/assets/, k9-aif-framework/{CLAUDE,SKILLS,README}.md) -- none of
+    # that is baked into the image (the Containerfile only copies
+    # k9_aif_abb/ + k9chat/), so without these mounts seeding only picks up
+    # k9chat's own 2 local docs. Mounted here, at seed time, rather than in
+    # the Containerfile so the corpus stays current without a rebuild every
+    # time a source doc changes -- each mount is best-effort (only added if
+    # it actually exists on this host), matching the seed script's own
+    # "missing source is a skip, not a failure" convention.
+    #
+    # Targets match FRAMEWORK_ROOT/ECOSYSTEM_ROOT/DOW_ROOT/BLOGS_ROOT/
+    # DOIT_ASSETS in seed_knowledge_base.py -- FRAMEWORK_ROOT resolves to
+    # /k9-aif-framework inside the container (REPO_ROOT's sibling-path
+    # default, ../../k9-aif-framework from /app/k9chat/).
+    SEED_MOUNTS=()
+    add_mount() { [[ -e "$1" ]] && SEED_MOUNTS+=(-v "$1:$2:ro"); }
+    add_mount "$AI_DIR/k9-aif-framework/CLAUDE.md"  "/k9-aif-framework/CLAUDE.md"
+    add_mount "$AI_DIR/k9-aif-framework/SKILLS.md"  "/k9-aif-framework/SKILLS.md"
+    add_mount "$AI_DIR/k9-aif-framework/README.md"  "/k9-aif-framework/README.md"
+    add_mount "$AI_DIR/k9-aif-framework/k9_aif_abb/k9_security/CLAUDE.md" \
+              "/k9-aif-framework/k9_aif_abb/k9_security/CLAUDE.md"
+    add_mount "$AI_DIR/k9x-ecosystem"               "/k9x-ecosystem"
+    add_mount "$AI_DIR/dow-k9-aif"                  "/dow-k9-aif"
+    add_mount "$AI_DIR/k9-aif-blogs"                "/k9-aif-blogs"
+    add_mount "$AI_DIR/doit"                        "/doit"
+
     sudo podman run --rm \
       --env-file "$K9CHAT_DIR/.env" \
       -e K9CHAT_CHROMA_PATH=/app/data/.chroma \
       -v "$K9CHAT_DIR/data:/app/data:Z" \
+      "${SEED_MOUNTS[@]}" \
       "$IMAGE" python -m k9chat.seed_knowledge_base
     ;;
 
