@@ -134,7 +134,19 @@ case "$cmd" in
     # /k9-aif-framework inside the container (REPO_ROOT's sibling-path
     # default, ../../k9-aif-framework from /app/k9chat/).
     SEED_MOUNTS=()
-    add_mount() { [[ -e "$1" ]] && SEED_MOUNTS+=(-v "$1:$2:ro"); }
+    add_mount() {
+      # Plain `[[ -e "$1" ]] && ...` here would make a missing path exit
+      # the whole script under `set -e` (the function returns the `&&`'s
+      # non-zero status, and it's called as a bare statement) -- confirmed
+      # live 2026-09-21 on PowerAI: seed died silently right after the sudo
+      # chmod line with zero output or error, because one of the sibling
+      # repos below isn't cloned there. `if` makes a false test exempt from
+      # `set -e`, matching this function's own documented intent (missing
+      # source is a skip, not a failure).
+      if [[ -e "$1" ]]; then
+        SEED_MOUNTS+=(-v "$1:$2:ro")
+      fi
+    }
     add_mount "$AI_DIR/k9-aif-framework/CLAUDE.md"  "/k9-aif-framework/CLAUDE.md"
     add_mount "$AI_DIR/k9-aif-framework/SKILLS.md"  "/k9-aif-framework/SKILLS.md"
     add_mount "$AI_DIR/k9-aif-framework/README.md"  "/k9-aif-framework/README.md"
