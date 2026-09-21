@@ -71,7 +71,7 @@ case "$cmd" in
     # who invoked podman -- world-writable rather than chown'ing to 1001
     # since this host user's own UID varies by machine. Home-network
     # deployment, not multi-tenant, so this tradeoff is fine here.
-    chmod -R a+rwX "$K9CHAT_DIR/data"
+    sudo chmod -R a+rwX "$K9CHAT_DIR/data"
     sudo podman run -d \
       --name "$CONTAINER" \
       --restart=always \
@@ -107,7 +107,7 @@ case "$cmd" in
     fi
     echo "Seeding the knowledge base into the mounted data volume ..."
     mkdir -p "$K9CHAT_DIR/data"
-    chmod -R a+rwX "$K9CHAT_DIR/data"
+    sudo chmod -R a+rwX "$K9CHAT_DIR/data"
 
     # seed_knowledge_base.py also reads from sibling repos and the
     # framework's own root docs (k9x-ecosystem/, dow-k9-aif/, k9-aif-blogs/,
