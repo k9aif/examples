@@ -49,13 +49,22 @@ cmd="${1:-help}"
 case "$cmd" in
 
   build)
-    echo "Building $IMAGE (context: $AI_DIR, framework dir: $K9AIF_REL_PATH, examples dir: $K9EXAMPLES_REL_PATH) ..."
+    # get_k9chat_version()'s container-side git fallback can never work --
+    # the container has no .git of its own (only k9_aif_abb/ + k9chat/ are
+    # copied in) -- so this build-arg is the *only* way the UI's version
+    # tag shows anything but "unknown" once deployed. Dropped when the
+    # private scripts-repo copy (which had this) was removed and
+    # consolidated here -- this copy never had it. Tracks k9-aif-examples'
+    # HEAD, not k9-aif-framework's -- k9chat's own commits live here.
+    VERSION="$(git -C "$EXAMPLES_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+    echo "Building $IMAGE (context: $AI_DIR, framework dir: $K9AIF_REL_PATH, examples dir: $K9EXAMPLES_REL_PATH, version: $VERSION) ..."
     cd "$AI_DIR"
     sudo podman build -t "$IMAGE" \
       --build-arg "K9AIF_DIR=$K9AIF_REL_PATH" \
       --build-arg "K9EXAMPLES_DIR=$K9EXAMPLES_REL_PATH" \
+      --build-arg "K9CHAT_VERSION=$VERSION" \
       -f "$K9EXAMPLES_REL_PATH/k9chat/ubuntu/Containerfile" .
-    echo "Build complete: $IMAGE"
+    echo "Build complete: $IMAGE ($VERSION)"
     ;;
 
   start)
