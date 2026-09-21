@@ -419,13 +419,15 @@ def get_k9chat_version() -> str:
 
     Two sources, in order:
     1. K9CHAT_VERSION env var -- set by the container build (build-run.sh
-       captures the host's k9-aif-framework commit hash as a build-arg;
-       the container has no .git of its own to inspect, only
-       k9_aif_abb/ + examples/k9chat/ are copied in).
+       captures the host's k9-aif-examples commit hash as a build-arg --
+       k9chat's own commits live there since the 2026-09-21 move, not in
+       k9-aif-framework; the container has no .git of its own to inspect,
+       only k9_aif_abb/ + k9chat/ are copied in).
     2. A live `git rev-parse --short HEAD` against this checkout -- the
-       fallback for local (non-container) dev via run_k9chat.sh, where
-       .git is right there and always accurate, including uncommitted
-       moves between commits.
+       fallback for local (non-container) dev (`uvicorn app:app --reload`
+       from within k9chat/), where .git is one level up (k9-aif-examples'
+       own repo root) and always accurate, including uncommitted moves
+       between commits.
     Returns "unknown" if neither source works (e.g. a container built
     without the build-arg, or git isn't on PATH)."""
     global _VERSION_CACHE
@@ -439,7 +441,7 @@ def get_k9chat_version() -> str:
 
     try:
         import subprocess
-        repo_root = os.path.abspath(os.path.join(BASE_DIR, "../.."))
+        repo_root = os.path.abspath(os.path.join(BASE_DIR, ".."))
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
             cwd=repo_root, capture_output=True, text=True, timeout=3,

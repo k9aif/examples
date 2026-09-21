@@ -41,11 +41,7 @@ class instead, not modifying the base itself.
 
 ## How do I run an example app locally, like this one (k9chat)?
 
-From the `k9-aif-framework` repo root: `./run_k9chat.sh` (or the
-equivalent `run_<app>.sh` script for other examples — check the repo
-root for the full list). Requires a `.env` file (copy `.env.example` in
-that example's own folder) pointing `OLLAMA_BASE_URL` at a reachable
-Ollama server with your chosen models pulled.
+k9chat lives in its own repo now, [k9-aif-examples](https://github.com/k9aif/examples), cloned as a sibling of `k9-aif-framework`. From `k9-aif-examples/k9chat/`: `uvicorn app:app --reload`. The other example apps (`acme_support_center`, etc.) still live in `k9-aif-framework/examples/` — from that repo's root, the equivalent `run_<app>.sh` script (check the repo root for the full list). Requires a `.env` file (copy `.env.example` in that example's own folder) pointing `OLLAMA_BASE_URL` at a reachable Ollama server with your chosen models pulled.
 
 ## Where can I learn more beyond this chat?
 

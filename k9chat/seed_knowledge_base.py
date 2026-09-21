@@ -15,7 +15,7 @@
 # same doc_ids (doc_id = f"{label}:{i}"), so ChromaDB upserts rather than
 # duplicating -- safe to re-run after any of these docs change.
 #
-# Usage (from the k9-aif-framework repo root):
+# Usage (from the k9-aif-examples repo root):
 #   python -m k9chat.seed_knowledge_base
 
 from __future__ import annotations
