@@ -37,20 +37,26 @@ ENV K9CHAT_VERSION=${K9CHAT_VERSION}
 USER root
 WORKDIR /app
 
-COPY ${K9AIF_DIR}/requirements.txt .
+COPY ${K9EXAMPLES_DIR}/k9chat/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 # CPU-only torch first, from PyTorch's own CPU wheel index -- a plain
 # `pip install torch` on Linux x86_64 pulls the multi-GB CUDA-bundled
 # build by default, which this container has no use for (no GPU access;
-# Ollama runs outside it entirely). requirements.txt's own torch==...
-# line is stripped before the second install below -- PEP 440
-# local-version matching does not reliably hold across two *separate*
-# pip invocations (confirmed live 2026-09-20: pip re-resolved against
-# the default index anyway and pulled the full CUDA 13 stack).
+# Ollama runs outside it entirely; torch here is only sentence-transformers'
+# dependency for the FAQ reranker's CrossEncoder). PEP 440 local-version
+# matching does not reliably hold across two *separate* pip invocations
+# (confirmed live 2026-09-20: pip re-resolved against the default index
+# anyway and pulled the full CUDA 13 stack), so it's installed in this same
+# step rather than left to sentence-transformers to pull in on its own.
+#
+# requirements.txt here is k9chat's own scoped list (see that file's header)
+# -- not the framework's full requirements.txt, which installs ~40 packages
+# (CrewAI, Kafka clients aside, Neo4j, Kubernetes client, MCP, Claude Agent
+# SDK, Cohere, LiteLLM, LanceDB, Qdrant client, S3) that k9chat's own
+# reachable import graph never touches (confirmed empirically 2026-09-21).
 RUN pip install --no-cache-dir torch==2.14.0 \
       --index-url https://download.pytorch.org/whl/cpu
-RUN grep -v '^torch==' requirements.txt > requirements.no-torch.txt \
- && pip install --no-cache-dir -r requirements.no-torch.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ${K9AIF_DIR}/k9_aif_abb ./k9_aif_abb
 COPY ${K9EXAMPLES_DIR}/k9chat ./k9chat

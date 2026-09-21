@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: Apache-2.0
+# k9chat's own scoped dependency list -- NOT the framework's full
+# requirements.txt. k9chat imports k9_aif_abb/ directly as source (see
+# ubuntu/README.md), but only a narrow slice of the framework is actually
+# reachable from k9chat's code: config loading, llm_invoke's routing
+# (which pulls in SQLAlchemy-backed routing-state storage), Ollama-backed
+# LLM/embedding calls, ChromaDB retrieval, and the FAQ reranker.
+#
+# Derived empirically 2026-09-21, not by hand-reading imports: imported
+# every k9chat entry point (app.py, chat.py, chat_agent.py, guard_agent.py,
+# correction_learner.py, knowledge_retriever.py, project_retriever.py,
+# project_manager.py, seed_knowledge_base.py, faq_reranker.py) inside a
+# venv with the framework's full requirements.txt installed, diffed
+# sys.modules before/after to get every *eager* (top-of-file) third-party
+# import, then grepped every reachable local file for *lazy*
+# (function/method-body) imports of heavy or optional deps -- caught
+# chromadb, the ollama client, sentence-transformers/torch, and pypdf this
+# way (none of them show up from a plain import trace; they're all loaded
+# lazily by design, same pattern as this file's own faq_reranker.py).
+#
+# Confirmed NOT needed despite superficially plausible reasons to expect
+# them: psycopg2 (ModelRouterFactory's PostgresDatabaseStorage import is
+# real, but psycopg2 itself is only imported when sqlalchemy actually opens
+# a postgres:// connection -- k9chat's config uses sqlite, so it's never
+# hit), and CrewAI/LangGraph/MCP/Claude Agent SDK/Neo4j/Kubernetes
+# client/Cohere/LiteLLM/LanceDB/Qdrant client (zero references anywhere in
+# k9chat's reachable import graph -- these are needed by *other* K9-AIF
+# project types, not a plain chat app).
+#
+# kafka-python is a real, if architecturally arguable, dependency: it's
+# eagerly imported by k9_core/messaging/k9_event_bus.py, which is on the
+# reachable chain via k9_factories/message_factory.py -- k9chat's agents
+# never publish to Kafka (see k9-aif-framework/CLAUDE.md's Kafka ownership
+# rule), but the module import happens regardless.
+#
+# Verified, not just derived: installed this exact file (+ CPU-only torch)
+# into a clean venv and imported every entry point above against it, plus
+# manually exercised every lazy-import path (chromadb, ollama.Client,
+# sentence_transformers.CrossEncoder, pypdf.PdfReader). Caught one real gap
+# this way that the static trace missed: itsdangerous -- an *optional*
+# starlette/fastapi extra, not a hard dependency, only needed because
+# app.py's auth.py uses SessionMiddleware. Re-verify the same way if this
+# list is ever trimmed further.
+#
+# Versions pinned to match k9-aif-framework/requirements.txt exactly, to
+# stay consistent with the versions already proven working there. When
+# updating either file, update both.
+
+fastapi==0.135.1
+uvicorn==0.41.0
+Jinja2==3.1.6
+itsdangerous==2.2.0
+python-multipart==0.0.22
+python-dotenv==1.1.1
+PyYAML==6.0.3
+pydantic==2.11.10
+aiohttp==3.13.3
+requests==2.32.5
+sqlalchemy>=2.0
+kafka-python==2.3.0
+ollama==0.6.2
+chromadb==1.1.1
+pysqlite3-binary==0.5.4.post2; sys_platform == "linux"
+sentence-transformers==6.1.0
+pypdf==6.8.0
