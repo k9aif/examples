@@ -15,13 +15,31 @@ This example showcases:
 - Toggleable "fun dials" (Unhinged/Profanity/Length), an LLM-as-judge **Eval** toggle, and a **Streaming** toggle — all genuinely wired, not decorative
 - Ubuntu/Podman container deployment (`scripts/ubuntu/k9chat/`)
 
+## Setup
+
+k9chat imports `k9_aif_abb/` directly from source rather than `pip install
+k9-aif` (the PyPI package lags behind the framework's own repo and would
+reintroduce already-fixed bugs) -- clone
+[k9-aif-framework](https://github.com/k9aif/k9-aif-framework) as a
+**sibling directory** of this repo:
+
+```
+some-parent-dir/
+├── k9-aif-examples/   (this repo)
+│   └── k9chat/
+└── k9-aif-framework/
+```
+
+Override the expected location with `K9AIF_FRAMEWORK_PATH` if the two
+repos aren't siblings under the same parent.
+
 ---
 
 ## Class Diagram
 
-The following class diagram illustrates the core K9Chat object-oriented structure and shows how the example uses K9-AIF abstractions such as `BaseAgent`, `LlmInvoke` (the only sanctioned path to `ModelRouterFactory`/`BaseModelRouter`), `InferenceRequest`, and `BasePromptEvaluator`. PlantUML source: [`../diagrams/k9-chat-class-diagram.puml`](../diagrams/k9-chat-class-diagram.puml).
+The following class diagram illustrates the core K9Chat object-oriented structure and shows how the example uses K9-AIF abstractions such as `BaseAgent`, `LlmInvoke` (the only sanctioned path to `ModelRouterFactory`/`BaseModelRouter`), `InferenceRequest`, and `BasePromptEvaluator`. PlantUML source: [`diagrams/k9-chat-class-diagram.puml`](diagrams/k9-chat-class-diagram.puml).
 
-![K9Chat Class Diagram](../diagrams/k9-chat-class-diagram.png)
+![K9Chat Class Diagram](diagrams/k9-chat-class-diagram.png)
 
 ---
 

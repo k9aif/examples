@@ -19,6 +19,7 @@ This generates the complete folder structure ready to build and run. No repo clo
 | Example | Description | Generate command |
 |---|---|---|
 | [n8n_helloworld](n8n_helloworld/) | n8n → K9-AIF pipeline — Hello World end-to-end | `k9aif --generate n8n-hello-world` |
+| [k9chat](k9chat/) | Full-featured K9-AIF chat reference app — retrieval grounding, live internet search, auto-learning, FAQ shortcut, container deployment | Not scaffold-generated -- clone [k9-aif-framework](https://github.com/k9aif/k9-aif-framework) as a sibling directory; see [k9chat/README.md](k9chat/README.md) |
 
 ## Learn More
 
