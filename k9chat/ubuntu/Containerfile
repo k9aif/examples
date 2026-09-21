@@ -11,15 +11,28 @@
 #   podman build -t k9chat:latest \
 #     --build-arg K9AIF_DIR=k9-aif-framework \
 #     --build-arg K9EXAMPLES_DIR=k9-aif-examples \
+#     --build-arg K9CHAT_VERSION=$(git -C k9-aif-examples rev-parse --short HEAD) \
 #     -f k9-aif-examples/k9chat/ubuntu/Containerfile .
 # (build-run.sh does this for you.)
 
 ARG K9AIF_DIR=k9-aif-framework
 ARG K9EXAMPLES_DIR=k9-aif-examples
+# Short git commit hash of the k9-aif-examples checkout this image was
+# built from -- the container has no .git of its own (only k9_aif_abb/ +
+# k9chat/ are copied in), so chat.py's get_k9chat_version() can't
+# discover this itself. build-run.sh computes this from the host's
+# checkout and passes it in via --build-arg; without the ARG/ENV pair
+# below to actually consume it, podman just silently drops the value
+# (confirmed live 2026-09-21: "one or more build args were not consumed:
+# [K9CHAT_VERSION]" -- this Containerfile was missing both lines entirely,
+# a real mistake introduced when this file was rewritten earlier today).
+ARG K9CHAT_VERSION=unknown
 
 FROM registry.access.redhat.com/ubi9/python-311:latest
 ARG K9AIF_DIR
 ARG K9EXAMPLES_DIR
+ARG K9CHAT_VERSION
+ENV K9CHAT_VERSION=${K9CHAT_VERSION}
 
 USER root
 WORKDIR /app
