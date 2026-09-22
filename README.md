@@ -2,24 +2,17 @@
 
 Standalone integration examples for the [K9-AIF Framework](https://github.com/k9aif/k9-aif-framework).
 
-Each example is self-contained — the framework is installed via `pip install k9-aif`. No framework source code needed.
+Each example is self-contained.
 
 ## Quick Start
 
-If you have `pip install k9-aif` installed, you can scaffold any example directly:
-
-```bash
-k9aif --generate n8n-hello-world
-```
-
-This generates the complete folder structure ready to build and run. No repo clone needed.
+Clone [k9-aif-framework](https://github.com/k9aif/k9-aif-framework) as a sibling directory (k9chat imports `k9_aif_abb` directly rather than via `pip install k9-aif`, since PyPI lags the framework repo), then see each example's own README for setup.
 
 ## Examples
 
-| Example | Description | Generate command |
-|---|---|---|
-| [n8n_helloworld](n8n_helloworld/) | n8n → K9-AIF pipeline — Hello World end-to-end | `k9aif --generate n8n-hello-world` |
-| [k9chat](k9chat/) | Full-featured K9-AIF chat reference app — retrieval grounding, live internet search, auto-learning, FAQ shortcut, container deployment | Not scaffold-generated -- clone [k9-aif-framework](https://github.com/k9aif/k9-aif-framework) as a sibling directory; see [k9chat/README.md](k9chat/README.md) |
+| Example | Description |
+|---|---|
+| [k9chat](k9chat/) | Full-featured K9-AIF chat reference app — retrieval grounding, live internet search, auto-learning, FAQ shortcut, container deployment. See [k9chat/README.md](k9chat/README.md). |
 
 ## Learn More
 
