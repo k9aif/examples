@@ -64,7 +64,7 @@ class GuardAgent(BaseAgent):
             # same model family) against real benign and clearly-harmful
             # test content. startswith("yes") never matches "<score> yes
             # </score>", so this was a dormant no-op bug: currently
-            # harmless since guardrails.enabled defaults to false here,
+            # harmless while guardrails.enabled defaulted to false,
             # but would have silently never flagged anything once enabled.
             flagged = "yes" in verdict
             return {

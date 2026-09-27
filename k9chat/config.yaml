@@ -62,7 +62,10 @@ guardrails:
   # Read-only in the UI (Guardian badge), not a click-to-toggle like the
   # other badges -- a safety gate shouldn't be something a visitor can
   # switch off themselves. Driven entirely by K9CHAT_GUARDIAN_ENABLED.
-  enabled: "${K9CHAT_GUARDIAN_ENABLED:-false}"
+  # ON by default: a deployment has to opt out explicitly
+  # (K9CHAT_GUARDIAN_ENABLED=false), never forget to opt in. Note it also
+  # flags abusive language, so profane prompts are refused while it is on.
+  enabled: "${K9CHAT_GUARDIAN_ENABLED:-true}"
   model_alias: guardian
   fail_closed: false   # if the guardian call errors, allow the message through (true = block)
   refusal_message: "I can't help with that request."
@@ -86,7 +89,10 @@ inference:
       reasoning:
         model: "${K9CHAT_REASONING_MODEL:-qwen3.8:27b}"
         think: true
-      guardian: "${K9CHAT_GUARDIAN_MODEL:-granite3-guardian:2b}"
+      # Must be a model the Ollama host actually has: with fail_closed: false
+      # a missing guardian model lets every message through unchecked while
+      # the badge still reads Guardian:ON.
+      guardian: "${K9CHAT_GUARDIAN_MODEL:-granite4.1-guardian:8b}"
 
   model_catalog:
     default_model: general
