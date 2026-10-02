@@ -157,9 +157,13 @@
       const label = document.getElementById("badge-faq");
       const wrap  = document.getElementById("badge-faq-wrap");
       const on    = !!cfg.faq_shortcut_enabled;
+      const locked = cfg.framework_mode === false;   // FAQ answers are K9-AIF content
       label.textContent = on ? "ON" : "OFF";
       dot.classList.toggle("on", on);
       wrap.classList.toggle("active", on);
+      wrap.style.cursor = locked ? "not-allowed" : "pointer";
+      wrap.style.opacity = locked ? "0.5" : "";
+      wrap.title = locked ? "FAQ shortcut is off while Framework Mode is OFF" : "";
     }).catch(() => {});
   }
   refreshFaqBadge();
@@ -217,7 +221,7 @@
   refreshInternetBadge();
   document.getElementById("badge-internet-wrap").addEventListener("click", () => {
     fetch("/chat/internet-search/toggle", { method: "POST" })
-      .then(() => refreshInternetBadge())
+      .then(() => { refreshInternetBadge(); refreshFaqBadge(); })
       .catch(() => {});
   });
 

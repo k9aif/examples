@@ -362,13 +362,15 @@ def learning_status():
 
 @app.get("/chat/faq-shortcut")
 def faq_shortcut_status():
-    return JSONResponse({"faq_shortcut_enabled": is_faq_shortcut_enabled()})
+    return JSONResponse({"faq_shortcut_enabled": is_faq_shortcut_enabled(),
+                         "framework_mode": not is_internet_search_enabled()})
 
 
 @app.post("/chat/faq-shortcut/toggle")
 def faq_shortcut_toggle():
     enabled = toggle_faq_shortcut()
-    return JSONResponse({"faq_shortcut_enabled": enabled})
+    return JSONResponse({"faq_shortcut_enabled": enabled,
+                         "framework_mode": not is_internet_search_enabled()})
 
 
 @app.get("/chat/guardian")

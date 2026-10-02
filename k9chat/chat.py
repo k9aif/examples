@@ -531,7 +531,7 @@ def get_health_status() -> dict:
 def run_chat_startup_check() -> None:
     """Call once at app startup — prints a clear PASS/FAIL banner."""
     run_startup_check(load_config())
-    if is_faq_shortcut_enabled():
+    if _faq_shortcut_preference():   # warm up even if Framework Mode starts OFF
         from k9chat import faq_reranker
         faq_reranker.warm_up()
 
@@ -612,7 +612,8 @@ def learn_from_correction(
 
 # ── FAQ Retrieve-then-Rerank Shortcut ────────────────────────────────────────
 
-def is_faq_shortcut_enabled() -> bool:
+def _faq_shortcut_preference() -> bool:
+    """The FAQ toggle's own setting, kept across Framework Mode changes."""
     global _FAQ_SHORTCUT_ENABLED
     if _FAQ_SHORTCUT_ENABLED is None:
         _FAQ_SHORTCUT_ENABLED = bool(
@@ -621,10 +622,19 @@ def is_faq_shortcut_enabled() -> bool:
     return _FAQ_SHORTCUT_ENABLED
 
 
+def is_faq_shortcut_enabled() -> bool:
+    """Effective state: the FAQ answers are K9-AIF/K9X content, so Framework
+    Mode OFF turns the shortcut off too; the user's FAQ setting comes back
+    when Framework Mode is switched on again."""
+    return _faq_shortcut_preference() and is_framework_mode()
+
+
 def toggle_faq_shortcut() -> bool:
+    """No effect while Framework Mode is OFF (the shortcut is forced off)."""
     global _FAQ_SHORTCUT_ENABLED
-    _FAQ_SHORTCUT_ENABLED = not is_faq_shortcut_enabled()
-    return _FAQ_SHORTCUT_ENABLED
+    if is_framework_mode():
+        _FAQ_SHORTCUT_ENABLED = not _faq_shortcut_preference()
+    return is_faq_shortcut_enabled()
 
 
 # ── Live Internet Search / Framework Mode lock ───────────────────────────────
