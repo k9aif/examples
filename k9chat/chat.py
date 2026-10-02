@@ -126,11 +126,21 @@ def get_knowledge_retriever() -> KnowledgeRetriever:
 
 
 def _resolve_knowledge_context(message: str) -> list:
-    """Always-on K9-AIF/K9X knowledge grounding -- unlike project context,
-    this doesn't depend on the caller selecting anything. Returns [] (not
-    an error) if the knowledge base hasn't been seeded yet or the vector
-    backend isn't reachable, same fail-open behavior as project context."""
+    """K9-AIF/K9X knowledge grounding, in Framework Mode only. With Framework
+    Mode off the 5 nearest documentation chunks were still attached to every
+    question (no relevance cut-off), so general questions got K9-AIF answers.
+    Returns [] (not an error) if the knowledge base hasn't been seeded yet or
+    the vector backend isn't reachable, same fail-open behavior as project
+    context."""
+    if not is_framework_mode():
+        return []
     return get_knowledge_retriever().retrieve(message, top_k=5)
+
+
+def is_framework_mode() -> bool:
+    """Framework Mode ON = internet search OFF (the UI's inverted toggle):
+    K9-AIF scope prompt + documentation. OFF = general assistant + web."""
+    return not is_internet_search_enabled()
 
 
 def _resolve_web_context(message: str) -> list:
@@ -240,6 +250,7 @@ def send_message(
         "unhinged_level": unhinged_level,
         "profanity_level": profanity_level,
         "length_level": length_level,
+        "framework_mode": is_framework_mode(),
     })
 
 
@@ -281,6 +292,7 @@ async def send_message_stream(
         "unhinged_level": unhinged_level,
         "profanity_level": profanity_level,
         "length_level": length_level,
+        "framework_mode": is_framework_mode(),
     }):
         yield chunk
 

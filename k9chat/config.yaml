@@ -20,9 +20,10 @@ evaluation:
   judge_model: reasoning  # model alias used as the LLM judge
 
 internet_search:
-  # Real live web search (self-hosted SearxNG), off by default --
-  # SCOPE_INSTRUCTION keeps k9chat focused on K9-AIF/K9X, so a general
-  # real-world question gets no live data unless this is explicitly on.
+  # Real live web search (self-hosted SearxNG), off by default. This is the
+  # UI's Framework Mode, inverted: enabled = Framework Mode OFF, which also
+  # swaps the K9-AIF scope prompt for a general one and stops attaching the
+  # K9-AIF documentation (chat.is_framework_mode()).
   # Every message queries SearxNG when enabled (same always-on-per-turn
   # pattern as knowledge_context) -- results are supplementary context the
   # model may or may not use, not a hard override of scope.

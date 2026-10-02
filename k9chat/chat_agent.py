@@ -89,6 +89,16 @@ SCOPE_INSTRUCTION = (
     "topics you can actually help with."
 )
 
+# Framework Mode OFF: a general assistant. The K9-AIF scope above (and the
+# always-attached K9-AIF documentation) made every answer drift back to the
+# framework even with the toggle off -- "any simple question, it only speaks
+# framework" (2026-10-01).
+GENERAL_INSTRUCTION = (
+    "You are K9Chat, a helpful general-purpose assistant. Answer the user's "
+    "question directly, on whatever topic it is. Don't bring up K9-AIF or "
+    "K9X unless the user asks about them."
+)
+
 
 class ChatAgent(BaseAgent):
 
@@ -152,6 +162,7 @@ class ChatAgent(BaseAgent):
         unhinged_level: int = 0,
         profanity_level: int = 0,
         length_level: int = 1,
+        framework_mode: bool = True,
     ) -> str:
         """Render project instructions/context + prior turns + the new
         message into a single prompt string.
@@ -168,7 +179,7 @@ class ChatAgent(BaseAgent):
         documentation corpus" would misattribute retrieved content to the
         wrong source.
         """
-        lines = [SCOPE_INSTRUCTION, ""]
+        lines = [SCOPE_INSTRUCTION if framework_mode else GENERAL_INSTRUCTION, ""]
         unhinged_instruction = UNHINGED_INSTRUCTIONS.get(unhinged_level, "")
         if unhinged_instruction:
             lines.append(unhinged_instruction)
@@ -243,6 +254,7 @@ class ChatAgent(BaseAgent):
         unhinged_level = request.get("unhinged_level", 0)
         profanity_level = request.get("profanity_level", 0)
         length_level = request.get("length_level", 1)
+        framework_mode = request.get("framework_mode", True)
 
         guard_result = self.guard_agent.execute({"text": message})
         if not guard_result["passed"]:
@@ -256,7 +268,7 @@ class ChatAgent(BaseAgent):
         history = self._get_history(session_id)
         prompt = self._format_prompt(
             history, message, project_instructions, project_context, knowledge_context,
-            web_context, unhinged_level, profanity_level, length_level,
+            web_context, unhinged_level, profanity_level, length_level, framework_mode,
         )
 
         inf_req = InferenceRequest(prompt=prompt, task_type="chat")
@@ -294,6 +306,7 @@ class ChatAgent(BaseAgent):
         unhinged_level = request.get("unhinged_level", 0)
         profanity_level = request.get("profanity_level", 0)
         length_level = request.get("length_level", 1)
+        framework_mode = request.get("framework_mode", True)
 
         guard_result = self.guard_agent.execute({"text": message})
         if not guard_result["passed"]:
@@ -308,7 +321,7 @@ class ChatAgent(BaseAgent):
         history = self._get_history(session_id)
         prompt = self._format_prompt(
             history, message, project_instructions, project_context, knowledge_context,
-            web_context, unhinged_level, profanity_level, length_level,
+            web_context, unhinged_level, profanity_level, length_level, framework_mode,
         )
 
         inf_req = InferenceRequest(prompt=prompt, task_type="chat")
