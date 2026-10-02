@@ -185,6 +185,8 @@
       const label = document.getElementById("badge-internet");
       const wrap  = document.getElementById("badge-internet-wrap");
       const frameworkModeOn = !cfg.internet_search_enabled;
+      // K9-AIF-only UI (the "Explore a topic" starters) hides when OFF
+      document.body.classList.toggle("framework-off", !frameworkModeOn);
       label.textContent = frameworkModeOn ? "ON" : "OFF";
       dot.classList.toggle("on", frameworkModeOn);
       wrap.classList.toggle("active", frameworkModeOn);

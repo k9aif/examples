@@ -1472,3 +1472,6 @@ button:disabled {
   border-color: var(--accent);
   background: var(--bg-sunken);
 }
+
+/* Framework Mode OFF: no K9-AIF topic starters */
+body.framework-off .topic-picker-card { display: none; }

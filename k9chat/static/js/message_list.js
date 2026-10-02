@@ -10,9 +10,9 @@ const MessageList = (() => {
   // Topic-organized starter prompts -- shown as a picker card on every
   // empty/new chat instead of one flat random pool, so a visitor can
   // browse by what they're actually curious about rather than hoping a
-  // relevant question shows up by chance. Every topic here is in-scope
-  // regardless of Framework Mode (all pure K9-AIF/K9X content), so this
-  // shows the same way in both states.
+  // relevant question shows up by chance. All K9-AIF/K9X content, so the
+  // card is hidden while Framework Mode is OFF (body.framework-off in
+  // style.css, set by app.js's refreshInternetBadge).
   const TOPIC_PROMPTS = {
     "ABB": [
       "What does ABB stand for, and how is it different from an SBB?",
