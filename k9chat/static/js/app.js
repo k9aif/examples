@@ -265,7 +265,11 @@
   const settingsApplyBtn = document.getElementById("settings-apply-btn");
   const settingsStatus = document.getElementById("settings-status");
 
-  settingsToggle.addEventListener("click", () => {
+  // The Provider Settings panel is only rendered when
+  // K9CHAT_PROVIDER_SETTINGS_ENABLED is on -- everything touching it is
+  // guarded so the rest of the page works without it.
+  const hasSettingsPanel = !!settingsToggle;
+  if (hasSettingsPanel) settingsToggle.addEventListener("click", () => {
     const isOpen = settingsPanel.style.display !== "none";
     settingsPanel.style.display = isOpen ? "none" : "flex";
   });
@@ -336,6 +340,8 @@
   }
 
   fetch("/chat/runtime").then(r => r.json()).then(rt => {
+    setActiveModel(rt.model);
+    if (!hasSettingsPanel) return;
     settingsProvider.value = rt.provider || "ollama";
     settingsBaseUrl.value = rt.base_url || "";
     settingsModel.innerHTML = "";
@@ -343,10 +349,9 @@
     currentOpt.value = rt.model;
     currentOpt.textContent = rt.model;   // text, not HTML: the model name is settable via /chat/settings
     settingsModel.appendChild(currentOpt);
-    setActiveModel(rt.model);
   });
 
-  settingsFetchBtn.addEventListener("click", async () => {
+  if (hasSettingsPanel) settingsFetchBtn.addEventListener("click", async () => {
     settingsStatus.textContent = "Fetching models...";
     const params = new URLSearchParams({
       provider: settingsProvider.value,
@@ -373,7 +378,7 @@
     }
   });
 
-  settingsApplyBtn.addEventListener("click", async () => {
+  if (hasSettingsPanel) settingsApplyBtn.addEventListener("click", async () => {
     const model = settingsModel.value;
     if (!model) {
       settingsStatus.textContent = "⚠ Fetch and pick a model first.";

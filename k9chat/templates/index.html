@@ -33,6 +33,7 @@
         <div id="project-list" class="project-list" style="display:none"></div>
       </div>
 
+      {% if provider_settings_enabled %}
       <div class="settings-block">
         <button id="settings-toggle" class="settings-toggle">⚙ Provider Settings</button>
         <div id="settings-panel" class="settings-panel" style="display:none">
@@ -62,6 +63,7 @@
           <div id="settings-status" class="settings-status"></div>
         </div>
       </div>
+      {% endif %}
 
       <div class="sidebar-footer">Built on K9-AIF Framework (<a href="http://k9x.ai" target="_blank" rel="noopener">k9x.ai</a>)</div>
     </aside>

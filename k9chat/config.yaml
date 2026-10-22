@@ -13,6 +13,14 @@ chat:
 # bool(), which would treat the literal string "false" as truthy.
 deployment:
   framework_mode_locked: "${K9CHAT_FRAMEWORK_MODE_LOCKED:-false}"
+  # Free-form Provider Settings panel (any provider/host/model). Off by
+  # default: it lists every model the host has pulled, takes a
+  # visitor-supplied base_url, and switches the model for every visitor.
+  # Off = panel not rendered, /chat/models refused, /chat/settings only
+  # accepts a model from K9CHAT_SELECTABLE_MODELS on the configured
+  # provider/host, and the host address is left out of every response.
+  # Turn on only for a private/LAN instance.
+  provider_settings_enabled: "${K9CHAT_PROVIDER_SETTINGS_ENABLED:-false}"
 
 evaluation:
   enabled: false          # toggle at runtime via POST /chat/evaluation/toggle

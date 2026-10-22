@@ -728,6 +728,14 @@ def toggle_faq_shortcut() -> bool:
 
 # ── Live Internet Search / Framework Mode lock ───────────────────────────────
 
+def is_provider_settings_enabled() -> bool:
+    """K9CHAT_PROVIDER_SETTINGS_ENABLED (.env) -- see config.yaml's
+    deployment.provider_settings_enabled. Parsed explicitly, like the
+    other string flags (config_loader returns "false" as a string)."""
+    raw = str(load_config().get("deployment", {}).get("provider_settings_enabled", "false"))
+    return raw.strip().lower() in ("true", "1", "yes")
+
+
 def is_framework_mode_locked() -> bool:
     """K9CHAT_FRAMEWORK_MODE_LOCKED (.env) -- for a public/offline
     deployment where an untrusted visitor shouldn't be able to re-enable

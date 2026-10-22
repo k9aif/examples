@@ -70,6 +70,7 @@ from k9chat.chat import (
     learn_from_correction,
     get_k9chat_version,
     ScreenRefused,
+    is_provider_settings_enabled,
     check_faq_shortcut,
     is_faq_shortcut_enabled,
     toggle_faq_shortcut,
@@ -109,6 +110,23 @@ app.add_middleware(SessionMiddleware, secret_key=get_session_secret())
 
 
 _RATE_LIMITER = RateLimiter(load_config())
+
+
+def _public(info: dict) -> dict:
+    """Runtime/health info as a visitor may see it: without the Provider
+    Settings panel, the inference host's address stays server-side
+    (it's an internal LAN address on the public deployment)."""
+    if is_provider_settings_enabled():
+        return info
+    host = info.get("base_url") or ""
+    out = {**info, "base_url": ""}
+    if host and isinstance(out.get("error"), str):
+        out["error"] = out["error"].replace(host, "the model host")
+    return out
+
+
+def _runtime() -> dict:
+    return _public(get_chat_runtime_info())
 
 
 @app.on_event("startup")
@@ -171,14 +189,14 @@ def logout(request: Request):
 
 class SettingsRequest(BaseModel):
     provider: str = "ollama"
-    base_url: str
+    base_url: str = ""
     model: str
     api_key: str = ""
 
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    runtime = get_chat_runtime_info()
+    runtime = _runtime()
 
     return templates.TemplateResponse(
         "index.html",
@@ -189,6 +207,7 @@ def home(request: Request):
             "model": runtime["model"],
             "display_name": runtime["display_name"],
             "selectable_models": get_selectable_models(),
+            "provider_settings_enabled": is_provider_settings_enabled(),
             "version": get_k9chat_version(),
         },
     )
@@ -222,7 +241,7 @@ def chat(payload: ChatRequest, request: Request):
     shortcut_start = time.monotonic()
     faq_match = check_faq_shortcut(message, session_id=payload.session_id)
     if faq_match:
-        runtime = get_chat_runtime_info()
+        runtime = _runtime()
         return JSONResponse({
             "reply": faq_match["answer"],
             "elapsed_ms": round((time.monotonic() - shortcut_start) * 1000),
@@ -244,7 +263,7 @@ def chat(payload: ChatRequest, request: Request):
     elapsed_ms = round((time.monotonic() - start) * 1000)
     reply = result.get("text", "")
     blocked = bool(result.get("blocked"))
-    runtime = get_chat_runtime_info()
+    runtime = _runtime()
     response = {
         "reply": reply,
         "elapsed_ms": elapsed_ms,
@@ -301,7 +320,7 @@ async def chat_stream(payload: ChatRequest, request: Request):
         )
         if faq_match:
             yield f"data: {json.dumps({'chunk': faq_match['answer']})}\n\n"
-            runtime = get_chat_runtime_info()
+            runtime = _runtime()
             done_payload = {
                 "done": True,
                 "elapsed_ms": round((time.monotonic() - shortcut_start) * 1000),
@@ -332,7 +351,7 @@ async def chat_stream(payload: ChatRequest, request: Request):
                 full_text += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
         elapsed_ms = round((time.monotonic() - start) * 1000)
-        runtime = get_chat_runtime_info()
+        runtime = _runtime()
         done_payload = {
             "done": True,
             "elapsed_ms": elapsed_ms,
@@ -441,17 +460,21 @@ def truncate_session_route(session_id: str, payload: TruncateRequest):
 
 @app.get("/health")
 def health():
-    status = get_health_status()
+    status = _public(get_health_status())
     return JSONResponse(status, status_code=200 if status["ok"] else 503)
 
 
 @app.get("/chat/runtime")
 def runtime():
-    return JSONResponse(get_chat_runtime_info())
+    return JSONResponse(_runtime())
 
 
 @app.get("/chat/models")
 def models(provider: str = "ollama", base_url: str = "", api_key: str = ""):
+    # Lists every model a visitor-named host has pulled (and makes the
+    # server call that host): Provider Settings panel only.
+    if not is_provider_settings_enabled():
+        raise HTTPException(status_code=403, detail="Provider settings are disabled on this deployment.")
     try:
         return JSONResponse({"models": list_models_for(provider, base_url, api_key)})
     except ValueError as exc:
@@ -468,7 +491,17 @@ def settings(payload: SettingsRequest):
     since the cost is per-switch not per-visitor) and the same
     concurrency/thermal QueueSlot every chat message already goes
     through."""
+    provider, base_url, api_key = payload.provider, payload.base_url, payload.api_key
+    if not is_provider_settings_enabled():
+        # Header dropdown only: a model from the .env allowlist, on the
+        # provider/host already configured -- whatever the browser sent
+        # for those is ignored.
+        if payload.model not in get_selectable_models():
+            raise HTTPException(status_code=403, detail="That model isn't available on this deployment.")
+        current = get_chat_runtime_info()
+        provider, base_url, api_key = current["provider"], current["base_url"], ""
     # Global state every visitor's page reads back: only well-formed values.
+    payload = payload.model_copy(update={"provider": provider, "base_url": base_url, "api_key": api_key})
     if payload.provider not in ("ollama", "openai-compatible"):
         raise HTTPException(status_code=400, detail="Unknown provider.")
     if not re.fullmatch(r"[\w.:/@+-]{1,128}", payload.model or ""):
@@ -483,7 +516,7 @@ def settings(payload: SettingsRequest):
         )
     with QueueSlot():
         status = apply_settings(payload.provider, payload.base_url, payload.model, payload.api_key)
-    return JSONResponse(status)
+    return JSONResponse(_public(status))
 
 
 def _require_owned_project(project_id: str, owner_id: str | None) -> dict:
