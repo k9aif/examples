@@ -72,6 +72,33 @@ const ChatInput = (() => {
     sendBtn.title = isGenerating ? "Generating…" : "Send";
   }
 
+  // Retry a chat request that never reached the app: a network failure
+  // (container restarting after a deploy, tunnel reconnecting) or a
+  // gateway error from Cloudflare/the proxy. Up to 3 attempts, 1s/2s/4s
+  // apart. Never retried once the app has answered -- an app error or a
+  // reply in progress is shown as it is, so a message can't run twice.
+  const RETRY_STATUSES = new Set([502, 503, 504, 520, 521, 522, 523, 524]);
+  const RETRY_DELAYS_MS = [1000, 2000, 4000];
+
+  async function fetchWithRetry(url, options, thinkingNode) {
+    for (let attempt = 1; ; attempt++) {
+      let response = null;
+      try {
+        response = await fetch(url, options);
+        if (!RETRY_STATUSES.has(response.status)) return response;
+      } catch (err) {
+        if (attempt > RETRY_DELAYS_MS.length) throw err;
+      }
+      if (attempt > RETRY_DELAYS_MS.length) return response;
+      const bubbleEl = thinkingNode && thinkingNode.querySelector(".bubble");
+      if (bubbleEl) {
+        bubbleEl.classList.remove("thinking");
+        bubbleEl.textContent = `Connection hiccup, retrying (${attempt + 1}/${RETRY_DELAYS_MS.length + 1})…`;
+      }
+      await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
+    }
+  }
+
   async function send() {
     const typed = messageInput.value.trim();
     if (!typed && !attachedFile) return;
@@ -101,7 +128,7 @@ const ChatInput = (() => {
       if (streamEnabled) {
         await sendStreaming(sendText, sessionId, thinkingNode);
       } else {
-        const response = await fetch("/chat", {
+        const response = await fetchWithRetry("/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -111,7 +138,7 @@ const ChatInput = (() => {
             unhinged_level: Number(document.getElementById("unhinged-slider")?.value || 0),
             profanity_level: Number(document.getElementById("unhinged-slider")?.value || 0),
           }),
-        });
+        }, thinkingNode);
         const data = await response.json();
         MessageList.removeNode(thinkingNode);
         MessageList.appendMessage(sessionId, "assistant", data.reply || "", {
@@ -134,14 +161,15 @@ const ChatInput = (() => {
       }
     } catch (error) {
       MessageList.removeNode(thinkingNode);
-      MessageList.appendMessage(sessionId, "assistant", "Error: unable to reach K9Chat backend.");
+      MessageList.appendMessage(sessionId, "assistant",
+        "Couldn't reach K9Chat (1 try + 3 retries). It may be restarting; please try again in a moment.");
     } finally {
       setGenerating(false);
     }
   }
 
   async function sendStreaming(text, sessionId, thinkingNode) {
-    const response = await fetch("/chat/stream", {
+    const response = await fetchWithRetry("/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -151,7 +179,7 @@ const ChatInput = (() => {
             unhinged_level: Number(document.getElementById("unhinged-slider")?.value || 0),
             profanity_level: Number(document.getElementById("unhinged-slider")?.value || 0),
           }),
-    });
+    }, thinkingNode);
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
