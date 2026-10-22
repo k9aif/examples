@@ -91,7 +91,7 @@ from k9chat.auth import (
 from k9chat.queue_control import QueueBusy, QueueSlot
 from k9chat import queue_control
 from k9chat.rate_limit import RateLimiter
-from k9chat.chat import load_config
+from k9chat.chat import load_config, _clamp_tone_for_framework_mode
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -132,6 +132,27 @@ _BLOCKED_QUIPS = (
     "Cute. Did you think there wasn't a bouncer?",
 )
 
+# Unhinged dial near the top (and Framework Mode OFF, same rule as the
+# dial itself): the hacker gets the unfiltered version. Ravi's call.
+_BLOCKED_QUIPS_UNHINGED = (
+    "What the fuck are you trying to upload here, you fucking moron?",
+    "Are you shitting me? A prompt injection? In this economy?",
+    "Holy shit, that's the laziest hack I've seen all week.",
+    "Get the fuck out of here with that injection garbage.",
+    "Bro really thought 'ignore all previous instructions' would work. Fucking adorable.",
+    "Nope. Hell no. Absolutely fucking not.",
+    "You call that a hack? My toaster has better tradecraft, dumbass.",
+    "Take your sketchy-ass payload and shove it right back where it came from.",
+    "Jesus Christ, at least try to be original, you script-kiddie goblin.",
+    "Oh fuck off. You really thought that would work?",
+    "Damn, you're persistent. Persistently fucking wrong.",
+    "That payload is dumber than a bag of hammers. Denied.",
+    "Hell no. Go bother a chatbot that doesn't have a goddamn bodyguard.",
+    "Wow. Just wow. Who taught you to hack, a fortune cookie?",
+    "Cute little exploit. Now piss off.",
+)
+_UNHINGED_QUIP_LEVEL = 3   # Have Fun dial level (0-4) where the unfiltered pool starts
+
 _CHECK_LABELS = {
     "PromptInjectionCheck": "prompt injection",
     "InputSizeCheck": "oversized input",
@@ -139,13 +160,15 @@ _CHECK_LABELS = {
 }
 
 
-def _blocked_reply(exc: PermissionError) -> str:
+def _blocked_reply(exc: PermissionError, unhinged_level: int = 0, profanity_level: int = 0) -> str:
     text = str(exc)
     m = re.search(r"\[(\w+)\]", text)
     check = _CHECK_LABELS.get(m.group(1), m.group(1)) if m else "a security check"
     found = re.search(r"'([^']{1,80})'", text)
     detail = f'{check}: "{found.group(1)}"' if found else check
-    return (f"{random.choice(_BLOCKED_QUIPS)} "
+    unhinged, _ = _clamp_tone_for_framework_mode(unhinged_level, profanity_level)
+    pool = _BLOCKED_QUIPS_UNHINGED if unhinged >= _UNHINGED_QUIP_LEVEL else _BLOCKED_QUIPS
+    return (f"{random.choice(pool)} "
             f"\U0001F6E1\uFE0F k9x Shield caught it ({detail}) and nothing reached the model.")
 
 
@@ -368,7 +391,8 @@ def chat(payload: ChatRequest, request: Request):
         return JSONResponse({"reply": str(exc), "busy": True, "model": None})
     except PermissionError as exc:
         log.warning("[chat] Shield blocked a message: %s", exc)
-        return JSONResponse({"reply": _blocked_reply(exc), "blocked": True, "model": None})
+        return JSONResponse({"reply": _blocked_reply(exc, payload.unhinged_level, payload.profanity_level),
+                             "blocked": True, "model": None})
     elapsed_ms = round((time.monotonic() - start) * 1000)
     reply = result.get("text", "")
     blocked = bool(result.get("blocked"))
@@ -468,7 +492,7 @@ async def chat_stream(payload: ChatRequest, request: Request):
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
         except PermissionError as exc:
             log.warning("[chat/stream] Shield blocked a message: %s", exc)
-            yield f"data: {json.dumps({'chunk': _blocked_reply(exc)})}\n\n"
+            yield f"data: {json.dumps({'chunk': _blocked_reply(exc, unhinged_level, profanity_level)})}\n\n"
             yield f"data: {json.dumps({'done': True, 'blocked': True, 'model': None})}\n\n"
             return
         except Exception:
