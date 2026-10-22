@@ -4,6 +4,13 @@ Status: decisions agreed 2026-10-22 (see "Decisions"). Nothing built yet.
 
 ## Goal
 
+**Positioning: a demo of a solution built on the framework, not a chat
+service.** People already use Claude, ChatGPT or Grok for everyday chat.
+K9Chat exists to show what an application built on K9-AIF looks like and how
+it behaves. It is open source: anyone can download it, change it, and run it
+locally against their own on-premise models. The landing page says this in
+the hero and again in the scope section, and the daily limit follows from it.
+
 chat.k9x.ai sells itself as an application built on the K9-AIF framework.
 A visitor first lands on a page that shows how K9Chat is built and why it is
 secure, then registers to try it. The chat itself sits behind a login.
@@ -29,8 +36,9 @@ ecosystem, scope, then sign-in. Every claim on a card is a mechanism that
 exists in K9Chat or the framework today, and each card links to the code or
 doc that proves it.
 
-**Hero.** "K9Chat: a governed chat assistant, built on K9-AIF." One line on
-what it is, plus the two buttons (Register, Sign in).
+**Hero.** Headline in Ravi's words. The line under it says what this is: a
+working demo of an application built on K9-AIF, open source, that you can run
+on your own models. Two buttons: Register (take the quiz) and Sign in.
 
 **Cards (the showcase):**
 
@@ -53,9 +61,25 @@ Drawn in default PlantUML style, kept in the framework's docs/diagrams.
 **Ecosystem.** Cards linking to Shield, SATAN (proves Shield holds),
 Inspector, Sentinel, Studio and the Enterprise Repository.
 
-**Scope.** What a registered user gets (the limits, in plain numbers taken
-from config at render time, not hard-coded) and what K9Chat deliberately does
-not do.
+**Scope.** Plain about what this is and isn't:
+- A demo of a solution built on the framework, not a chat service to
+  replace Claude, ChatGPT or Grok.
+- What a registered user gets, with the limits in plain numbers taken from
+  config at render time, not hard-coded (10 chats a day, plus the
+  short-window limits).
+- What K9Chat deliberately does not do (no tools, no code generation, no
+  general-purpose assistant).
+
+**Get the code / run it yourself.** Link to `github.com/k9aif/examples`
+(k9chat), the license, and a short "run it on-premise" path: clone, point
+`OLLAMA_BASE_URL` (or any OpenAI-compatible server) at your own models,
+start the container (`ubuntu/Containerfile`, `build-run.sh`). No account
+needed to read or run the code; the quiz only gates this hosted demo.
+
+Prerequisite: the examples repo has no LICENSE file today (every k9chat
+source file is SPDX `Apache-2.0`, and the framework repo has its LICENSE).
+Add the Apache-2.0 LICENSE to `k9aif/examples` before the page claims "open
+source, download and modify".
 
 ## Registration page: earn your account
 
