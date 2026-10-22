@@ -178,13 +178,13 @@ async def login_submit(request: Request):
     request.session["logged_in"] = True
     request.session["visitor_id"] = str(uuid.uuid4())
     request.session["username"] = username
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/app", status_code=303)
 
 
 @app.get("/logout")
 def logout(request: Request):
     request.session.clear()
-    return RedirectResponse(url="/login")
+    return RedirectResponse(url="/welcome")
 
 
 class SettingsRequest(BaseModel):
@@ -194,7 +194,39 @@ class SettingsRequest(BaseModel):
     api_key: str = ""
 
 
+def _window_label(seconds: int) -> str:
+    if seconds % 3600 == 0:
+        hours = seconds // 3600
+        return "hour" if hours == 1 else f"{hours} hours"
+    return f"{max(1, seconds // 60)} minutes"
+
+
 @app.get("/", response_class=HTMLResponse)
+def splash(request: Request):
+    """Public: the full-screen splash, one Enter button -> /welcome."""
+    return templates.TemplateResponse("splash.html", {"request": request, "version": get_k9chat_version()})
+
+
+@app.get("/welcome", response_class=HTMLResponse)
+def welcome(request: Request):
+    """Public landing page. Limits and Guardian state are read from config
+    at render time, so the page can't drift from what the app enforces."""
+    cfg = load_config()
+    visitor = (cfg.get("rate_limit", {}) or {}).get("visitor", []) or []
+    short = visitor[0] if visitor else {"max": "?", "window_seconds": 600}
+    daily = visitor[1] if len(visitor) > 1 else {"max": "?"}
+    return templates.TemplateResponse("landing.html", {
+        "request": request,
+        "version": get_k9chat_version(),
+        "model": get_chat_runtime_info()["model"],
+        "limit_short": short["max"],
+        "limit_short_window": _window_label(int(short["window_seconds"])),
+        "limit_daily": daily["max"],
+        "guardian_chat": is_guardian_enabled(),
+    })
+
+
+@app.get("/app", response_class=HTMLResponse)
 def home(request: Request):
     runtime = _runtime()
 

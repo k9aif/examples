@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K9X Chat</title>
+<meta name="description" content="K9Chat: an open-source application built on the K9-AIF framework.">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #03050c; overflow: hidden; }
+  body { color: #e7ebf7; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  #splash { position: fixed; inset: 0; }
+  #vision, #cosmos { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #vision { background: radial-gradient(60rem 40rem at 70% 50%, #1a1446 0%, #0a1030 40%, #03050c 75%); }
+  #splash::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, rgba(3,5,12,.82) 0%, rgba(3,5,12,.45) 30%, rgba(3,5,12,0) 52%); }
+
+  .title { position: absolute; z-index: 2; left: clamp(22px, 6vw, 96px); top: 50%; transform: translateY(-50%);
+           max-width: 520px; }
+  .eyebrow { font: 700 12px ui-monospace, Menlo, Consolas, monospace; letter-spacing: .18em; text-transform: uppercase;
+             color: #2dd4bf; }
+  h1 { margin: 10px 0 10px; font-size: clamp(44px, 7vw, 84px); line-height: 1; letter-spacing: -2px; font-weight: 800; }
+  h1 span { background: linear-gradient(100deg, #93c5fd 0%, #60a5fa 35%, #2dd4bf 70%, #fbbf24 100%);
+            -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tag { color: #aab5c8; font-size: 17px; margin: 0 0 30px; }
+  .enter { font: 700 15px ui-monospace, Menlo, Consolas, monospace; letter-spacing: .28em; text-transform: uppercase;
+           color: #e7ebf7; background: rgba(10,16,40,.35); border: 1px solid rgba(147,197,253,.55); border-radius: 999px;
+           padding: 15px 38px 15px 42px; cursor: pointer; backdrop-filter: blur(4px);
+           box-shadow: 0 0 0 0 rgba(96,165,250,.45); animation: pulse 3.2s ease-in-out infinite;
+           transition: border-color .2s, color .2s, background .2s; }
+  .enter:hover, .enter:focus-visible { border-color: #2dd4bf; color: #2dd4bf; background: rgba(45,212,191,.08); outline: none; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(96,165,250,.35); } 50% { box-shadow: 0 0 34px 6px rgba(96,165,250,.22); } }
+
+  .caption { position: absolute; z-index: 2; right: 22px; bottom: 16px; max-width: 520px; text-align: right;
+             font: 11px/1.5 ui-monospace, Menlo, Consolas, monospace; color: #c9d1de; pointer-events: none;
+             background: rgba(3,5,12,.72); border-radius: 6px; padding: 6px 10px; }
+  .caption i { font-style: normal; color: #f87171; }
+
+  /* Enter: dive into the core, then go on to the landing page */
+  #fade { position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0;
+          background: radial-gradient(circle at var(--cx, 70%) var(--cy, 50%), #fff3d6 0%, #6d8cff 18%, #03050c 60%);
+          transition: opacity .9s ease-in; }
+  body.diving #fade { opacity: 1; }
+  body.diving .title, body.diving .caption { opacity: 0; transition: opacity .4s; }
+
+  @media (max-width: 860px) {
+    #splash::after { background: linear-gradient(180deg, rgba(3,5,12,0) 30%, rgba(3,5,12,.8) 75%); }
+    .title { top: auto; bottom: 9vh; transform: none; left: 22px; right: 22px; }
+    .caption { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .enter { animation: none; } #fade { transition: none; } }
+</style>
+</head>
+<body>
+<div id="splash" data-cosmos>
+  <canvas id="vision" aria-hidden="true"></canvas>
+  <canvas id="cosmos" aria-hidden="true"></canvas>
+</div>
+
+<div class="title">
+  <div class="eyebrow">Built on K9-AIF</div>
+  <h1>K9X <span>Chat</span></h1>
+  <p class="tag">A governed AI application, open source, on your own models.</p>
+  <button class="enter" id="enter" type="button" autofocus>Enter</button>
+</div>
+
+<div class="caption">live view of a message's path: in through the rate limit, k9x Shield, Guardian and the router
+  to the model, and back out through Shield · <i>red</i> = hostile input turned away</div>
+
+<div id="fade" aria-hidden="true"></div>
+
+<script src="/static/js/landing_cosmos.js?v={{ version }}"></script>
+<script>
+  (function () {
+    const btn = document.getElementById("enter");
+    const go = () => {
+      if (document.body.classList.contains("diving")) return;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduce) { window.location.href = "/welcome"; return; }
+      if (window.K9Cosmos) window.K9Cosmos.dive();
+      document.body.classList.add("diving");
+      setTimeout(() => { window.location.href = "/welcome"; }, 950);
+    };
+    btn.addEventListener("click", go);
+  })();
+</script>
+</body>
+</html>

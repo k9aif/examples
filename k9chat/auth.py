@@ -36,7 +36,8 @@ from starlette.responses import RedirectResponse
 # Paths reachable without a session -- the login page itself, its own
 # POST target, and static assets (the login page's CSS/images need to
 # load before the user can log in at all).
-_PUBLIC_PREFIXES = ("/login", "/static", "/health")
+_PUBLIC_PREFIXES = ("/login", "/static", "/health", "/welcome")
+_PUBLIC_EXACT = ("/",)   # the splash; "/" as a prefix would match every path
 
 
 def get_session_secret() -> str:
@@ -110,7 +111,7 @@ class LoginRequiredMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        if any(path == p or path.startswith(p + "/") for p in _PUBLIC_PREFIXES):
+        if path in _PUBLIC_EXACT or any(path == p or path.startswith(p + "/") for p in _PUBLIC_PREFIXES):
             return await call_next(request)
 
         if request.session.get("logged_in"):

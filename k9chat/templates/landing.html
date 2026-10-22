@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K9X Chat: an application built on K9-AIF</title>
+<meta name="description" content="K9Chat is a working, open-source demo of an application built on the K9-AIF framework: governed by k9x Shield and Granite Guardian, running on self-hosted models.">
+<style>
+  :root {
+    --bg: #0b1220; --bg2: #111a2e; --card: #14203a; --border: #24324f;
+    --text: #d3dae6; --muted: #aab5c8; --accent: #60a5fa; --accent-d: #3b82f6;
+    --teal: #2dd4bf; --orange: #fb923c; --green: #4ade80; --red: #f87171;
+    --mono: ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+  section[id] { scroll-margin-top: 64px; }
+
+  header.top { border-bottom: 1px solid var(--border); background: rgba(17,26,46,0.94);
+               position: sticky; top: 0; z-index: 10; backdrop-filter: blur(6px); }
+  header.top .wrap { display: flex; align-items: center; gap: 14px; padding-block: 12px; flex-wrap: wrap; }
+  .logo { font-weight: 800; letter-spacing: -.3px; font-size: 18px; }
+  .logo span { color: var(--accent); }
+  .badge { font: 700 10.5px var(--mono); color: var(--teal); border: 1px solid var(--teal); border-radius: 4px; padding: 2px 6px; }
+  header.top nav { margin-left: auto; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+  header.top nav a { color: var(--muted); text-decoration: none; }
+  header.top nav a:hover { color: var(--text); }
+
+  .hero-band { background:
+      radial-gradient(40rem 26rem at 12% 10%, rgba(96,165,250,0.16), transparent 62%),
+      radial-gradient(36rem 24rem at 92% 80%, rgba(45,212,191,0.12), transparent 62%), var(--bg);
+    border-bottom: 1px solid var(--border); }
+  .hero { padding: 64px 0 46px; }
+  .eyebrow { font: 700 12px var(--mono); color: var(--teal); letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.12; margin: 10px 0 14px; letter-spacing: -.8px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lede { font-size: 17px; color: var(--muted); max-width: 760px; margin: 0 0 14px; }
+  .lede b { color: var(--text); }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 22px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; padding: 12px 22px;
+         font-weight: 700; font-size: 15px; border: 1px solid transparent; text-decoration: none; }
+  .btn-primary { background: var(--accent); color: #06101f; }
+  .btn-primary:hover { background: var(--accent-d); color: #fff; }
+  .btn-ghost { color: var(--text); border-color: var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .note { font: 12.5px var(--mono); color: var(--muted); margin-top: 14px; }
+  .note b { color: var(--text); font-weight: 600; }
+
+  section { padding: 30px 0; }
+  h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.3px; }
+  .sub { color: var(--muted); margin: 0 0 20px; max-width: 780px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 960px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 14px;
+          display: flex; flex-direction: column; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0 0 10px; color: var(--muted); font-size: 14px; flex: 1; }
+  .card .src { font: 12px var(--mono); color: var(--muted); text-decoration: none; }
+  .card .src:hover { color: var(--accent); }
+  .state { font: 700 10.5px var(--mono); border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; }
+  .state.on { color: var(--green); border: 1px solid var(--green); }
+  .state.off { color: var(--muted); border: 1px solid var(--border); }
+  .sec .card { border-top: 3px solid var(--teal); }
+
+  .path { display: grid; gap: 10px; grid-template-columns: repeat(4, 1fr); counter-reset: step; }
+  @media (max-width: 860px) { .path { grid-template-columns: repeat(2, 1fr); } }
+  .path .step { background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--accent);
+                border-radius: 10px; padding: 14px 14px 12px; counter-increment: step; }
+  .path .step::before { content: counter(step); font: 800 11px var(--mono); color: var(--accent); display: block; }
+  .path .step b { display: block; margin-bottom: 4px; }
+  .path .step span { color: var(--muted); font-size: 13.5px; }
+  .path .step.gate { border-top-color: var(--teal); }
+  .path .step.gate::before { color: var(--teal); }
+  .legend { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .legend i { font-style: normal; color: var(--teal); font-weight: 700; }
+
+  .arch .card h3 { color: var(--teal); }
+  code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .chip { font: 600 12.5px var(--mono); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px;
+          color: var(--text); text-decoration: none; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip small { color: var(--muted); font-weight: 400; }
+
+  .limits { border-left: 3px solid var(--accent); background: var(--card); border-radius: 0 10px 10px 0; padding: 16px 20px; }
+  .limits ul { margin: 6px 0 0; padding-left: 20px; color: var(--muted); }
+  .limits li { margin: 5px 0; }
+  .limits li b { color: var(--text); }
+
+  pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+        overflow-x: auto; font: 13px/1.6 var(--mono); color: var(--text); margin: 10px 0 0; }
+  .start { text-align: center; padding: 40px 0 10px; }
+  .start p { color: var(--muted); margin: 0 0 18px; }
+  .start .cta { justify-content: center; }
+
+  footer { border-top: 1px solid var(--border); margin-top: 26px; padding: 22px 0 34px; color: var(--muted); font-size: 13px; }
+  footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space-between; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="/" style="color:inherit;text-decoration:none"><span>K9X</span> Chat</a>
+    <span class="badge">OPEN-SOURCE DEMO</span>
+    <nav>
+      <a href="#safe">How it stays safe</a>
+      <a href="#path">A message's path</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="#scope">Scope</a>
+      <a href="#run">Run it yourself</a>
+      <a href="/login">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero-band">
+<div class="wrap">
+  <section class="hero">
+    <div class="eyebrow">K9Chat · an application built on K9-AIF</div>
+    <h1>A chat assistant built to show<br><em>how a governed AI application works.</em></h1>
+    <p class="lede">
+      K9Chat is a working demo of a solution built on the open-source <b>K9-AIF</b> framework,
+      not a chat service. Every message passes <b>k9x Shield</b> on the way in and out; anything
+      a visitor stores is screened by Shield and <b>Granite Guardian</b> before it is saved; the
+      model has no tools. It runs on self-hosted models (<code>{{ model }}</code> on one GPU),
+      not a third-party AI API.
+    </p>
+    <p class="lede">
+      The code is open source. Download it, change it, and run it on your own on-premise models.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="/login">Try K9Chat →</a>
+      <a class="btn btn-ghost" href="#run">Get the code</a>
+    </div>
+    <div class="note">Public demonstration · <b>{{ limit_short }}</b> messages per {{ limit_short_window }}, <b>{{ limit_daily }}</b> per day · read this page first, then try it</div>
+  </section>
+</div>
+</div>
+
+<main class="wrap">
+
+  <section id="safe" class="sec">
+    <h2>How it stays safe</h2>
+    <p class="sub">Each card is a mechanism running in this deployment, with a link to the code that implements it.</p>
+    <div class="grid">
+      <div class="card"><h3>Governed by construction</h3>
+        <p>k9x Shield runs around every agent call, built in by the framework rather than added by the app: prompt-injection, input-size and personal-data checks on the way in, a personal-data check on the way out.</p>
+        <a class="src" href="https://github.com/k9aif/examples/blob/main/k9chat/config.yaml" target="_blank" rel="noopener">config.yaml · security.shield →</a></div>
+      <div class="card"><h3>A second, semantic gate</h3>
+        <p>Granite Guardian, a purpose-built safety model, reads what pattern checks can miss, such as a reworded attack. Chat messages
+          <span class="state {{ 'on' if guardian_chat else 'off' }}">{{ 'ON' if guardian_chat else 'OFF' }} HERE</span></p>
+        <a class="src" href="https://github.com/k9aif/examples/blob/main/k9chat/guard_agent.py" target="_blank" rel="noopener">guard_agent.py →</a></div>
+      <div class="card"><h3>Nothing is stored unscreened</h3>
+        <p>Project files, project instructions and learned facts pass Shield and Guardian before they are saved, whatever the chat setting. If the safety check can't run, nothing is saved.</p>
+        <a class="src" href="https://github.com/k9aif/examples/blob/main/k9chat/persist_screen.py" target="_blank" rel="noopener">persist_screen.py →</a></div>
+      <div class="card"><h3>Reads the web safely</h3>
+        <p>Pasted links are fetched only from public addresses, re-checked on every redirect and on the address actually connected to, so a link can't reach the private network. Each page is screened for planted instructions before the model reads it.</p>
+        <a class="src" href="https://github.com/k9aif/examples/blob/main/k9chat/url_fetch.py" target="_blank" rel="noopener">url_fetch.py →</a></div>
+      <div class="card"><h3>No tools, no blast radius</h3>
+        <p>The model can only write text. It can't run code, open files, call APIs or reach the network, so the worst a hostile prompt can do is produce a bad answer.</p>
+        <a class="src" href="https://github.com/k9aif/examples/blob/main/k9chat/chat_agent.py" target="_blank" rel="noopener">chat_agent.py →</a></div>
+      <div class="card"><h3>Fair use of one GPU</h3>
+        <p>Per-visitor and per-IP message limits, a cap on generations running at once, and a temperature gate that stops new work while the GPU is hot.</p>
+        <a class="src" href="https://github.com/k9aif/examples/blob/main/k9chat/rate_limit.py" target="_blank" rel="noopener">rate_limit.py · queue_control.py →</a></div>
+    </div>
+  </section>
+
+  <section id="path">
+    <h2>What happens to a message</h2>
+    <p class="sub">In order, from the moment you press send.</p>
+    <div class="path">
+      <div class="step gate"><b>Rate limit</b><span>Over the limit? Refused before any work is done.</span></div>
+      <div class="step"><b>FAQ shortcut</b><span>A confident match with a curated answer is returned on CPU, with no model call.</span></div>
+      <div class="step"><b>GPU queue</b><span>Waits for a free slot and a cool GPU.</span></div>
+      <div class="step"><b>Context</b><span>Knowledge base, your project files, and linked pages (screened).</span></div>
+      <div class="step gate"><b>Shield, in</b><span>The whole request is checked before the model sees it.</span></div>
+      <div class="step gate"><b>Guardian</b><span>Semantic safety check of the message, when enabled.</span></div>
+      <div class="step"><b>Model router</b><span>Picks the model for the task and calls it.</span></div>
+      <div class="step gate"><b>Shield, out</b><span>The reply is checked before it reaches you.</span></div>
+    </div>
+    <p class="legend"><i>Teal</i> steps are security gates.</p>
+  </section>
+
+  <section id="architecture" class="arch">
+    <h2>Architecture</h2>
+    <p class="sub">K9Chat is an SBB, a solution building block: the framework provides the building blocks (ABBs) and K9Chat adds only what is specific to a chat application.</p>
+    <div class="grid">
+      <div class="card"><h3>ChatAgent</h3>
+        <p>Extends the framework's <code>BaseAgent</code>, so Shield wraps every call automatically. Builds the prompt from the conversation and the context blocks, each labelled with where it came from.</p></div>
+      <div class="card"><h3>Model router</h3>
+        <p>Calls go through the framework's <code>llm_invoke</code> and model router: each task (chat, reasoning, guardrails) resolves to a model alias in config, so models change without code changes.</p></div>
+      <div class="card"><h3>Knowledge base</h3>
+        <p>K9-AIF and K9X documentation in a vector store (ChromaDB), retrieved per message in Framework Mode. A cross-encoder reranker on CPU decides when a curated FAQ answer is good enough to return directly.</p></div>
+      <div class="card"><h3>Projects</h3>
+        <p>Each visitor's own files and instructions, one vector collection per project so nothing leaks between projects, screened before storage.</p></div>
+      <div class="card"><h3>Two modes</h3>
+        <p>Framework Mode: scoped to K9-AIF, grounded in its documentation, offline. Internet mode: a general assistant with live web search and link reading.</p></div>
+      <div class="card"><h3>Self-hosted models</h3>
+        <p>Ollama on a local GPU, or any OpenAI-compatible server. No third-party AI API: prompts and documents go only to the deployment's own models. (In Internet mode, your question is also sent as a search query through a self-hosted search proxy.)</p></div>
+    </div>
+  </section>
+
+  <section id="ecosystem">
+    <h2>Ecosystem</h2>
+    <p class="sub">Other parts of K9X, the products built around K9-AIF.</p>
+    <div class="chips">
+      <a class="chip" href="https://github.com/k9aif/k9-aif-framework" target="_blank" rel="noopener">K9-AIF framework <small>GitHub</small></a>
+      <a class="chip" href="https://satan.k9x.ai" target="_blank" rel="noopener">K9X SATAN <small>proves Shield holds</small></a>
+      <a class="chip" href="https://inspector.k9x.ai" target="_blank" rel="noopener">K9X Inspector <small>checks solutions against the rules</small></a>
+      <a class="chip" href="https://sentinel.k9x.ai" target="_blank" rel="noopener">K9X Sentinel <small>daily threat watch</small></a>
+      <a class="chip" href="https://das.k9x.ai" target="_blank" rel="noopener">K9X DAS <small>Defense Acquisition System</small></a>
+      <a class="chip" href="https://studio.k9x.ai" target="_blank" rel="noopener">K9X Studio <small>visual builder</small></a>
+      <a class="chip" href="https://repo.k9x.ai" target="_blank" rel="noopener">Enterprise Repository <small>TOGAF</small></a>
+      <a class="chip" href="https://blog.k9x.ai" target="_blank" rel="noopener">Blog</a>
+    </div>
+  </section>
+
+  <section id="scope">
+    <h2>Scope</h2>
+    <div class="limits">
+      <ul>
+        <li><b>A demo, not a chat service.</b> For everyday chat, use Claude, ChatGPT or Grok. K9Chat is here to show what an application built on K9-AIF looks like and how it behaves.</li>
+        <li><b>Limits:</b> {{ limit_short }} messages per {{ limit_short_window }} and {{ limit_daily }} per day for each visitor, with a looser limit per network address. One GPU is shared by everyone.</li>
+        <li><b>No tools.</b> It doesn't run code, browse on its own, or act on your behalf; it reads a link only when you paste one.</li>
+        <li><b>Your projects are yours.</b> Files and instructions you add are visible only to you, and each project is kept in its own collection.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="run">
+    <h2>Run it yourself</h2>
+    <p class="sub">K9Chat is open source (Apache-2.0) in <a href="https://github.com/k9aif/examples/tree/main/k9chat" target="_blank" rel="noopener">github.com/k9aif/examples</a>. Point it at your own models: Ollama on your hardware, or any OpenAI-compatible server.</p>
+<pre>git clone https://github.com/k9aif/k9-aif-framework.git
+git clone https://github.com/k9aif/examples.git k9-aif-examples
+cd k9-aif-examples
+# set OLLAMA_BASE_URL (and the model names) in k9chat/.env
+k9chat/ubuntu/build-run.sh all     # build and start the container
+k9chat/ubuntu/build-run.sh seed    # one time: load the knowledge base</pre>
+  </section>
+
+  <section class="start">
+    <h2>Ready to look inside?</h2>
+    <p>Ask about the framework, paste a link, or add a project file and watch it get screened.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="/login">Try K9Chat →</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>K9Chat {{ version }} · built on the K9-AIF framework</span>
+    <span><a href="https://k9x.ai" target="_blank" rel="noopener">k9x.ai</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
