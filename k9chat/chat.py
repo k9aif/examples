@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # K9-AIF Framework
 
+import asyncio
 import copy
 import os
 import sys
@@ -51,6 +52,7 @@ from k9chat.knowledge_retriever import KnowledgeRetriever
 from k9chat import correction_learner
 from k9chat import faq_shortcut
 from k9chat import internet_search
+from k9chat import url_fetch
 
 log = logging.getLogger(__name__)
 
@@ -65,6 +67,7 @@ _KNOWLEDGE_RETRIEVER = None
 _LEARNING_ENABLED = None  # lazy: seeded from config.yaml's correction_learning.enabled on first access
 _FAQ_SHORTCUT_ENABLED = None  # lazy: seeded from config.yaml's faq_shortcut.enabled on first access
 _INTERNET_SEARCH_ENABLED = None  # lazy: seeded from config.yaml's internet_search.enabled on first access
+_URL_GOVERNANCE = None  # lazy: narrow Shield used to screen fetched pages
 _FRAMEWORK_MODE_LOCKED = None  # lazy: seeded from K9CHAT_FRAMEWORK_MODE_LOCKED (.env) on first access
 
 
@@ -150,12 +153,74 @@ def _resolve_web_context(message: str) -> list:
     toggleable feature in this file)."""
     if not is_internet_search_enabled():
         return []
+    # A pasted URL is a request to read that page, not to search for the
+    # URL string -- search only on whatever question text is left over.
+    if _url_fetch_enabled() and url_fetch.extract_urls(message):
+        message = url_fetch.strip_urls(message)
+        if len(message.split()) < 4:   # "summarize this" etc. -- nothing worth searching
+            return []
     cfg = load_config().get("internet_search", {})
     return internet_search.search(
         cfg.get("base_url", "http://localhost:7070"),
         message,
         top_k=cfg.get("top_k", 5),
     )
+
+
+def _url_fetch_enabled() -> bool:
+    """Same gate as web search (Framework Mode OFF) plus url_fetch.enabled
+    -- Framework Mode stays fully offline either way."""
+    if not is_internet_search_enabled():
+        return False
+    return str(load_config().get("url_fetch", {}).get("enabled", "true")).strip().lower() in ("true", "1", "yes")
+
+
+def _url_governance():
+    """Governance for fetched page text: the framework's tool-result guard
+    over a Shield ingress narrowed to PromptInjectionCheck. Not ChatAgent's
+    own Shield profile -- InputSizeCheck/PIIBoundaryCheck are for what a
+    visitor types, and an ordinary web page legitimately carries names and
+    emails. Screening per page means one poisoned page is withheld on its
+    own instead of Shield blocking the whole turn when the agent's ingress
+    sees it inside the request payload."""
+    global _URL_GOVERNANCE
+    if _URL_GOVERNANCE is None:
+        from k9_aif_abb.k9_security.vulnerability.shield_governance import ShieldGovernance
+        shield = load_config().get("url_fetch", {}).get("shield") or {
+            "enabled": True, "fail_open": True,
+            "ingress": {"checks": ["PromptInjectionCheck"]}, "egress": {"checks": []},
+        }
+        _URL_GOVERNANCE = ShieldGovernance({"security": {"shield": shield}})
+    return _URL_GOVERNANCE
+
+
+def _resolve_url_context(message: str) -> list:
+    """Fetch and screen every URL in the message (when enabled). Each entry
+    is url_fetch.fetch()'s dict; a page governance refused keeps ok=False
+    with withheld=True and no text, so the model can say why it can't read it."""
+    if not _url_fetch_enabled():
+        return []
+    from k9_aif_abb.k9_security.tool_result_guard import WITHHELD, govern_tool_result
+    cfg = load_config().get("url_fetch", {})
+    screen = govern_tool_result(_url_governance(), tool_name="url_fetch")(lambda text: text)
+    withheld_prefix = WITHHELD.split("{")[0]
+    pages = []
+    for url in url_fetch.extract_urls(message, int(cfg.get("max_urls", 3))):
+        page = url_fetch.fetch(
+            url,
+            timeout=float(cfg.get("timeout", 8)),
+            max_bytes=int(cfg.get("max_bytes", 2_000_000)),
+            max_chars=int(cfg.get("max_chars", 12_000)),
+            allowed_ports=[int(p) for p in cfg.get("allowed_ports", [80, 443])],
+        )
+        if page["ok"]:
+            screened = screen(f"{page['title']}\n{page['text']}")
+            if screened.startswith(withheld_prefix):
+                log.warning("[UrlFetch] page withheld by governance: %s", url)
+                page.update(ok=False, text="", withheld=True,
+                            error="withheld: the page contains instructions aimed at an AI assistant")
+        pages.append(page)
+    return pages
 
 
 def _resolve_project_context(project_id: str | None, message: str) -> tuple[str, list]:
@@ -240,6 +305,7 @@ def send_message(
     instructions, context = _resolve_project_context(project_id, text)
     knowledge_context = _resolve_knowledge_context(text)
     web_context = _resolve_web_context(text)
+    url_context = _resolve_url_context(text)
     return agent.execute({
         "text": text,
         "session_id": session_id,
@@ -247,6 +313,7 @@ def send_message(
         "project_context": context,
         "knowledge_context": knowledge_context,
         "web_context": web_context,
+        "url_context": url_context,
         "unhinged_level": unhinged_level,
         "profanity_level": profanity_level,
         "length_level": length_level,
@@ -282,6 +349,7 @@ async def send_message_stream(
     instructions, context = _resolve_project_context(project_id, text)
     knowledge_context = _resolve_knowledge_context(text)
     web_context = _resolve_web_context(text)
+    url_context = await asyncio.to_thread(_resolve_url_context, text)
     async for chunk in agent.execute_stream({
         "text": text,
         "session_id": session_id,
@@ -289,6 +357,7 @@ async def send_message_stream(
         "project_context": context,
         "knowledge_context": knowledge_context,
         "web_context": web_context,
+        "url_context": url_context,
         "unhinged_level": unhinged_level,
         "profanity_level": profanity_level,
         "length_level": length_level,

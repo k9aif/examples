@@ -31,6 +31,20 @@ internet_search:
   base_url: "${K9CHAT_SEARXNG_URL:-http://localhost:7070}"
   top_k: 5
 
+url_fetch:
+  # Reads the page behind any http(s) URL pasted into a message, so
+  # "summarize https://..." gets the page itself, not a search for the URL
+  # string. Only active while internet_search is on (Framework Mode OFF).
+  # Every hop must resolve to a public address (no LAN/loopback/metadata),
+  # and each page is screened by the framework's tool-result guard
+  # (PromptInjectionCheck) before the model sees it -- see url_fetch.py.
+  enabled: "${K9CHAT_URL_FETCH_ENABLED:-true}"
+  max_urls: 3              # per message
+  timeout: 8               # seconds per request
+  max_bytes: 2000000       # download cap per page
+  max_chars: 12000         # page text kept for the prompt (fits small local models)
+  allowed_ports: [80, 443]
+
 correction_learning:
   # Auto-detects when a user's next message corrects something the
   # assistant just said, then writes the corrected fact straight into the
