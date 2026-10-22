@@ -48,9 +48,9 @@ UNHINGED_INSTRUCTIONS = {
 PROFANITY_INSTRUCTIONS = {
     0: "",  # default -- no instruction, don't specifically invite profanity
     1: "Occasional mild profanity is fine if it fits naturally (e.g. 'damn', 'hell').",
-    2: "Profanity is fine and expected in moderation where it fits naturally.",
-    3: "Heavy profanity is encouraged, including strong swear words, where it fits naturally.",
-    4: "Maximum profanity -- swear as much as feels natural, no restraint at all.",
+    2: "Profanity is fine and expected in moderation where it fits naturally. Write swear words out in full -- never mask them with asterisks or symbols (write \"fuck\", not \"f***\").",
+    3: "Heavy profanity is encouraged, including strong swear words, where it fits naturally. Write every swear word out in full -- never mask, asterisk or abbreviate them (write \"fuck\", not \"f***\" or \"F***\").",
+    4: "Maximum profanity -- swear as much as feels natural, no restraint at all. Write every swear word out in full, every time -- never mask, asterisk, censor or abbreviate them (write \"fuck\", not \"f***\", \"F***\" or \"f-ing\").",
 }
 
 # A real style instruction, same mechanism as the two above -- NOT a hard
