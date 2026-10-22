@@ -85,6 +85,8 @@ from k9chat.auth import (
 )
 from k9chat.queue_control import QueueSlot
 from k9chat import queue_control
+from k9chat.rate_limit import RateLimiter
+from k9chat.chat import load_config
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -102,6 +104,9 @@ app = FastAPI(title="K9Chat UI")
 # throws "SessionMiddleware must be installed" on every single request.
 app.add_middleware(LoginRequiredMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=get_session_secret())
+
+
+_RATE_LIMITER = RateLimiter(load_config())
 
 
 @app.on_event("startup")
@@ -194,10 +199,17 @@ def chat_queue_status():
 
 
 @app.post("/chat")
-def chat(payload: ChatRequest):
+def chat(payload: ChatRequest, request: Request):
     message = payload.message.strip()
     if not message:
         return JSONResponse({"reply": ""})
+
+    # Before the FAQ shortcut and the queue -- a refused message costs
+    # nothing. 200 + reply, not 429: the chat UI renders `reply` as the
+    # assistant's bubble, which is exactly where the visitor should read it.
+    refusal = _RATE_LIMITER.check(request, current_owner_id(request))
+    if refusal:
+        return JSONResponse({"reply": refusal, "rate_limited": True, "model": None})
 
     # Checked before acquiring a QueueSlot -- a shortcut match never
     # touches Ollama/the GPU at all (CPU-only retrieval + reranker), so it
@@ -251,9 +263,12 @@ def chat(payload: ChatRequest):
 
 
 @app.post("/chat/stream")
-async def chat_stream(payload: ChatRequest):
+async def chat_stream(payload: ChatRequest, request: Request):
     """SSE endpoint — used when chat.stream: true in config.yaml."""
     message = payload.message.strip()
+    # Counted here, not inside the generator, so it runs once per request
+    # before any streaming starts (same placement reasoning as /chat).
+    refusal = _RATE_LIMITER.check(request, current_owner_id(request)) if message else None
     session_id = payload.session_id
     project_id = payload.project_id
     unhinged_level = payload.unhinged_level
@@ -263,6 +278,10 @@ async def chat_stream(payload: ChatRequest):
     async def event_generator():
         if not message:
             yield f"data: {json.dumps({'done': True})}\n\n"
+            return
+        if refusal:
+            yield f"data: {json.dumps({'chunk': refusal})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'rate_limited': True, 'model': None})}\n\n"
             return
 
         # Same as /chat: checked before touching QueueSlot, since a

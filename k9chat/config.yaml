@@ -45,6 +45,21 @@ url_fetch:
   max_chars: 12000         # page text kept for the prompt (fits small local models)
   allowed_ports: [80, 443]
 
+rate_limit:
+  # How much GPU one visitor can use (queue_control.py only caps how many
+  # generations run at once). A message is refused if ANY window is over
+  # budget -- see rate_limit.py. visitor = signed-cookie visitor_id (fair
+  # share between people); ip = real client IP via Cloudflare's
+  # CF-Connecting-IP (stops bots that drop the cookie; looser for NAT).
+  enabled: "${K9CHAT_RATE_LIMIT_ENABLED:-true}"
+  exempt_lan: "${K9CHAT_RATE_LIMIT_EXEMPT_LAN:-true}"   # LAN visitors (no tunnel header) aren't limited
+  visitor:
+    - {max: "${K9CHAT_RATE_VISITOR_SHORT:-20}", window_seconds: 600}
+    - {max: "${K9CHAT_RATE_VISITOR_DAILY:-100}", window_seconds: 86400}
+  ip:
+    - {max: "${K9CHAT_RATE_IP_SHORT:-40}", window_seconds: 600}
+    - {max: "${K9CHAT_RATE_IP_DAILY:-300}", window_seconds: 86400}
+
 correction_learning:
   # Auto-detects when a user's next message corrects something the
   # assistant just said, then writes the corrected fact straight into the
