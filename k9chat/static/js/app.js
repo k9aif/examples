@@ -402,11 +402,19 @@
   // Polled, not pushed -- only shown once real concurrent load exists
   // (active > 2), so it never nags a single visitor chatting alone.
   const waitlistWidget = document.getElementById("waitlist-widget");
+  const onlineCount = document.getElementById("online-count");
 
   async function pollQueueStatus() {
     try {
       const resp = await fetch("/chat/queue-status");
       const s = await resp.json();
+      if (onlineCount && typeof s.online === "number") {
+        onlineCount.textContent = s.online;
+        onlineCount.title = s.online === 1
+          ? "1 person on K9Chat right now (you)"
+          : `${s.online} people on K9Chat right now`;
+        onlineCount.style.display = "inline-flex";
+      }
       if (s.active > 2) {
         const waitingPart = s.waiting > 0 ? ` · ${s.waiting} in queue` : "";
         waitlistWidget.innerHTML =

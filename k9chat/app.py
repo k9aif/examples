@@ -193,9 +193,12 @@ def home(request: Request):
 
 
 @app.get("/chat/queue-status")
-def chat_queue_status():
-    """Polled by the frontend's waitlist widget -- see queue_control.py."""
-    return JSONResponse(queue_control.status())
+def chat_queue_status(request: Request):
+    """Polled by the frontend's waitlist widget -- see queue_control.py.
+    Also the presence heartbeat behind the header's online count."""
+    status = queue_control.status()
+    status["online"] = queue_control.touch_presence(current_owner_id(request))
+    return JSONResponse(status)
 
 
 @app.post("/chat")

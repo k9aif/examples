@@ -18,9 +18,11 @@
   --secondary-btn-bg: #e5e7eb;
   --secondary-btn-text: #111827;
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+  --online-count: #c2410c;
 }
 
 [data-theme="dark"] {
+  --online-count: #fb923c;
   --bg: #0f1320;
   --bg-elevated: #161b2c;
   --bg-sunken: #131726;
@@ -604,6 +606,25 @@ body {
   cursor: default;
   background: rgba(148, 163, 184, 0.12);
   color: var(--text-muted);
+}
+
+/* Guardian + online count stay together (.topbar spaces its children apart). */
+.topbar-status {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Bare number beside the Guardian badge: visitors here right now. */
+.online-count {
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--online-count);
+  cursor: default;
 }
 
 .badge-guardian.on {

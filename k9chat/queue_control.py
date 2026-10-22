@@ -51,6 +51,27 @@ def status() -> dict:
         return {"active": _active, "waiting": _waiting, "max_concurrent": _MAX_CONCURRENT}
 
 
+# ── Who's here right now ─────────────────────────────────────────────────
+# Every open K9Chat tab already polls /chat/queue-status every 4s (the
+# waitlist widget), so presence rides on that poll -- no extra requests. A
+# visitor counts as "here" if any of their tabs polled within the window;
+# keyed by visitor_id, so one person with three tabs is one, not three.
+_PRESENCE_WINDOW_SECONDS = 15
+_presence: dict[str, float] = {}
+_presence_lock = threading.Lock()
+
+
+def touch_presence(visitor_id: str | None) -> int:
+    """Record that *visitor_id* is here; return how many visitors are."""
+    now = time.monotonic()
+    with _presence_lock:
+        if visitor_id:
+            _presence[visitor_id] = now
+        for vid in [v for v, seen in _presence.items() if now - seen > _PRESENCE_WINDOW_SECONDS]:
+            del _presence[vid]
+        return len(_presence)
+
+
 # ── Model-switch cooldown ────────────────────────────────────────────────
 # A different, heavier cost than a normal chat message -- switching loads
 # a fresh multi-GB model into VRAM (apply_settings()'s warm-up call is a
