@@ -126,9 +126,13 @@ Ravi sends skips it, or the reviewer uses the demo login (see open questions).
 
 ## Deployment
 
-- **Keycloak public at auth.k9x.ai** through the existing Cloudflare tunnel.
-  Only the realm's login and registration paths are exposed; the admin
-  console (`/admin`) stays LAN-only (tunnel path rule).
+- **Keycloak:** the existing instance (Podman on PowerAI, port 8113), with a
+  new `k9chat` realm. The `k9x` realm stays as it is: it holds the
+  framework Zero Trust demo's client (`k9x-cli`) and test users, and public
+  self-registered accounts never share it.
+- **Public at auth.k9x.ai** through the existing Cloudflare tunnel: only the
+  `k9chat` realm's login paths. The `k9x` realm and the admin console
+  (`/admin`) stay LAN-only (tunnel path rules).
 - **All connection details and secrets in `.env`** (never committed;
   config.yaml reads them as `${VAR}`, with an example `.env` listing the
   names only):
@@ -149,13 +153,11 @@ Ravi sends skips it, or the reviewer uses the demo login (see open questions).
 
 ## Open questions for Ravi
 
-1. Is a Keycloak instance already running for the K9X apps (the framework
-   docs reference one on port 8113), or is this the first?
-2. Login flow: framework ABB (option 1) or K9Chat-only (option 2)?
-3. Reviewer bypass: invite codes, the demo/demo login, or both?
-4. Who writes the question bank: Ravi drafts, or Claude drafts from the
+1. Login flow: framework ABB (option 1) or K9Chat-only (option 2)?
+2. Reviewer bypass: invite codes, the demo/demo login, or both?
+3. Who writes the question bank: Ravi drafts, or Claude drafts from the
    landing page and knowledge files and Ravi checks every answer?
-5. After login, should Framework Mode be locked ON for `k9chat-user`, with
+4. After login, should Framework Mode be locked ON for `k9chat-user`, with
    Internet Access available only to admins?
 
 ## Build order (after review)
