@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>K9Chat</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="{{ asset('style.css') }}" />
 </head>
 <body data-theme="dark">
   <div class="app-shell">
@@ -350,11 +350,11 @@
 
   <div id="waitlist-widget" class="waitlist-widget" style="display:none"></div>
 
-  <script src="/static/js/message_list.js"></script>
-  <script src="/static/js/session_sidebar.js"></script>
-  <script src="/static/js/project_panel.js"></script>
-  <script src="/static/js/chat_input.js"></script>
-  <script src="/static/js/architecture_trace.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="{{ asset('js/message_list.js') }}"></script>
+  <script src="{{ asset('js/session_sidebar.js') }}"></script>
+  <script src="{{ asset('js/project_panel.js') }}"></script>
+  <script src="{{ asset('js/chat_input.js') }}"></script>
+  <script src="{{ asset('js/architecture_trace.js') }}"></script>
+  <script src="{{ asset('js/app.js') }}"></script>
 </body>
 </html>

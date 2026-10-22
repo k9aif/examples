@@ -136,6 +136,36 @@ async def startup_event():
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
+# Cache-busting for /static: every template references assets through
+# asset("js/app.js") -> "/static/js/app.js?v=<content hash>". The hash
+# changes whenever the file's bytes change, so a deploy is picked up by
+# every browser with no manual version bumps (a stale cached app.js once
+# left the Job Queue panel stuck on "Loading..." after a deploy).
+_ASSET_HASHES: dict = {}
+
+
+def asset(path: str) -> str:
+    digest = _ASSET_HASHES.get(path)
+    if digest is None:
+        import hashlib
+        with open(os.path.join(BASE_DIR, "static", path), "rb") as fh:
+            digest = hashlib.sha256(fh.read()).hexdigest()[:10]
+        _ASSET_HASHES[path] = digest
+    return f"/static/{path}?v={digest}"
+
+
+templates.env.globals["asset"] = asset
+
+
+@app.middleware("http")
+async def _no_cache_html(request: Request, call_next):
+    """HTML pages are never cached, so a browser always gets the current
+    asset hashes; the hashed assets themselves can be cached freely."""
+    response = await call_next(request)
+    if response.headers.get("content-type", "").startswith("text/html"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
 
 class ChatRequest(BaseModel):
     message: str
