@@ -1537,3 +1537,6 @@ button:disabled {
 
 /* Framework Mode OFF: no K9-AIF topic starters */
 body.framework-off .topic-picker-card { display: none; }
+
+/* Links in replies (see MessageList.setText) */
+.bubble a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }

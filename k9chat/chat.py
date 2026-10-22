@@ -156,6 +156,39 @@ def is_framework_mode() -> bool:
     return not is_internet_search_enabled()
 
 
+_VIDEO_RE = None
+
+
+def video_suggestion(knowledge_context: list) -> str:
+    """A "▶ Watch:" line for the K9X video about what was asked, or "".
+    Chosen by retrieval, not by the model (which forgot it): a specific
+    video (not the channel entry) ranked 1st or 2nd and scoring within 60
+    of the best hit. Measured 2026-10-22: on-topic questions put their
+    video at rank 1-2 within ~50 of the top; off-topic ones had no video
+    in the top 4."""
+    global _VIDEO_RE
+    import re
+    if _VIDEO_RE is None:
+        # seed format: "Video: <title> (<length>, published <date>). Watch: <url>";
+        # titles can contain brackets, so the meta is the LAST (...) before ". Watch:"
+        _VIDEO_RE = re.compile(r"Video: (.+) \(([^()]*)\)\. Watch: (https://\S+)")
+    if not knowledge_context:
+        return ""
+    best = knowledge_context[0].get("score", 0.0)
+    for hit in knowledge_context[:2]:
+        src = hit.get("source", "")
+        if not src.startswith("k9x-videos/") or src.endswith("/channel"):
+            continue
+        if best - hit.get("score", 0.0) > 60:
+            continue
+        m = _VIDEO_RE.search(hit.get("text", ""))
+        if m:
+            title, meta, url = m.group(1), m.group(2), m.group(3)
+            length = "" if meta.startswith("published") else meta.split(",")[0].strip()
+            return f"▶ Watch: {title} ({length}): {url}" if length else f"▶ Watch: {title}: {url}"
+    return ""
+
+
 def _resolve_web_context(message: str) -> list:
     """Live web search, only when internet_search is toggled on -- gated
     by the runtime toggle (is_internet_search_enabled()), not by
@@ -316,7 +349,7 @@ def send_message(
     knowledge_context = _resolve_knowledge_context(text)
     web_context = _resolve_web_context(text)
     url_context = _resolve_url_context(text)
-    return agent.execute({
+    result = agent.execute({
         "text": text,
         "session_id": session_id,
         "project_instructions": instructions,
@@ -329,6 +362,10 @@ def send_message(
         "length_level": length_level,
         "framework_mode": is_framework_mode(),
     })
+    watch = video_suggestion(knowledge_context)
+    if watch and not result.get("blocked") and watch.rsplit(" ", 1)[-1] not in result.get("text", ""):
+        result["text"] = f"{result.get('text', '').rstrip()}\n\n{watch}"
+    return result
 
 
 _STREAM_OVERRIDE: bool | None = None  # None = defer to config.yaml's chat.stream
@@ -360,6 +397,7 @@ async def send_message_stream(
     knowledge_context = _resolve_knowledge_context(text)
     web_context = _resolve_web_context(text)
     url_context = await asyncio.to_thread(_resolve_url_context, text)
+    streamed: list = []
     async for chunk in agent.execute_stream({
         "text": text,
         "session_id": session_id,
@@ -373,7 +411,11 @@ async def send_message_stream(
         "length_level": length_level,
         "framework_mode": is_framework_mode(),
     }):
+        streamed.append(chunk)
         yield chunk
+    watch = video_suggestion(knowledge_context)
+    if watch and watch.rsplit(" ", 1)[-1] not in "".join(streamed):
+        yield f"\n\n{watch}"
 
 
 def clear_session(session_id: str) -> None:

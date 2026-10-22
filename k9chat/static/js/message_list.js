@@ -180,6 +180,27 @@ const MessageList = (() => {
   // only meaningful for the edit button, so callers appending a message
   // (rather than replaying stored history) that never gets edited don't
   // strictly need to pass it, but appendMessage always does.
+  // Plain text with http(s) links made clickable. Built from text nodes and
+  // <a> elements (never innerHTML), so a reply can't inject markup; only
+  // http/https become links, opened in a new tab.
+  const URL_RE = /https?:\/\/[^\s<>"'`]+/g;
+  function setText(el, text) {
+    el.replaceChildren();
+    let last = 0;
+    for (const m of String(text || "").matchAll(URL_RE)) {
+      const url = m[0].replace(/[.,;:!?)\]]+$/, "");
+      el.append(document.createTextNode(text.slice(last, m.index)));
+      const a = document.createElement("a");
+      a.href = url;
+      a.textContent = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      el.append(a);
+      last = m.index + url.length;
+    }
+    el.append(document.createTextNode(String(text || "").slice(last)));
+  }
+
   function addBubble(role, text, meta = {}, index = null) {
     const wrapper = document.createElement("div");
     wrapper.className = `message ${role}`;
@@ -189,7 +210,7 @@ const MessageList = (() => {
 
     const bubble = document.createElement("div");
     bubble.className = "bubble";
-    bubble.textContent = text;
+    setText(bubble, text);
     col.appendChild(bubble);
 
     const metaRow = document.createElement("div");
@@ -353,6 +374,7 @@ const MessageList = (() => {
     saveMessages,
     renderHistory,
     addBubble,
+    setText,
     addThinkingBubble,
     addEvalBadge,
     addFaqMatchBadge,

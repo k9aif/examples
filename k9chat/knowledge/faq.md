@@ -20,6 +20,8 @@ point for someone new to the framework; the generator suits someone
 already comfortable with the ABB/SBB structure who wants to move fast in
 a terminal.
 
+▶ Watch: K9-AIF: the framework in 3 minutes (2:51): https://www.youtube.com/watch?v=uxd72aOCa9U
+
 ## Do I need to write code to use K9-AIF?
 
 Not to get a working scaffold — K9X Studio generates real, runnable
@@ -28,6 +30,8 @@ starting point. You do write code once you're customizing agent logic
 beyond the generated stub (the actual LLM prompts, business rules,
 integrations) — the generated scaffold gives you a correctly-structured
 `BaseAgent` subclass to fill in, not a finished solution.
+
+▶ Watch: K9-AIF: the framework in 3 minutes (2:51): https://www.youtube.com/watch?v=uxd72aOCa9U
 
 ## What's the difference between an ABB and an SBB, and which do I write?
 
@@ -38,6 +42,8 @@ contracts. You write SBBs — concrete agents/squads/orchestrators in
 contracts. If you find yourself editing a file under `k9_core/` to make
 your app work, that's a sign you should be extending a `Base<Concern>`
 class instead, not modifying the base itself.
+
+▶ Watch: K9-AIF: the framework in 3 minutes (2:51): https://www.youtube.com/watch?v=uxd72aOCa9U
 
 ## How do I run an example app locally, like this one (k9chat)?
 
@@ -53,6 +59,9 @@ and step-by-step recipes for common tasks (adding a provider, choosing an
 agent pattern, wiring Kafka). `k9x.ai` is the umbrella site linking the
 whole ecosystem (Studio, HIL, Continuum, Satan, the Enterprise Repository).
 
+Videos: short narrated videos on the framework, its patterns and the demo apps are on the K9X YouTube channel, https://www.youtube.com/@k9-aif. Start with:
+▶ Watch: K9-AIF: the framework in 3 minutes (2:51): https://www.youtube.com/watch?v=uxd72aOCa9U
+
 ## What is K9X Satan, and do I need it?
 
 `k9x_satan` (`satan.k9x.ai`) is the adversarial red-team harness — it
@@ -63,6 +72,8 @@ already built, and is the reference implementation for what real
 defense-in-depth wiring looks like if you're adding governance to your
 own SBB.
 
+▶ Watch: K9X Sentinel and Satan: how K9-AIF keeps up with AI-driven attacks (2:45): https://www.youtube.com/watch?v=HKllnip1mAM
+
 ## Is K9-AIF tied to one LLM provider?
 
 No — model access goes through `ModelRouterFactory`/`K9ModelRouter` and
@@ -71,3 +82,5 @@ common default in examples and this chat's own backend, but the same
 `InferenceRequest` contract works against any configured provider adapter
 without changing agent code — switching providers is a config change, not
 a code change.
+
+▶ Watch: K9-AIF Patterns: one path to any model (2:26): https://www.youtube.com/watch?v=6gJm9PrmhfM

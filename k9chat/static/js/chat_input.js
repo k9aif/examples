@@ -213,7 +213,7 @@ const ChatInput = (() => {
             bubbleRef = MessageList.addBubble("assistant", "", {});
           }
           fullText += data.chunk;
-          bubbleRef.bubble.textContent = fullText;
+          MessageList.setText(bubbleRef.bubble, fullText);
           MessageList.scrollToBottom();
         }
 

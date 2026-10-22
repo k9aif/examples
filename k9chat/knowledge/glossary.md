@@ -15,12 +15,16 @@ and governance hooks, but contains no domain-specific logic. Examples:
 `BaseAgent`, `BaseOrchestrator`, `BaseRouter`, `BaseSquad`. ABBs are rarely
 touched directly; new capability extends one, never edits one.
 
+▶ Watch: K9-AIF: the framework in 3 minutes (2:51): https://www.youtube.com/watch?v=uxd72aOCa9U
+
 ## SBB (Solution Building Block)
 
 SBB stands for **Solution Building Block**. An SBB is a concrete
 implementation that extends an ABB contract, adding real domain logic,
 technology choices, and runtime integrations. SBBs live in `examples/<App>/`
 or `k9_projects/<App>/`, never inside the framework's own `k9_core/`.
+
+▶ Watch: K9-AIF: the framework in 3 minutes (2:51): https://www.youtube.com/watch?v=uxd72aOCa9U
 
 ## Router
 
@@ -30,6 +34,8 @@ unknown ones to an `IntentOrchestrator`. A Router knows about
 Orchestrators only — never Squads or Agents directly (three-layer
 decoupling).
 
+▶ Watch: K9-AIF Patterns: the Event Router (1:52): https://www.youtube.com/watch?v=cDvvJdeqsjk
+
 ## Orchestrator
 
 Coordinates one or more Squads for a domain workflow (`BaseOrchestrator`).
@@ -38,12 +44,16 @@ parallel via `execute_squads()`, and owns Kafka publishing for results/
 downstream topics. An Orchestrator knows about Squads only — never Agents
 directly.
 
+▶ Watch: K9-AIF Patterns: how the work gets done (1:50): https://www.youtube.com/watch?v=L0iOYU1ofYI
+
 ## Squad
 
 A sequential flow of Agents defined in YAML (`BaseSquad`, loaded via
 `SquadLoader`). A Squad has no `orchestrator:` field in its own config —
 it doesn't know which Orchestrator uses it, preserving the one-directional
 layer decoupling.
+
+▶ Watch: K9-AIF Patterns: how the work gets done (1:50): https://www.youtube.com/watch?v=L0iOYU1ofYI
 
 ## Agent
 
@@ -53,6 +63,8 @@ governance pipeline via `require_governance()`. Three common patterns:
 convergence on a confidence score), `K9PlanningLoopAgent` (agent plans
 and revises its own steps).
 
+▶ Watch: K9-AIF Patterns: how the work gets done (1:50): https://www.youtube.com/watch?v=L0iOYU1ofYI
+
 ## k9x_Shield
 
 The framework's deterministic pattern-matching security layer
@@ -60,6 +72,8 @@ The framework's deterministic pattern-matching security layer
 subclasses (PromptInjectionCheck, PIIBoundaryCheck, HardcodedCredentialCheck,
 and others), run in order by `VulnerabilityChain`, wrapped by
 `ShieldGovernance`. A BLOCK-status check raises `PermissionError`.
+
+▶ Watch: K9X Sentinel and Satan: how K9-AIF keeps up with AI-driven attacks (2:45): https://www.youtube.com/watch?v=HKllnip1mAM
 
 ## Zero Trust (Zero Trust Execution Layer)
 
@@ -70,6 +84,8 @@ authorization → data-loss/masking → risk scoring → `TrustDecision`. Off
 by default (`enable_zero_trust: false`); additive to k9x_Shield, not a
 replacement for it.
 
+▶ Watch: K9-AIF: Zero Trust explained (1:56): https://www.youtube.com/watch?v=4GyVQ2HucM4
+
 ## Model Router / K9ModelRouter
 
 Selects which configured model alias handles a given `InferenceRequest`
@@ -77,9 +93,13 @@ via weighted scoring against a model catalog (capabilities, latency
 budget, cost profile), then dispatches to the concrete `BaseLLM` adapter
 for that alias (e.g. `OllamaLLM`).
 
+▶ Watch: K9-AIF Patterns: one path to any model (2:26): https://www.youtube.com/watch?v=6gJm9PrmhfM
+
 ## K9-AIF (the framework's own name)
 
 K9-AIF stands for an architecture-first framework for building governed,
 observable, multi-agent AI systems, grounded in OOA/OOD/TOGAF discipline
 rather than an ad-hoc collection of agent scripts. Its own stated
 positioning: "Not just agents. Architecture."
+
+▶ Watch: K9-AIF: the framework in 3 minutes (2:51): https://www.youtube.com/watch?v=uxd72aOCa9U

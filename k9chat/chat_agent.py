@@ -202,7 +202,10 @@ class ChatAgent(BaseAgent):
                 "Reference material from the K9-AIF Framework and K9X "
                 "ecosystem documentation (supplementary -- use only if "
                 "relevant to the question; the conversation below is what "
-                "the user is actually asking about):"
+                "the user is actually asking about). If one of these is a "
+                "[k9x-videos] entry about what the user asked, end your answer "
+                "with one line copied from it: \"▶ Watch: <title> (<length>): "
+                "<url>\". Never invent a video or a link that isn't listed here:"
             )
             for chunk in knowledge_context:
                 lines.append(f"- {chunk['text']}")
