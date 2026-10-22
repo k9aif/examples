@@ -78,6 +78,8 @@ from k9chat.chat import (
     toggle_faq_shortcut,
     is_internet_search_enabled,
     toggle_internet_search,
+    set_session_internet,
+    reset_session_internet,
     is_framework_mode_locked,
     is_guardian_enabled,
 )
@@ -107,6 +109,27 @@ app = FastAPI(title="K9Chat UI")
 # SessionMiddleware actually wraps it and request.session exists by the
 # time LoginRequiredMiddleware.dispatch() reads it -- reversing this order
 # throws "SessionMiddleware must be installed" on every single request.
+class SessionModeMiddleware:
+    """Pure ASGI (not BaseHTTPMiddleware) so the visitor's Framework Mode,
+    read from their session, is in context for the whole request --
+    including a streamed reply and the threads it hands work to. Added
+    first so it runs inside SessionMiddleware (scope["session"] exists)."""
+
+    def __init__(self, app_):
+        self.app = app_
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        session = scope.get("session") or {}
+        token = set_session_internet(session.get("internet_mode"))
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            reset_session_internet(token)
+
+
+app.add_middleware(SessionModeMiddleware)
 app.add_middleware(LoginRequiredMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=get_session_secret())
 
@@ -585,8 +608,8 @@ def internet_search_status():
 
 
 @app.post("/chat/internet-search/toggle")
-def internet_search_toggle():
-    enabled = toggle_internet_search()
+def internet_search_toggle(request: Request):
+    enabled = toggle_internet_search(request.session)
     return JSONResponse({
         "internet_search_enabled": enabled,
         "framework_mode_locked": is_framework_mode_locked(),

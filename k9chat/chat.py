@@ -2,6 +2,7 @@
 # K9-AIF Framework
 
 import asyncio
+import contextvars
 import copy
 import os
 import sys
@@ -67,7 +68,14 @@ _PROJECT_RETRIEVER = None
 _KNOWLEDGE_RETRIEVER = None
 _LEARNING_ENABLED = None  # lazy: seeded from config.yaml's correction_learning.enabled on first access
 _FAQ_SHORTCUT_ENABLED = None  # lazy: seeded from config.yaml's faq_shortcut.enabled on first access
-_INTERNET_SEARCH_ENABLED = None  # lazy: seeded from config.yaml's internet_search.enabled on first access
+_INTERNET_SEARCH_ENABLED = None  # lazy: the site default, seeded from config.yaml's internet_search.enabled
+# Framework Mode is per visitor: app.py's SessionModeMiddleware puts the
+# visitor's own choice (from their session cookie) here for the whole
+# request, so every is_internet_search_enabled() call in that request --
+# retrieval, web search, link fetching, tone clamp, FAQ shortcut -- sees
+# that visitor's mode, not one shared switch. None = no choice yet: use
+# the site default.
+_SESSION_INTERNET: contextvars.ContextVar = contextvars.ContextVar("k9chat_session_internet", default=None)
 _PERSIST_SCREEN = None  # lazy: Shield + Guardian gate for everything stored (persist_screen.py)
 _URL_GOVERNANCE = None  # lazy: narrow Shield used to screen fetched pages
 _FRAMEWORK_MODE_LOCKED = None  # lazy: seeded from K9CHAT_FRAMEWORK_MODE_LOCKED (.env) on first access
@@ -754,6 +762,9 @@ def is_internet_search_enabled() -> bool:
     global _INTERNET_SEARCH_ENABLED
     if is_framework_mode_locked():
         return False
+    chosen = _SESSION_INTERNET.get()
+    if chosen is not None:
+        return chosen
     if _INTERNET_SEARCH_ENABLED is None:
         _INTERNET_SEARCH_ENABLED = bool(
             load_config().get("internet_search", {}).get("enabled", False)
@@ -761,9 +772,22 @@ def is_internet_search_enabled() -> bool:
     return _INTERNET_SEARCH_ENABLED
 
 
-def toggle_internet_search() -> bool:
-    global _INTERNET_SEARCH_ENABLED
+def toggle_internet_search(session: dict) -> bool:
+    """Flip Framework Mode for this visitor only (stored in their session
+    cookie). The site default and every other visitor are untouched."""
     if is_framework_mode_locked():
         return False  # refuse -- stays off, no-op
-    _INTERNET_SEARCH_ENABLED = not is_internet_search_enabled()
-    return _INTERNET_SEARCH_ENABLED
+    enabled = not is_internet_search_enabled()
+    session["internet_mode"] = enabled
+    _SESSION_INTERNET.set(enabled)
+    return enabled
+
+
+def set_session_internet(value):
+    """Called per request by app.py's SessionModeMiddleware. Returns the
+    contextvar token so the middleware can reset it afterwards."""
+    return _SESSION_INTERNET.set(value)
+
+
+def reset_session_internet(token) -> None:
+    _SESSION_INTERNET.reset(token)
