@@ -155,6 +155,23 @@ def _youtube_feed() -> dict:
     return out
 
 
+def _youtube_length(video_id: str) -> str:
+    """"m:ss" from the video's own page (lengthSeconds), or "" if unreachable.
+    Used when videos.yaml isn't on disk (PowerAI: videos are uploaded by
+    hand and the series folder isn't there)."""
+    import requests
+    try:
+        page = requests.get(f"https://www.youtube.com/watch?v={video_id}", timeout=15,
+                            headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "en"}).text
+        m = re.search(r'"lengthSeconds":"(\d+)"', page)
+        if m:
+            secs = int(m.group(1))
+            return f"{secs // 60}:{secs % 60:02d}"
+    except Exception:
+        pass
+    return ""
+
+
 def _video_docs():
     """(label, where, text) per video plus the channel entry, or [] if
     neither videos.yaml nor the feed is available (nothing gets removed)."""
@@ -177,6 +194,10 @@ def _video_docs():
         where = "youtube feed"
     else:
         return []
+
+    for v in videos:
+        if not v.get("length"):
+            v["length"] = _youtube_length(v["id"])
 
     docs, lines = [], []
     for v in sorted(videos, key=lambda x: x["published"]):
