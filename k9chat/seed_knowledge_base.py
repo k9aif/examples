@@ -60,6 +60,7 @@ DOW_ROOT = next((p for p in (FRAMEWORK_ROOT.parent / "dow-k9-aif", FRAMEWORK_ROO
                  if p.exists()), FRAMEWORK_ROOT.parent / "dow-k9-aif")
 BLOGS_ROOT = FRAMEWORK_ROOT.parent / "k9-aif-blogs" / "_posts"
 DOIT_ASSETS = FRAMEWORK_ROOT.parent / "doit" / "assets"
+VIDEOS_YAML = FRAMEWORK_ROOT.parent / "k9x_video_series" / "videos.yaml"
 
 # (label, path) -- label becomes both the doc_id prefix and the
 # "[label] chunk text" filename tag chunk_text() already applies.
@@ -118,6 +119,82 @@ def _read_github(label: str) -> str:
     return resp.text
 
 
+# ── K9X videos on YouTube ──────────────────────────────────────────────
+# One knowledge entry per published video (title, length, date, link, what
+# it covers) plus one for the channel, so "is there a video on X?" finds
+# the right one. Sources, never a hand-copied list:
+#   - k9x_video_series/videos.yaml: the single list of published videos
+#     (titles, lengths), when it's on disk (the Mac);
+#   - the channel's public feed: each video's description, and the list
+#     itself when videos.yaml isn't there (PowerAI).
+YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@k9-aif"
+YOUTUBE_FEED_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UC4W2S3bx5e80gS-DTTz7S2g"
+VIDEO_PREFIX = "k9x-videos/"
+
+
+def _video_id(url: str) -> str:
+    m = re.search(r"(?:youtu\.be/|[?&]v=)([A-Za-z0-9_-]{11})", url or "")
+    return m.group(1) if m else ""
+
+
+def _youtube_feed() -> dict:
+    """{video_id: {title, published, description}} from the channel feed (latest 15)."""
+    import requests
+    import xml.etree.ElementTree as ET
+    ns = {"a": "http://www.w3.org/2005/Atom", "yt": "http://www.youtube.com/xml/schemas/2015",
+          "media": "http://search.yahoo.com/mrss/"}
+    resp = requests.get(YOUTUBE_FEED_URL, timeout=15)
+    resp.raise_for_status()
+    out = {}
+    for e in ET.fromstring(resp.content).findall("a:entry", ns):
+        vid = e.findtext("yt:videoId", default="", namespaces=ns)
+        desc = (e.findtext("media:group/media:description", default="", namespaces=ns) or "").strip()
+        out[vid] = {"title": e.findtext("a:title", default="", namespaces=ns),
+                    "published": (e.findtext("a:published", default="", namespaces=ns) or "")[:10],
+                    "description": desc}
+    return out
+
+
+def _video_docs():
+    """(label, where, text) per video plus the channel entry, or [] if
+    neither videos.yaml nor the feed is available (nothing gets removed)."""
+    try:
+        feed = _youtube_feed()
+    except Exception as exc:
+        print(f"[seed] YouTube feed unavailable: {exc}")
+        feed = {}
+    videos = []
+    if VIDEOS_YAML.exists():
+        import yaml
+        for v in (yaml.safe_load(VIDEOS_YAML.read_text()) or {}).get("videos", []):
+            vid = _video_id(v.get("url", ""))
+            if vid:
+                videos.append({"id": vid, "title": v.get("title", ""), "length": v.get("length", ""),
+                               "published": str(v.get("published", "")), **{"description": feed.get(vid, {}).get("description", "")}})
+        where = str(VIDEOS_YAML)
+    elif feed:
+        videos = [{"id": vid, "length": "", **meta} for vid, meta in feed.items()]
+        where = "youtube feed"
+    else:
+        return []
+
+    docs, lines = [], []
+    for v in sorted(videos, key=lambda x: x["published"]):
+        url = f"https://www.youtube.com/watch?v={v['id']}"
+        # Description up to its link list: the prose says what the video covers.
+        about = re.split(r"\n\s*(?:Patterns?:|Framework:|Developers:|Try the demo:|Start:)", v["description"])[0].strip()
+        meta = ", ".join(x for x in (v["length"], f"published {v['published']}" if v["published"] else "") if x)
+        text = (f"[k9x-videos] Video: {v['title']} ({meta}). Watch: {url}\n"
+                f"Part of the K9X YouTube channel {YOUTUBE_CHANNEL_URL}.\n{about}").strip()
+        docs.append((f"{VIDEO_PREFIX}{v['id']}", where, text))
+        lines.append(f"- {v['title']} ({v['length'] or 'video'}): {url}")
+    channel = (f"[k9x-videos] Where to watch K9-AIF and K9X videos: the K9X YouTube channel, "
+               f"{YOUTUBE_CHANNEL_URL}. Short narrated videos on the framework, its patterns, security "
+               f"and the demo applications. Published videos:\n" + "\n".join(lines))
+    docs.append((f"{VIDEO_PREFIX}channel", where, channel))
+    return docs
+
+
 # Docs chunked one-section-per-"## heading" instead of chunk_text()'s
 # paragraph-merging. Confirmed 2026-09-20: merging multiple glossary
 # terms into one chunk diluted the ABB definition's embedding (a real
@@ -168,6 +245,9 @@ def _iter_corpus():
         for post_path in sorted(BLOGS_ROOT.glob("*.md")):
             label = f"k9-aif-blogs/{post_path.stem}"
             yield label, str(post_path), (lambda p=post_path: p.read_text(encoding="utf-8"))
+
+    for label, where, text in _video_docs():
+        yield label, where, (lambda t=text: t)
 
 
 # How many chunks each doc had at the last seed, so a reseed can delete
@@ -248,13 +328,16 @@ def main() -> None:
 
     # Blog posts that were renamed or deleted: only when the blog folder
     # itself was there this run, so a missing mount never wipes anything.
-    if BLOGS_ROOT.exists():
-        for label in [l for l in previous if l.startswith("k9-aif-blogs/") and l not in seen]:
+    prefixes = ["k9-aif-blogs/"] if BLOGS_ROOT.exists() else []
+    if any(l.startswith(VIDEO_PREFIX) for l in seen):
+        prefixes.append(VIDEO_PREFIX)   # the video list was read this run
+    if prefixes:
+        for label in [l for l in previous if l.startswith(tuple(prefixes)) and l not in seen]:
             for i in range(previous[label]):
                 retriever.delete_chunk(f"{label}:{i}")
                 removed += 1
             current.pop(label, None)
-            print(f"[seed] {label}: removed (post no longer exists)")
+            print(f"[seed] {label}: removed (no longer published)")
 
     try:
         manifest_file.parent.mkdir(parents=True, exist_ok=True)
