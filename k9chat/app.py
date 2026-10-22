@@ -86,7 +86,7 @@ from k9chat.auth import (
     get_session_secret,
     sanitize_username,
 )
-from k9chat.queue_control import QueueSlot
+from k9chat.queue_control import QueueBusy, QueueSlot
 from k9chat import queue_control
 from k9chat.rate_limit import RateLimiter
 from k9chat.chat import load_config
@@ -247,10 +247,11 @@ def home(request: Request):
 
 @app.get("/chat/queue-status")
 def chat_queue_status(request: Request):
-    """Polled by the frontend's waitlist widget -- see queue_control.py.
-    Also the presence heartbeat behind the header's online count."""
-    status = queue_control.status()
-    status["online"] = queue_control.touch_presence(current_owner_id(request))
+    """Polled every 4s by each open tab: the Job Queue panel (see
+    queue_control.py) and the presence heartbeat behind the online count."""
+    owner = current_owner_id(request)
+    status = queue_control.status(owner)
+    status["online"] = queue_control.touch_presence(owner)
     return JSONResponse(status)
 
 
@@ -286,12 +287,15 @@ def chat(payload: ChatRequest, request: Request):
     prior_reply = get_last_assistant_reply(payload.session_id)
 
     start = time.monotonic()
-    with QueueSlot():
-        result = send_message(
-            message, session_id=payload.session_id, project_id=payload.project_id,
-            unhinged_level=payload.unhinged_level, profanity_level=payload.profanity_level,
-            length_level=payload.length_level,
-        )
+    try:
+        with QueueSlot(current_owner_id(request)):
+            result = send_message(
+                message, session_id=payload.session_id, project_id=payload.project_id,
+                unhinged_level=payload.unhinged_level, profanity_level=payload.profanity_level,
+                length_level=payload.length_level,
+            )
+    except QueueBusy as exc:
+        return JSONResponse({"reply": str(exc), "busy": True, "model": None})
     elapsed_ms = round((time.monotonic() - start) * 1000)
     reply = result.get("text", "")
     blocked = bool(result.get("blocked"))
@@ -327,6 +331,7 @@ async def chat_stream(payload: ChatRequest, request: Request):
     refusal = _RATE_LIMITER.check(request, current_owner_id(request)) if message else None
     session_id = payload.session_id
     project_id = payload.project_id
+    owner = current_owner_id(request)
     unhinged_level = payload.unhinged_level
     profanity_level = payload.profanity_level
     length_level = payload.length_level
@@ -366,13 +371,19 @@ async def chat_stream(payload: ChatRequest, request: Request):
 
         prior_reply = get_last_assistant_reply(session_id)
 
-        slot = QueueSlot()
-        async with slot:
-            if slot.position > 0:
-                # Reported once, right when this request actually had to
-                # wait -- a real number (how many were ahead), not a guess.
-                yield f"data: {json.dumps({'queued': True, 'position': slot.position})}\n\n"
-
+        slot = QueueSlot(owner)
+        try:
+            # Live position while waiting (only when it changes); a full
+            # line, a second job from the same visitor, or a timeout ends
+            # here as a normal reply.
+            async for position in slot.wait():
+                if position > 0:
+                    yield f"data: {json.dumps({'queued': True, 'position': position})}\n\n"
+        except QueueBusy as exc:
+            yield f"data: {json.dumps({'chunk': str(exc)})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'busy': True, 'model': None})}\n\n"
+            return
+        try:
             start = time.monotonic()
             full_text = ""
             async for chunk in send_message_stream(
@@ -382,6 +393,8 @@ async def chat_stream(payload: ChatRequest, request: Request):
             ):
                 full_text += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        finally:
+            slot.release()   # also on a closed tab (generator cancelled mid-stream)
         elapsed_ms = round((time.monotonic() - start) * 1000)
         runtime = _runtime()
         done_payload = {
@@ -546,8 +559,11 @@ def settings(payload: SettingsRequest):
             status_code=429,
             detail=f"Model was switched too recently -- try again in {retry_after}s.",
         )
-    with QueueSlot():
-        status = apply_settings(payload.provider, payload.base_url, payload.model, payload.api_key)
+    try:
+        with QueueSlot():
+            status = apply_settings(payload.provider, payload.base_url, payload.model, payload.api_key)
+    except QueueBusy as exc:
+        raise HTTPException(status_code=429, detail=str(exc))
     return JSONResponse(_public(status))
 
 
@@ -624,11 +640,13 @@ async def projects_add_file(project_id: str, request: Request, file: UploadFile 
     def _store():
         # Guardian windows are GPU calls: take a queue slot like a chat
         # message does, off the event loop.
-        with QueueSlot():
+        with QueueSlot(owner):
             return add_project_file(project_id, filename, text)
 
     try:
         result = await asyncio.to_thread(_store)
+    except QueueBusy as exc:
+        raise HTTPException(status_code=429, detail=str(exc))
     except ScreenRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except ProjectNotFoundError:

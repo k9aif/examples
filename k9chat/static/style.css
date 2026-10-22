@@ -238,6 +238,40 @@ body {
   color: #fff;
 }
 
+/* ---------------- Job Queue (shared, DAS-style) ---------------- */
+
+.jobqueue-block {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.jobqueue-summary {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.jobqueue-list {
+  font-size: 0.75rem;
+  max-height: 22vh;
+  overflow-y: auto;
+}
+
+.jobqueue-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.jobqueue-row .jq-id { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--text-muted); }
+.jobqueue-row .jq-you { color: var(--accent); font-weight: 700; margin-left: 6px; }
+.jobqueue-row .jq-running { color: var(--accent); font-weight: 600; }
+.jobqueue-row .jq-waiting { color: var(--text-muted); font-weight: 600; }
+.jobqueue-empty { color: var(--text-muted); padding: 2px 0; }
+
 /* ---------------- Projects ---------------- */
 
 .projects-block {

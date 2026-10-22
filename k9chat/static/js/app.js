@@ -407,16 +407,54 @@
     }
   });
 
-  // ---------------- Waitlist widget ----------------
-  // Polled, not pushed -- only shown once real concurrent load exists
-  // (active > 2), so it never nags a single visitor chatting alone.
-  const waitlistWidget = document.getElementById("waitlist-widget");
+  // ---------------- Job Queue panel + online count ----------------
+  // Polled every 4s (/chat/queue-status), not pushed. The panel replaced
+  // the old "N chats running" pop-up: always visible, like DAS's Job Queue.
   const onlineCount = document.getElementById("online-count");
+
+  const jqList = document.getElementById("jobqueue-list");
+  const jqSummary = document.getElementById("jobqueue-summary");
+  const jqMax = document.getElementById("jobqueue-max");
+
+  function renderJobQueue(s) {
+    if (!jqList || !Array.isArray(s.jobs)) return;
+    jqMax.textContent = `(max ${s.max_concurrent})`;
+    jqSummary.textContent = `${s.active}/${s.max_concurrent} running · ${s.waiting}/${s.max_queue} waiting`;
+    jqList.replaceChildren();
+    if (s.jobs.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "jobqueue-empty";
+      empty.textContent = "No chats running. Yours starts right away.";
+      jqList.appendChild(empty);
+      return;
+    }
+    for (const j of s.jobs) {
+      const row = document.createElement("div");
+      row.className = "jobqueue-row";
+      const left = document.createElement("span");
+      const id = document.createElement("span");
+      id.className = "jq-id";
+      id.textContent = j.id;
+      left.appendChild(id);
+      if (j.mine) {
+        const you = document.createElement("span");
+        you.className = "jq-you";
+        you.textContent = "you";
+        left.appendChild(you);
+      }
+      const st = document.createElement("span");
+      st.className = j.status === "running" ? "jq-running" : "jq-waiting";
+      st.textContent = j.status === "running" ? "● running" : "◌ waiting";
+      row.append(left, st);
+      jqList.appendChild(row);
+    }
+  }
 
   async function pollQueueStatus() {
     try {
       const resp = await fetch("/chat/queue-status");
       const s = await resp.json();
+      renderJobQueue(s);
       if (onlineCount && typeof s.online === "number") {
         onlineCount.textContent = s.online;
         onlineCount.title = s.online === 1
@@ -424,22 +462,12 @@
           : `${s.online} people on K9Chat right now`;
         onlineCount.style.display = "inline-flex";
       }
-      if (s.active > 2) {
-        const waitingPart = s.waiting > 0 ? ` · ${s.waiting} in queue` : "";
-        waitlistWidget.innerHTML =
-          `<span class="dot"></span>${s.active} chats running right now${waitingPart}`;
-        waitlistWidget.style.display = "flex";
-      } else {
-        waitlistWidget.style.display = "none";
-      }
     } catch (err) {
-      waitlistWidget.style.display = "none";
+      if (jqSummary) jqSummary.textContent = "";
     }
   }
-  if (waitlistWidget) {
-    pollQueueStatus();
-    setInterval(pollQueueStatus, 4000);
-  }
+  pollQueueStatus();
+  setInterval(pollQueueStatus, 4000);
 
   // Live Telemetry panel removed 2026-09-21 -- PowerAI is a shared
   // machine, and GPU/CPU load+memory numbers reflected *everything*

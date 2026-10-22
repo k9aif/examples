@@ -2,29 +2,26 @@
 # K9-AIF Framework
 
 """
-Concurrency cap on real LLM generations -- separate concern from
-auth.py's per-visitor identity. The actual guard against "someone spawns
-a pile of concurrent bot requests and pegs the GPU": at most
-K9CHAT_MAX_CONCURRENT (default 5, matching dow-k9-aif/DAS's own
-MAX_QUEUE_SIZE convention) generations run against Ollama at once,
-process-wide, across every visitor. A request beyond that WAITS (not
-rejected) until a slot frees -- same shape DAS uses for its job queue,
-except DAS rejects at capacity and this waits, per Ravi's explicit
-"wait... you are in the queue" spec (2026-09-20).
+K9Chat's job queue: how many generations run against the model at once,
+and who waits for the next free slot. Same shape as DAS's Job Queue
+(dow-k9-aif: MAX_QUEUE_SIZE, per-visitor cap, refuse when full):
 
-threading.Semaphore, not asyncio.Semaphore -- /chat is a sync route
-(FastAPI runs it in a thread pool) and /chat/stream is async, so this
-needs to work correctly acquired from both. The async path awaits the
-blocking acquire via run_in_executor rather than blocking the event loop.
+  - at most K9CHAT_MAX_CONCURRENT (5) generations run at once;
+  - at most K9CHAT_MAX_QUEUE (5) more wait, first come first served;
+    beyond that a request is refused straight away (QueueBusy) rather
+    than joining an endless line;
+  - one job per visitor at a time (queued or running);
+  - a waiter gives up after K9CHAT_QUEUE_TIMEOUT_SECONDS (120).
 
-Also enforces the real GPU thermal limit (see gpu_telemetry.py): a
-request won't be admitted into a processing slot while the GPU is at or
-above K9CHAT_GPU_TEMP_LIMIT_C, even if a slot is technically free --
-polls every _TEMP_POLL_SECONDS until it cools. Deliberately does NOT
-kill an already-admitted, in-flight generation -- aborting a running
-Ollama request safely is a harder problem than just not starting new
-ones while hot, and "stop admitting new work" is the honest, buildable
-version of "regulate it" from Ravi's spec (2026-09-20).
+Waiting holds no thread. The old version parked a worker thread on a
+semaphore per waiter: ~30 waiters filled the shared pool the running
+chats also need (link fetching), so the whole app could stall, and a
+visitor who closed the tab mid-wait still took a slot later and never gave
+it back. Now a waiter polls every _POLL_SECONDS (asyncio.sleep on the
+async path), and a cancelled or timed-out waiter simply leaves the line.
+
+The GPU thermal gate stays: no new job starts while the GPU is at or above
+K9CHAT_GPU_TEMP_LIMIT_C (gpu_telemetry.py); running jobs are never killed.
 """
 
 from __future__ import annotations
@@ -37,18 +34,81 @@ from typing import Optional
 from k9chat import gpu_telemetry
 
 _MAX_CONCURRENT = int(os.environ.get("K9CHAT_MAX_CONCURRENT", "5"))
-_TEMP_POLL_SECONDS = 1.0
+_MAX_QUEUE = int(os.environ.get("K9CHAT_MAX_QUEUE", "5"))
+_TIMEOUT_SECONDS = float(os.environ.get("K9CHAT_QUEUE_TIMEOUT_SECONDS", "120"))
+_POLL_SECONDS = 0.25
 
 _lock = threading.Lock()
-_active = 0
-_waiting = 0
-_semaphore = threading.Semaphore(_MAX_CONCURRENT)
+_running: dict = {}            # job_id -> {"visitor": str, "started": float}
+_waiting: list = []            # job dicts, FIFO: {"id", "visitor", "queued"}
+_seq = 0
 
 
-def status() -> dict:
-    """Live snapshot for the waitlist UI widget -- polled, not pushed."""
+class QueueBusy(Exception):
+    """A job can't be queued or waited too long. str(exc) is shown to the visitor."""
+
+
+def _admit(visitor: Optional[str]) -> dict:
+    """Join the line, or raise QueueBusy (line full / visitor already has a job)."""
+    global _seq
     with _lock:
-        return {"active": _active, "waiting": _waiting, "max_concurrent": _MAX_CONCURRENT}
+        if visitor and (any(j["visitor"] == visitor for j in _running.values())
+                        or any(j["visitor"] == visitor for j in _waiting)):
+            raise QueueBusy("You already have a request running or waiting. "
+                            "Wait for it to finish, then send the next one.")
+        # Cap running + waiting together: in a burst everyone arrives before
+        # anything has started, so checking "slots full" first lets the
+        # line grow past its limit.
+        if len(_running) + len(_waiting) >= _MAX_CONCURRENT + _MAX_QUEUE:
+            raise QueueBusy(f"K9Chat is busy: {_MAX_CONCURRENT} chats are running and {_MAX_QUEUE} "
+                            "are waiting, which is the most this one GPU takes. Please try again in a minute.")
+        _seq += 1
+        job = {"id": f"J{_seq:05d}", "visitor": visitor, "queued": time.monotonic()}
+        _waiting.append(job)
+        return job
+
+
+def _eligible(job: dict) -> bool:
+    """True if *job* is within the first N in line, N = free slots. Keeps
+    first-come-first-served while letting several jobs start at once."""
+    with _lock:
+        free = _MAX_CONCURRENT - len(_running)
+        return job in _waiting and _waiting.index(job) < free
+
+
+def _try_start(job: dict) -> bool:
+    """Start *job* if it's eligible (see _eligible)."""
+    with _lock:
+        free = _MAX_CONCURRENT - len(_running)
+        if job not in _waiting or _waiting.index(job) >= free:
+            return False
+        _waiting.remove(job)
+        _running[job["id"]] = {"visitor": job["visitor"], "started": time.monotonic()}
+        return True
+
+
+def _leave(job: dict) -> None:
+    with _lock:
+        if job in _waiting:
+            _waiting.remove(job)
+        _running.pop(job["id"], None)
+
+
+def _position(job: dict) -> int:
+    with _lock:
+        return _waiting.index(job) if job in _waiting else 0
+
+
+def status(visitor: Optional[str] = None) -> dict:
+    """Live snapshot for the Job Queue panel. Jobs carry a short id and a
+    status only -- never anyone's message -- plus "mine" for the caller."""
+    with _lock:
+        jobs = [{"id": jid, "status": "running", "mine": bool(visitor) and j["visitor"] == visitor}
+                for jid, j in sorted(_running.items(), key=lambda kv: kv[1]["started"])]
+        jobs += [{"id": j["id"], "status": "waiting", "mine": bool(visitor) and j["visitor"] == visitor}
+                 for j in _waiting]
+        return {"active": len(_running), "waiting": len(_waiting),
+                "max_concurrent": _MAX_CONCURRENT, "max_queue": _MAX_QUEUE, "jobs": jobs}
 
 
 # ── Who's here right now ─────────────────────────────────────────────────
@@ -100,64 +160,97 @@ def check_switch_cooldown() -> tuple[bool, int]:
 
 
 class QueueSlot:
-    """Context manager wrapping one generation's turn at a processing
-    slot. `position` is set once __enter__/aenter starts waiting -- how
-    many requests were already ahead of this one (0 = got a free slot
-    immediately, no real queuing happened)."""
+    """One job's turn at a generation slot, sync (`with`) or async
+    (`async with`). Raises QueueBusy on entry if the line is full, the
+    visitor already has a job, or the wait times out. `position` is how
+    many were ahead of this job when it joined (0 = started straight away)."""
 
-    def __init__(self) -> None:
+    def __init__(self, visitor: Optional[str] = None) -> None:
+        self.visitor = visitor
         self.position = 0
-        self.throttled_seconds = 0.0  # how long this call waited on temperature, not queue depth
+        self.job: Optional[dict] = None
         self._t0 = 0.0
 
-    def _mark_waiting(self) -> None:
-        global _waiting
-        with _lock:
-            _waiting += 1
-            self.position = _waiting - 1  # how many were ahead of me, not counting myself
-        self._t0 = time.monotonic()
+    def _timed_out(self) -> bool:
+        return time.monotonic() - self._t0 > _TIMEOUT_SECONDS
 
-    def _mark_acquired(self) -> None:
-        global _waiting, _active
-        with _lock:
-            _waiting -= 1
-            _active += 1
+    def _give_up(self):
+        _leave(self.job)
+        return QueueBusy("K9Chat is busy and your request waited too long. Please try again in a minute.")
 
     def __enter__(self) -> "QueueSlot":
-        self._mark_waiting()
-        throttle_start = time.monotonic()
-        while gpu_telemetry.is_over_temp_limit():
-            time.sleep(_TEMP_POLL_SECONDS)
-        self.throttled_seconds = time.monotonic() - throttle_start
-        _semaphore.acquire()
-        self._mark_acquired()
-        return self
+        self.job = _admit(self.visitor)
+        self._t0 = time.monotonic()
+        self.position = _position(self.job)
+        try:
+            while True:
+                if _eligible(self.job) and not gpu_telemetry.is_over_temp_limit() and _try_start(self.job):
+                    return self
+                if self._timed_out():
+                    raise self._give_up()
+                time.sleep(_POLL_SECONDS)
+        except BaseException:
+            _leave(self.job)
+            raise
 
     def __exit__(self, *exc) -> bool:
-        global _active
-        with _lock:
-            _active -= 1
-        _semaphore.release()
+        _leave(self.job)
         return False
 
     async def __aenter__(self) -> "QueueSlot":
         import asyncio
-        self._mark_waiting()
-        loop = asyncio.get_event_loop()
-        throttle_start = time.monotonic()
-        while await loop.run_in_executor(None, gpu_telemetry.is_over_temp_limit):
-            await asyncio.sleep(_TEMP_POLL_SECONDS)
-        self.throttled_seconds = time.monotonic() - throttle_start
-        await loop.run_in_executor(None, _semaphore.acquire)
-        self._mark_acquired()
-        return self
+        self.job = _admit(self.visitor)
+        self._t0 = time.monotonic()
+        self.position = _position(self.job)
+        try:
+            while True:
+                # The temperature lookup is a short HTTP call (cached 1.5s):
+                # run it off the event loop, and only once this job may start.
+                if _eligible(self.job):
+                    hot = await asyncio.to_thread(gpu_telemetry.is_over_temp_limit)
+                    if not hot and _try_start(self.job):
+                        return self
+                if self._timed_out():
+                    raise self._give_up()
+                await asyncio.sleep(_POLL_SECONDS)
+        except BaseException:          # includes CancelledError: a closed tab leaves the line
+            _leave(self.job)
+            raise
 
     async def __aexit__(self, *exc) -> bool:
-        global _active
-        with _lock:
-            _active -= 1
-        _semaphore.release()
+        _leave(self.job)
         return False
+
+    async def wait(self):
+        """Async generator for streaming callers: joins the line (QueueBusy
+        if it can't), yields the current position each time it changes
+        while waiting, and returns once the job has started. The caller
+        must call release() when the job is done."""
+        import asyncio
+        self.job = _admit(self.visitor)
+        self._t0 = time.monotonic()
+        self.position = _position(self.job)
+        last = None
+        try:
+            while True:
+                if _eligible(self.job):
+                    hot = await asyncio.to_thread(gpu_telemetry.is_over_temp_limit)
+                    if not hot and _try_start(self.job):
+                        return
+                pos = _position(self.job)
+                if pos != last:
+                    last = pos
+                    yield pos
+                if self._timed_out():
+                    raise self._give_up()
+                await asyncio.sleep(_POLL_SECONDS)
+        except BaseException:          # cancelled (tab closed) or gave up: leave the line
+            _leave(self.job)
+            raise
+
+    def release(self) -> None:
+        if self.job is not None:
+            _leave(self.job)
 
     @property
     def waited_seconds(self) -> float:

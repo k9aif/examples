@@ -33,6 +33,14 @@
         <div id="project-list" class="project-list" style="display:none"></div>
       </div>
 
+      <div class="jobqueue-block" title="Shared by every visitor, like DAS's Job Queue. Short ids and status only; nobody's messages are shown.">
+        <div class="projects-header">
+          <span class="projects-title">Job Queue <span id="jobqueue-max"></span></span>
+          <span id="jobqueue-summary" class="jobqueue-summary"></span>
+        </div>
+        <div id="jobqueue-list" class="jobqueue-list"><div class="jobqueue-empty">Loading…</div></div>
+      </div>
+
       {% if provider_settings_enabled %}
       <div class="settings-block">
         <button id="settings-toggle" class="settings-toggle">⚙ Provider Settings</button>
