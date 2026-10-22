@@ -1,6 +1,6 @@
 # K9Chat public showcase: landing page + Keycloak registration
 
-Status: draft for review (2026-10-22). Nothing built yet.
+Status: decisions agreed 2026-10-22 (see "Decisions"). Nothing built yet.
 
 ## Goal
 
@@ -81,8 +81,10 @@ drive-bys in one step.
 - A pass issues a short-lived signed token (about 15 minutes) that the
   account form must present. No token, no account.
 - Attempts limited per IP (e.g. 3 per hour) so the bank can't be brute-forced.
-- A failed attempt shows the score and which topics were missed (linked to
-  the landing page section), not the right answers.
+- A failed attempt shows the score and which topics were missed, never the
+  right answers, and sends the visitor to study the framework first
+  (`K9CHAT_QUIZ_STUDY_URL`, default the landing page's "How it's built"
+  section). They can retake within the attempt limit.
 - Honest limit: the answers are public, so a determined person or an
   LLM-driven bot can pass. The quiz is a speed bump and a showcase. Real
   protection stays with accounts, rate limits, Shield, Guardian and
@@ -100,9 +102,8 @@ drive-bys in one step.
 - Name and email are screened like any other persisted input
   (persist_screen.py) before the account is created.
 
-**Bypass for invited reviewers**
-IEEE reviewers and DoW officers shouldn't have to sit a quiz. An invite code
-Ravi sends skips it, or the reviewer uses the demo login (see open questions).
+**No bypass.** Everyone registers through the quiz, reviewers included.
+There is no demo login and no invite code.
 
 ## Accounts and roles
 
@@ -110,19 +111,23 @@ Ravi sends skips it, or the reviewer uses the demo login (see open questions).
   reuses the framework's `KeycloakAuthenticator`
   (`k9_security/zero_trust/idp_adapters.py`): signature via JWKS, issuer,
   audience, expiry, realm and client roles.
-- **The browser redirect and code exchange** is not in the framework today
-  (it validates bearer tokens; it doesn't run a login). Options for review:
-  1. Add a small OIDC login ABB to the framework, reusable by DAS, Inspector
-     and the other K9X apps. Preferred: extend the framework, don't reinvent
-     it in each app.
-  2. App-level code in K9Chat only.
+- **The browser redirect and code exchange** (authorization-code flow,
+  session cookie, logout) is built in K9Chat as an SBB. Token validation
+  stays the framework's ABB (`KeycloakAuthenticator`); the SBB only adds the
+  browser flow around it.
 - **Identity:** the Keycloak `sub` replaces today's random `visitor_id`.
   Projects, rate limits and history are keyed on the account.
-- **Roles:**
-  - `k9chat-user`: chat, projects, own settings (tone dials, length).
-  - `k9chat-admin`: global switches (model, Framework Mode, Internet Access,
-    streaming, eval, FAQ). Today any visitor can flip these for everyone.
-- **Rate limits** stay, keyed on the account plus IP.
+- **Users (`k9chat-user`):** Framework Mode and Internet Access both
+  available, chosen per user (today these toggles are global: one visitor
+  flipping one changes it for everyone). Own tone and length dials, own
+  Projects. **Limit: 10 chats per day per account**, on top of the existing
+  10-minute and per-IP limits.
+- **Admin (`k9chat-admin`):** Ravi's account, defined in `.env`
+  (`K9CHAT_ADMIN_USERNAME` / `K9CHAT_ADMIN_PASSWORD`). At startup K9Chat
+  makes sure that Keycloak user exists with the admin role (Admin REST API),
+  so no manual Keycloak setup is needed. The password is never shown or
+  committed. Admin has no daily limit and owns the global switches (model,
+  streaming, eval, FAQ) and the Provider Settings panel.
 
 ## Deployment
 
@@ -143,34 +148,43 @@ Ravi sends skips it, or the reviewer uses the demo login (see open questions).
   | `K9CHAT_KEYCLOAK_REALM` | realm name |
   | `K9CHAT_OIDC_CLIENT_ID` / `K9CHAT_OIDC_CLIENT_SECRET` | login client (authorization-code flow) |
   | `K9CHAT_KEYCLOAK_ADMIN_CLIENT_ID` / `K9CHAT_KEYCLOAK_ADMIN_CLIENT_SECRET` | service account with `manage-users` only |
-  | `K9CHAT_INVITE_CODES` | comma-separated quiz-bypass codes for reviewers |
+  | `K9CHAT_ADMIN_USERNAME` / `K9CHAT_ADMIN_PASSWORD` | Ravi's admin account, created in Keycloak at startup if missing |
   | `K9CHAT_QUIZ_PASS_MARK` / `K9CHAT_QUIZ_ATTEMPTS_PER_HOUR` | defaults 4 (of 5) and 3 |
+  | `K9CHAT_QUIZ_STUDY_URL` | where a failed attempt sends the visitor to study |
+  | `K9CHAT_USER_DAILY_CHATS` | default 10 |
 
 - **Email:** Keycloak sends the verification mail through the SMTP account
   configured in the realm. The SMTP host, user and password go in the
   Keycloak container's own `.env` and are applied by the realm import, so
   they never reach K9Chat.
 
-## Open questions for Ravi
+## Decisions (Ravi, 2026-10-22)
 
-1. Login flow: framework ABB (option 1) or K9Chat-only (option 2)?
-2. Reviewer bypass: invite codes, the demo/demo login, or both?
-3. Who writes the question bank: Ravi drafts, or Claude drafts from the
-   landing page and knowledge files and Ravi checks every answer?
-4. After login, should Framework Mode be locked ON for `k9chat-user`, with
-   Internet Access available only to admins?
+1. Browser login flow is a K9Chat SBB; token validation stays the
+   framework's `KeycloakAuthenticator`.
+2. No reviewer bypass: everyone registers through the quiz. Ravi's admin
+   account comes from `.env` and can use the chat without limits.
+3. Claude writes the question bank, with answers, kept ready in the repo. A
+   visitor who fails is sent to study the framework (`K9CHAT_QUIZ_STUDY_URL`).
+4. After login, Framework Mode and Internet Access are available to all
+   users, per user, with a limit of 10 chats per day per account.
+5. Keycloak: the existing PowerAI instance, new `k9chat` realm.
 
 ## Build order (after review)
 
 1. Landing page at `/`, chat moved to `/app` (no auth yet; content reviewed).
-2. Question bank (answers checked by Ravi) and the quiz: draw, server-side
-   grading, pass token, attempt limits.
+2. Question bank (Claude writes questions and answers) and the quiz: draw,
+   server-side grading, pass token, attempt limits, study link on failure.
 3. Keycloak realm + clients (login client, user-management service account),
    self-registration off, auth.k9x.ai tunnel route, SMTP.
 4. Register page: quiz -> account form -> Keycloak Admin API -> verification
-   email. Invite-code bypass.
-5. OIDC login, account identity, roles; global switches admin-only.
+   email.
+5. OIDC login SBB, account identity, admin bootstrap from `.env`, roles;
+   per-user Framework/Internet mode; daily chat limit; global switches
+   admin-only.
 6. Verify: fail the quiz (3/5) and pass it (4/5, 5/5); reuse or forge a pass
    token; exceed the attempt limit; register end to end with email
-   verification; user vs admin permissions; rate limits per account; the
+   verification; user vs admin permissions; the 11th chat of the day
+   refused for a user and allowed for admin; one user's mode toggle not
+   affecting another; rate limits per account; the
    landing and register pages on phone width.
