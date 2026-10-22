@@ -154,6 +154,7 @@ case "$cmd" in
               "/k9-aif-framework/k9_aif_abb/k9_security/CLAUDE.md"
     add_mount "$AI_DIR/k9x-ecosystem"               "/k9x-ecosystem"
     add_mount "$AI_DIR/dow-k9-aif"                  "/dow-k9-aif"
+    add_mount "$AI_DIR/dow-k9x"                     "/dow-k9x"     # PowerAI's name for the DAS checkout
     add_mount "$AI_DIR/k9-aif-blogs"                "/k9-aif-blogs"
     add_mount "$AI_DIR/doit"                        "/doit"
 

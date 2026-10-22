@@ -46,6 +46,14 @@ class KnowledgeRetriever:
     def store_chunk(self, doc_id: str, text: str, metadata: Dict[str, Any]) -> bool:
         return self._retriever.store(doc_id=doc_id, text=text, metadata=metadata)
 
+    def delete_chunk(self, doc_id: str) -> None:
+        """Delete one chunk by id (BaseVectorDB.delete takes one id; there
+        is no filtered bulk delete in the ABB contract -- same approach as
+        ProjectRetriever.remove_file). Deleting an id that isn't there is a no-op."""
+        self._retriever._ensure_services()
+        if self._retriever._vectordb is not None:
+            self._retriever._vectordb.delete(doc_id)
+
     def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """Real semantic search against the knowledge base. Returns [] if
         nothing is stored yet (seeder hasn't run) or the backend isn't
