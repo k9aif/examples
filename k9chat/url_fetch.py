@@ -42,7 +42,29 @@ import requests
 log = logging.getLogger("k9chat.url_fetch")
 
 _URL_RE = re.compile(r"https?://[^\s<>\"'`]+", re.IGNORECASE)
+# Bare domains ("read blog.k9x.ai", "see python.org/downloads") -- people
+# rarely type the scheme. Only well-known TLDs, so file and module names
+# that look like hosts (chat.py, config.yaml, build-run.sh, k9chat.app)
+# aren't mistaken for links; not after @ (emails) or / . (already part of
+# a URL or a longer dotted name).
+_BARE_TLDS = ("com|org|net|ai|io|dev|gov|mil|edu|co|us|uk|ca|de|fr|in|info|biz|"
+              "tech|xyz|cloud|news|blog|online|eu|au|jp|ch|nl|se|no|es|it|gg|tv")
+_BARE_RE = re.compile(
+    r"(?<![@\w./:-])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:" + _BARE_TLDS + r")"
+    r"(?::\d{2,5})?(?:/[^\s<>\"'`]*)?(?![\w-])",
+    re.IGNORECASE,
+)
 _TRAILING_PUNCT = ".,;:!?)]}>'\""
+
+
+def _url_spans(text: str) -> List[tuple]:
+    """(start, end, url) for every link in *text*, scheme or not, in order.
+    A bare domain gets https:// (fetch() still follows a redirect to http)."""
+    spans = [(m.start(), m.end(), m.group()) for m in _URL_RE.finditer(text)]
+    for m in _BARE_RE.finditer(text):
+        if not any(a <= m.start() < b for a, b, _ in spans):
+            spans.append((m.start(), m.end(), "https://" + m.group()))
+    return sorted(spans)
 
 _TEXT_TYPES = ("text/html", "application/xhtml+xml", "text/plain")
 _USER_AGENT = "Mozilla/5.0 (compatible; K9Chat/1.0; +https://k9x.ai)"
@@ -56,7 +78,7 @@ def extract_urls(text: str, max_urls: int = 3) -> List[str]:
     """http(s) URLs in *text*, in order, de-duplicated, trailing sentence
     punctuation stripped ("see https://x.com/a." -> https://x.com/a)."""
     seen, urls = set(), []
-    for raw in _URL_RE.findall(text or ""):
+    for _, _, raw in _url_spans(text or ""):
         url = raw.rstrip(_TRAILING_PUNCT)
         # Keep a closing paren that belongs to the URL (Wikipedia-style).
         if raw[len(url):].startswith(")") and url.count("(") > url.count(")"):
@@ -71,7 +93,10 @@ def extract_urls(text: str, max_urls: int = 3) -> List[str]:
 
 def strip_urls(text: str) -> str:
     """*text* with its URLs removed -- what's left is the actual question."""
-    return re.sub(r"\s+", " ", _URL_RE.sub(" ", text or "")).strip()
+    text = text or ""
+    for start, end, _ in reversed(_url_spans(text)):
+        text = text[:start] + " " + text[end:]
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _is_public(ip: str) -> bool:
