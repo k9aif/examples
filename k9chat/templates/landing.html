@@ -239,12 +239,13 @@
   <section id="run">
     <h2>Run it yourself</h2>
     <p class="sub">K9Chat is open source (Apache-2.0) in <a href="https://github.com/k9aif/examples/tree/main/k9chat" target="_blank" rel="noopener">github.com/k9aif/examples</a>. Point it at your own models: Ollama on your hardware, or any OpenAI-compatible server.</p>
-<pre>git clone https://github.com/k9aif/k9-aif-framework.git
-git clone https://github.com/k9aif/examples.git k9-aif-examples
+<pre>git clone https://github.com/k9aif/examples.git k9-aif-examples
 cd k9-aif-examples
-# set OLLAMA_BASE_URL (and the model names) in k9chat/.env
-k9chat/ubuntu/build-run.sh all     # build and start the container
-k9chat/ubuntu/build-run.sh seed    # one time: load the knowledge base</pre>
+k9chat/setup.sh          # Python venv + pip install (requirements.txt, k9-aif from PyPI)
+# edit k9chat/.env: OLLAMA_BASE_URL and the model names you have pulled
+k9chat/setup.sh seed     # one time: load the knowledge base
+k9chat/setup.sh run      # http://localhost:7777</pre>
+    <p class="sub" style="margin-top:12px">By hand instead: <code>python3.11 -m venv k9chat/.venv</code>, then <code>pip install -r k9chat/requirements.txt</code> and <code>pip install --no-deps k9-aif==1.18.7</code>. Prefer a container? <code>k9chat/ubuntu/build-run.sh all</code> builds and starts one with Podman.</p>
   </section>
 
   <section class="start">

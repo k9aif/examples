@@ -456,7 +456,7 @@
       const s = await resp.json();
       renderJobQueue(s);
       if (onlineCount && typeof s.online === "number") {
-        onlineCount.textContent = s.online;
+        document.getElementById("online-count-n").textContent = s.online;
         onlineCount.title = s.online === 1
           ? "1 person on K9Chat right now (you)"
           : `${s.online} people on K9Chat right now`;

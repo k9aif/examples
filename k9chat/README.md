@@ -15,13 +15,29 @@ This example showcases:
 - Toggleable "fun dials" (Unhinged/Profanity/Length), an LLM-as-judge **Eval** toggle, and a **Streaming** toggle — all genuinely wired, not decorative
 - Ubuntu/Podman container deployment (`ubuntu/`)
 
-## Setup
+## Quick start (local, no container)
 
-k9chat imports `k9_aif_abb/` directly from source rather than `pip install
-k9-aif` (the PyPI package lags behind the framework's own repo and would
-reintroduce already-fixed bugs) -- clone
-[k9-aif-framework](https://github.com/k9aif/k9-aif-framework) as a
-**sibling directory** of this repo:
+```
+git clone https://github.com/k9aif/examples.git k9-aif-examples
+cd k9-aif-examples
+k9chat/setup.sh          # creates k9chat/.venv, installs requirements.txt + k9-aif from PyPI
+# edit k9chat/.env: OLLAMA_BASE_URL and the model names you have pulled
+k9chat/setup.sh seed     # one time: load the knowledge base
+k9chat/setup.sh run      # http://localhost:7777
+```
+
+`setup.sh` uses Python 3.11+ (set `PYTHON=` to pick one), installs a
+CPU-only PyTorch (only the FAQ reranker needs it), then the pinned
+`requirements.txt`, then `k9-aif` from PyPI with `--no-deps` so the pins
+stay put. Without a framework checkout, `seed` loads K9Chat's own FAQ and
+glossary; clone the framework next to this repo to include its docs too.
+
+## Setup (framework from source)
+
+If a [k9-aif-framework](https://github.com/k9aif/k9-aif-framework) checkout
+sits next to this repo, k9chat imports `k9_aif_abb/` from that source
+instead of the PyPI package (the container build does this), so framework
+changes are picked up without a release. Layout:
 
 ```
 some-parent-dir/

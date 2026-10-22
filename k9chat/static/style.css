@@ -649,7 +649,8 @@ body {
   flex-shrink: 0;
 }
 
-/* Bare number beside the Guardian badge: visitors here right now. */
+/* "# users N" beside the Guardian badge: visitors here right now. */
+.online-label { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; }
 .online-count {
   align-items: center;
   flex-shrink: 0;
