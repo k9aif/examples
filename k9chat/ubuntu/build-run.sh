@@ -157,6 +157,9 @@ case "$cmd" in
     add_mount "$AI_DIR/dow-k9x"                     "/dow-k9x"     # PowerAI's name for the DAS checkout
     add_mount "$AI_DIR/k9-aif-blogs"                "/k9-aif-blogs"
     add_mount "$AI_DIR/doit"                        "/doit"
+    # Video lengths for the knowledge base (optional: without it the seed
+    # uses the channel's YouTube feed, which has no lengths).
+    add_mount "$AI_DIR/k9x_video_series/videos.yaml" "/k9x_video_series/videos.yaml"
 
     sudo podman run --rm \
       --env-file "$K9CHAT_DIR/.env" \
