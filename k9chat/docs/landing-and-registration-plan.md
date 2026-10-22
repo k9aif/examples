@@ -12,17 +12,15 @@ secure, then registers to try it. The chat itself sits behind a login.
 
 ```
 chat.k9x.ai/            landing page (public, no GPU, no session)
-  "Register to try it"  -> Keycloak hosted registration page (auth.k9x.ai)
-                           email verification (Keycloak sends it)
-  "Sign in"             -> Keycloak hosted login -> back to /app
+  "Register to try it"  -> chat.k9x.ai/register: framework quiz, then the
+                           account form once the visitor scores 4/5 or better
+                           -> account created in Keycloak, verification email
+  "Sign in"             -> Keycloak hosted login (auth.k9x.ai) -> back to /app
 chat.k9x.ai/app         the current chat UI, login required
 ```
 
-Registration needs no K9Chat code: self-registration, email verification and
-password policy are Keycloak realm settings. There is no approval queue (that
-would conflict with the solo-operator, no-HIL-by-default rule). If a tighter
-gate is wanted later, use a Keycloak invite code or a registration allowlist,
-not a manual queue.
+No approval queue (that would conflict with the solo-operator,
+no-HIL-by-default rule): the quiz is the gate, and it runs unattended.
 
 ## Landing page
 
@@ -59,6 +57,53 @@ Inspector, Sentinel, Studio and the Enterprise Repository.
 from config at render time, not hard-coded) and what K9Chat deliberately does
 not do.
 
+## Registration page: earn your account
+
+To register, a visitor answers 5 questions about how K9Chat and K9-AIF are
+built and must get at least 4 right. Every answer is on the landing page, so
+reading the showcase is the way in: the page sells itself and filters
+drive-bys in one step.
+
+**Question bank**
+- About 30 curated multiple-choice questions in a YAML file (e.g.
+  `k9chat/registration/questions.yaml`), each with one answer checked by
+  Ravi. Not LLM-generated: a quiz with a wrong "right answer" is worse than
+  no quiz.
+- Drawn from the landing page cards and the existing knowledge files
+  (`knowledge/faq.md`, `knowledge/glossary.md`). Examples: "What screens a
+  Project file before it's stored?", "What does an SBB build on?", "What
+  happens to a pasted link that resolves to a 10.x address?"
+- Each attempt draws 5 at random, with the options shuffled.
+
+**Grading and abuse limits**
+- Graded on the server. The browser gets questions and option ids, never
+  the answers.
+- A pass issues a short-lived signed token (about 15 minutes) that the
+  account form must present. No token, no account.
+- Attempts limited per IP (e.g. 3 per hour) so the bank can't be brute-forced.
+- A failed attempt shows the score and which topics were missed (linked to
+  the landing page section), not the right answers.
+- Honest limit: the answers are public, so a determined person or an
+  LLM-driven bot can pass. The quiz is a speed bump and a showcase. Real
+  protection stays with accounts, rate limits, Shield, Guardian and
+  admin-only switches.
+
+**Account creation**
+- Keycloak self-registration is turned off: its hosted page can't check the
+  quiz token without a custom Java extension.
+- After a pass, K9Chat's register page collects name, email and password and
+  creates the user through the Keycloak Admin REST API, with the "verify
+  email" required action set. Keycloak sends the verification mail; the
+  account works once the email is confirmed.
+- The service account K9Chat uses for this holds only the `manage-users`
+  role in the realm. Its secret lives in `.env`, never committed.
+- Name and email are screened like any other persisted input
+  (persist_screen.py) before the account is created.
+
+**Bypass for invited reviewers**
+IEEE reviewers and DoW officers shouldn't have to sit a quiz. An invite code
+Ravi sends skips it, or the reviewer uses the demo login (see open questions).
+
 ## Accounts and roles
 
 - **Login:** OIDC authorization-code flow against Keycloak. Token validation
@@ -84,26 +129,46 @@ not do.
 - **Keycloak public at auth.k9x.ai** through the existing Cloudflare tunnel.
   Only the realm's login and registration paths are exposed; the admin
   console (`/admin`) stays LAN-only (tunnel path rule).
-- **Email:** Keycloak needs SMTP for verification mail. This is an open
-  question below.
-- **K9Chat config:** issuer, client id and client secret in `.env`; the
-  secret is never committed.
+- **All connection details and secrets in `.env`** (never committed;
+  config.yaml reads them as `${VAR}`, with an example `.env` listing the
+  names only):
+
+  | Variable | Purpose |
+  |---|---|
+  | `K9CHAT_KEYCLOAK_URL` | Keycloak base URL, e.g. `https://auth.k9x.ai` |
+  | `K9CHAT_KEYCLOAK_REALM` | realm name |
+  | `K9CHAT_OIDC_CLIENT_ID` / `K9CHAT_OIDC_CLIENT_SECRET` | login client (authorization-code flow) |
+  | `K9CHAT_KEYCLOAK_ADMIN_CLIENT_ID` / `K9CHAT_KEYCLOAK_ADMIN_CLIENT_SECRET` | service account with `manage-users` only |
+  | `K9CHAT_INVITE_CODES` | comma-separated quiz-bypass codes for reviewers |
+  | `K9CHAT_QUIZ_PASS_MARK` / `K9CHAT_QUIZ_ATTEMPTS_PER_HOUR` | defaults 4 (of 5) and 3 |
+
+- **Email:** Keycloak sends the verification mail through the SMTP account
+  configured in the realm. The SMTP host, user and password go in the
+  Keycloak container's own `.env` and are applied by the realm import, so
+  they never reach K9Chat.
 
 ## Open questions for Ravi
 
 1. Is a Keycloak instance already running for the K9X apps (the framework
    docs reference one on port 8113), or is this the first?
-2. SMTP for verification mail: which provider/account?
-3. Login flow: framework ABB (option 1) or K9Chat-only (option 2)?
-4. Keep the demo/demo pattern for reviewers alongside self-registration, or
-   registration only?
+2. Login flow: framework ABB (option 1) or K9Chat-only (option 2)?
+3. Reviewer bypass: invite codes, the demo/demo login, or both?
+4. Who writes the question bank: Ravi drafts, or Claude drafts from the
+   landing page and knowledge files and Ravi checks every answer?
 5. After login, should Framework Mode be locked ON for `k9chat-user`, with
    Internet Access available only to admins?
 
 ## Build order (after review)
 
 1. Landing page at `/`, chat moved to `/app` (no auth yet; content reviewed).
-2. Keycloak realm + client, auth.k9x.ai tunnel route, SMTP.
-3. OIDC login, account identity, roles; global switches admin-only.
-4. Verify: register a new account end to end, email verified, user vs admin
-   permissions, rate limits per account, the landing page on phone width.
+2. Question bank (answers checked by Ravi) and the quiz: draw, server-side
+   grading, pass token, attempt limits.
+3. Keycloak realm + clients (login client, user-management service account),
+   self-registration off, auth.k9x.ai tunnel route, SMTP.
+4. Register page: quiz -> account form -> Keycloak Admin API -> verification
+   email. Invite-code bypass.
+5. OIDC login, account identity, roles; global switches admin-only.
+6. Verify: fail the quiz (3/5) and pass it (4/5, 5/5); reuse or forge a pass
+   token; exceed the attempt limit; register end to end with email
+   verification; user vs admin permissions; rate limits per account; the
+   landing and register pages on phone width.
