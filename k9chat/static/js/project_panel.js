@@ -93,11 +93,15 @@ const ProjectPanel = (() => {
     saveBtn.addEventListener("click", async () => {
       saveBtn.textContent = "Saving…";
       try {
-        await fetch(`/projects/${project.project_id}`, {
+        const resp = await fetch(`/projects/${project.project_id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ instructions: textarea.value }),
         });
+        if (!resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          alert(`Not saved: ${data.detail || resp.statusText}`);
+        }
       } finally {
         saveBtn.textContent = "Save instructions";
         await refresh();
@@ -254,6 +258,10 @@ const ProjectPanel = (() => {
         body: JSON.stringify({ name }),
       });
       const project = await resp.json();
+      if (!resp.ok) {
+        alert(`Project not created: ${project.detail || resp.statusText}`);
+        return;
+      }
       newInput.value = "";
       newForm.style.display = "none";
       setActive(project.project_id);

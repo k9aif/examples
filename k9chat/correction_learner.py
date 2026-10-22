@@ -124,8 +124,11 @@ def learn(
     prior_reply: Optional[str],
     new_message: str,
     session_id: str = "default",
+    screen=None,
 ) -> Optional[Dict[str, Any]]:
-    """Detects + stores a correction in one call. Returns
+    """Detects + stores a correction in one call. *screen*, if given, is
+    called with the fact before it's stored and raises to refuse it (the
+    shared knowledge base is read by every visitor). Returns
     {"corrected_fact": ...} if something was learned, else None. Never
     raises -- a failure here must never break the surrounding chat
     request."""
@@ -133,6 +136,8 @@ def learn(
         corrected_fact = detect_correction(config, prior_reply, new_message)
         if not corrected_fact:
             return None
+        if screen is not None:
+            screen(corrected_fact)
 
         doc_id = f"user_correction_{uuid.uuid4().hex[:12]}"
         stored = knowledge_retriever.store_chunk(

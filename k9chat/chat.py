@@ -53,6 +53,7 @@ from k9chat import correction_learner
 from k9chat import faq_shortcut
 from k9chat import internet_search
 from k9chat import url_fetch
+from k9chat.persist_screen import PersistScreen, ScreenRefused  # noqa: F401  (ScreenRefused re-exported for app.py)
 
 log = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ _KNOWLEDGE_RETRIEVER = None
 _LEARNING_ENABLED = None  # lazy: seeded from config.yaml's correction_learning.enabled on first access
 _FAQ_SHORTCUT_ENABLED = None  # lazy: seeded from config.yaml's faq_shortcut.enabled on first access
 _INTERNET_SEARCH_ENABLED = None  # lazy: seeded from config.yaml's internet_search.enabled on first access
+_PERSIST_SCREEN = None  # lazy: Shield + Guardian gate for everything stored (persist_screen.py)
 _URL_GOVERNANCE = None  # lazy: narrow Shield used to screen fetched pages
 _FRAMEWORK_MODE_LOCKED = None  # lazy: seeded from K9CHAT_FRAMEWORK_MODE_LOCKED (.env) on first access
 
@@ -394,7 +396,21 @@ def get_last_assistant_reply(session_id: str) -> str | None:
 # None means "unscoped" (login disabled, or a legacy pre-scoping project),
 # which stays visible to everyone rather than becoming orphaned.
 
+def get_persist_screen() -> PersistScreen:
+    global _PERSIST_SCREEN
+    if _PERSIST_SCREEN is None:
+        _PERSIST_SCREEN = PersistScreen(load_config())
+    return _PERSIST_SCREEN
+
+
+def screen_for_storage(text: str, kind: str) -> None:
+    """Every write of visitor-supplied content goes through here first --
+    raises ScreenRefused (see persist_screen.py)."""
+    get_persist_screen().screen(text, kind)
+
+
 def create_project(name: str, instructions: str = "", owner_id: str | None = None) -> dict:
+    screen_for_storage(f"{name}\n{instructions}", "Project name/instructions")
     return get_project_manager().create_project(name, instructions, owner_id)
 
 
@@ -407,6 +423,7 @@ def get_project(project_id: str, owner_id: str | None = None) -> dict | None:
 
 
 def update_project(project_id: str, name: str | None = None, instructions: str | None = None) -> dict:
+    screen_for_storage(f"{name or ''}\n{instructions or ''}", "Project name/instructions")
     return get_project_manager().update_project(project_id, name, instructions)
 
 
@@ -433,6 +450,8 @@ def add_project_file(project_id: str, filename: str, text: str) -> dict:
     manager = get_project_manager()
     if manager.get_project(project_id) is None:
         raise ProjectNotFoundError(project_id)
+    # Before any embedding work: a refused file never reaches the vector store.
+    screen_for_storage(f"{filename}\n{text}", f"File '{filename}'")
 
     file_id = str(uuid.uuid4())
     retriever = get_project_retriever()
@@ -676,6 +695,7 @@ def learn_from_correction(
         prior_reply,
         new_message,
         session_id=session_id,
+        screen=lambda fact: screen_for_storage(fact, "Learned correction"),
     )
 
 

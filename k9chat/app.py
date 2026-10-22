@@ -3,6 +3,7 @@
 
 import asyncio
 import json
+import re
 import os
 import sys
 import time
@@ -68,6 +69,7 @@ from k9chat.chat import (
     is_correction_learning_enabled,
     learn_from_correction,
     get_k9chat_version,
+    ScreenRefused,
     check_faq_shortcut,
     is_faq_shortcut_enabled,
     toggle_faq_shortcut,
@@ -466,6 +468,13 @@ def settings(payload: SettingsRequest):
     since the cost is per-switch not per-visitor) and the same
     concurrency/thermal QueueSlot every chat message already goes
     through."""
+    # Global state every visitor's page reads back: only well-formed values.
+    if payload.provider not in ("ollama", "openai-compatible"):
+        raise HTTPException(status_code=400, detail="Unknown provider.")
+    if not re.fullmatch(r"[\w.:/@+-]{1,128}", payload.model or ""):
+        raise HTTPException(status_code=400, detail="Invalid model name.")
+    if not re.fullmatch(r"https?://[\w.-]+(:\d{1,5})?(/[\w./-]*)?", payload.base_url or ""):
+        raise HTTPException(status_code=400, detail="Invalid base URL.")
     allowed, retry_after = queue_control.check_switch_cooldown()
     if not allowed:
         raise HTTPException(
@@ -489,7 +498,10 @@ def _require_owned_project(project_id: str, owner_id: str | None) -> dict:
 
 @app.post("/projects")
 def projects_create(payload: ProjectRequest, request: Request):
-    project = create_project(payload.name, instructions=payload.instructions, owner_id=current_owner_id(request))
+    try:
+        project = create_project(payload.name, instructions=payload.instructions, owner_id=current_owner_id(request))
+    except ScreenRefused as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     return JSONResponse(project)
 
 
@@ -508,6 +520,8 @@ def projects_update(project_id: str, payload: ProjectUpdateRequest, request: Req
     _require_owned_project(project_id, current_owner_id(request))
     try:
         return JSONResponse(update_project(project_id, name=payload.name, instructions=payload.instructions))
+    except ScreenRefused as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     except ProjectNotFoundError:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -523,14 +537,35 @@ def projects_delete(project_id: str, request: Request):
 
 @app.post("/projects/{project_id}/files")
 async def projects_add_file(project_id: str, request: Request, file: UploadFile = File(...)):
-    _require_owned_project(project_id, current_owner_id(request))
-    raw = await file.read()
+    owner = current_owner_id(request)
+    _require_owned_project(project_id, owner)
+    # Same per-visitor/per-IP budget as chat: screening + embedding a file
+    # is GPU work too.
+    refusal = _RATE_LIMITER.check(request, owner)
+    if refusal:
+        raise HTTPException(status_code=429, detail=refusal)
+    # Read at most one byte past the cap -- a huge upload is refused without
+    # pulling all of it into memory.
+    cap = int(load_config().get("persist_screening", {}).get("max_chars", 100_000)) * 4
+    raw = await file.read(cap + 1)
+    if len(raw) > cap:
+        raise HTTPException(status_code=413, detail="File is too large.")
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
         raise HTTPException(status_code=400, detail="Only UTF-8 text files are supported")
+    filename = (file.filename or "upload.txt")[:200]
+
+    def _store():
+        # Guardian windows are GPU calls: take a queue slot like a chat
+        # message does, off the event loop.
+        with QueueSlot():
+            return add_project_file(project_id, filename, text)
+
     try:
-        result = add_project_file(project_id, file.filename, text)
+        result = await asyncio.to_thread(_store)
+    except ScreenRefused as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     except ProjectNotFoundError:
         raise HTTPException(status_code=404, detail="Project not found")
     return JSONResponse(result)

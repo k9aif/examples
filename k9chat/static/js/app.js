@@ -338,7 +338,11 @@
   fetch("/chat/runtime").then(r => r.json()).then(rt => {
     settingsProvider.value = rt.provider || "ollama";
     settingsBaseUrl.value = rt.base_url || "";
-    settingsModel.innerHTML = `<option value="${rt.model}">${rt.model}</option>`;
+    settingsModel.innerHTML = "";
+    const currentOpt = document.createElement("option");
+    currentOpt.value = rt.model;
+    currentOpt.textContent = rt.model;   // text, not HTML: the model name is settable via /chat/settings
+    settingsModel.appendChild(currentOpt);
     setActiveModel(rt.model);
   });
 

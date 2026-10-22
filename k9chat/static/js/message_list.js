@@ -336,7 +336,9 @@ const MessageList = (() => {
       el.className = "learn-toast";
       document.body.appendChild(el);
     }
-    el.innerHTML = `<strong>Learned:</strong> ${correctedFact}`;
+    const label = document.createElement("strong");
+    label.textContent = "Learned:";
+    el.replaceChildren(label, document.createTextNode(` ${correctedFact}`));   // LLM-derived: text, not HTML
     // Reflow before adding .show so the transition actually plays even if
     // a toast is already visible (retriggering the same class wouldn't).
     el.classList.remove("show");

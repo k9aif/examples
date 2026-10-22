@@ -60,6 +60,16 @@ rate_limit:
     - {max: "${K9CHAT_RATE_IP_SHORT:-40}", window_seconds: 600}
     - {max: "${K9CHAT_RATE_IP_DAILY:-300}", window_seconds: 86400}
 
+persist_screening:
+  # Everything a visitor's input leaves behind (Project files, Project
+  # name/instructions, learned corrections) passes k9x Shield and Granite
+  # Guardian before it's stored -- fail closed, and Guardian runs here even
+  # when K9CHAT_GUARDIAN_ENABLED=false (that switch is for live messages).
+  # See persist_screen.py.
+  max_chars: 100000              # larger uploads are refused outright
+  guardian_window_chars: 4000    # Guardian reads the text in windows this size
+  guardian_overlap_chars: 200    # so a phrase split across windows is still seen
+
 correction_learning:
   # Auto-detects when a user's next message corrects something the
   # assistant just said, then writes the corrected fact straight into the
