@@ -3,6 +3,8 @@
 
 import asyncio
 import json
+import logging
+import random
 import re
 import os
 import sys
@@ -110,6 +112,44 @@ app.add_middleware(SessionMiddleware, secret_key=get_session_secret())
 
 
 _RATE_LIMITER = RateLimiter(load_config())
+log = logging.getLogger("k9chat.app")
+
+# Shield blocks are a reply, not a dead stream: a PermissionError from the
+# governed agent used to end /chat/stream silently and the UI waited
+# forever. Message wording is Ravi's (2026-10-22).
+_BLOCKED_QUIPS = (
+    "What is that you're trying to do? Hacking? Sorry, man.",
+    "Nice try. Bold, even. But no.",
+    "You brought a prompt injection to a governed agent. Respect the hustle, but no.",
+    "I see what you did there. So did the Shield.",
+    "That's not a question, that's a heist. Heist cancelled.",
+    "Somewhere a pen-tester is proud of you. The Shield is not.",
+    "Hacker mode detected. Governance mode: always on.",
+    "Respectfully: absolutely not.",
+    "You tried. The Shield tried harder.",
+    "Plot twist: the model never even saw it.",
+    "Access denied, with love.",
+    "Cute. Did you think there wasn't a bouncer?",
+)
+
+_CHECK_LABELS = {
+    "PromptInjectionCheck": "prompt injection",
+    "InputSizeCheck": "oversized input",
+    "PIIBoundaryCheck": "personal data",
+}
+
+
+def _blocked_reply(exc: PermissionError) -> str:
+    text = str(exc)
+    m = re.search(r"\[(\w+)\]", text)
+    check = _CHECK_LABELS.get(m.group(1), m.group(1)) if m else "a security check"
+    found = re.search(r"'([^']{1,80})'", text)
+    detail = f'{check}: "{found.group(1)}"' if found else check
+    return (f"{random.choice(_BLOCKED_QUIPS)} "
+            f"\U0001F6E1\uFE0F k9x Shield caught it ({detail}) and nothing reached the model.")
+
+
+_ERROR_REPLY = "Something went wrong on our side and no reply was produced. Please try again."
 
 
 def _public(info: dict) -> dict:
@@ -326,6 +366,9 @@ def chat(payload: ChatRequest, request: Request):
             )
     except QueueBusy as exc:
         return JSONResponse({"reply": str(exc), "busy": True, "model": None})
+    except PermissionError as exc:
+        log.warning("[chat] Shield blocked a message: %s", exc)
+        return JSONResponse({"reply": _blocked_reply(exc), "blocked": True, "model": None})
     elapsed_ms = round((time.monotonic() - start) * 1000)
     reply = result.get("text", "")
     blocked = bool(result.get("blocked"))
@@ -423,6 +466,18 @@ async def chat_stream(payload: ChatRequest, request: Request):
             ):
                 full_text += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        except PermissionError as exc:
+            log.warning("[chat/stream] Shield blocked a message: %s", exc)
+            yield f"data: {json.dumps({'chunk': _blocked_reply(exc)})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'blocked': True, 'model': None})}\n\n"
+            return
+        except Exception:
+            # Top of the stack: log it in full, and end the stream with a
+            # reply so the visitor isn't left waiting on a dead connection.
+            log.exception("[chat/stream] generation failed")
+            yield f"data: {json.dumps({'chunk': _ERROR_REPLY})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'error': True, 'model': None})}\n\n"
+            return
         finally:
             slot.release()   # also on a closed tab (generator cancelled mid-stream)
         elapsed_ms = round((time.monotonic() - start) * 1000)

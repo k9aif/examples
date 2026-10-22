@@ -225,6 +225,13 @@ const ChatInput = (() => {
         }
       }
     }
+
+    // The stream ended without a "done" event (server restart, network
+    // drop): say so instead of leaving the thinking dots up forever.
+    MessageList.removeNode(thinkingNode);
+    if (!bubbleRef) {
+      MessageList.addBubble("assistant", fullText || "No reply came back. The connection ended early; please try again.", {});
+    }
   }
 
   sendBtn.addEventListener("click", send);

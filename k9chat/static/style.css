@@ -250,6 +250,7 @@ body {
   font-size: 0.72rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+  margin: -4px 0 6px;
 }
 
 .jobqueue-list {
