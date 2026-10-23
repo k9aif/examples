@@ -53,6 +53,33 @@ url_fetch:
   max_chars: 12000         # page text kept for the prompt (fits small local models)
   allowed_ports: [80, 443]
 
+# "Ask the framework" API for other applications (api_v1.py): POST /api/v1/ask,
+# GET /api/v1/ask/options, GET /api/v1/health. Off unless K9CHAT_API_ENABLED=true.
+# Keys and secrets live only in .env; this section names who may call and with what budget.
+api:
+  enabled: "${K9CHAT_API_ENABLED:-false}"
+  simulated: "${K9CHAT_API_SIMULATED:-true}"     # canned answers marked "simulated": true
+  max_body_bytes: 8192
+  context_max_chars: 500
+  callers:                     # keyed callers: Authorization: Bearer <key>
+    studio:
+      env: K9_KEY_STUDIO               # the key itself (framework ApiKeyAuthenticator)
+      from_env: K9_KEY_STUDIO_FROM     # optional: only from these addresses, never via the tunnel
+      principal_type: service
+      roles: [ask, ask_options]        # ask_options: may change framework/internet/eval
+      budget:
+        - {max: 60, window_seconds: 600}
+        - {max: 500, window_seconds: 86400}
+  anonymous:                   # a browser on k9x.ai: allowed Origin + Cloudflare Turnstile
+    enabled: "${K9CHAT_API_ANONYMOUS:-false}"     # kill switch: false turns the public path off
+    allowed_origins: [https://k9x.ai, https://www.k9x.ai]
+    turnstile_secret: "${K9CHAT_TURNSTILE_SECRET:-}"
+    turnstile_hostnames: [k9x.ai, www.k9x.ai]
+    per_ip:
+      - {max: 10, window_seconds: 600}
+      - {max: 50, window_seconds: 86400}
+    global:                      # all anonymous callers together; Studio has its own budget
+      - {max: 500, window_seconds: 86400}
 rate_limit:
   # How much GPU one visitor can use (queue_control.py only caps how many
   # generations run at once). A message is refused if ANY window is over

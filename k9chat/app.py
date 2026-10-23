@@ -135,6 +135,12 @@ app.add_middleware(SessionMiddleware, secret_key=get_session_secret())
 
 
 _RATE_LIMITER = RateLimiter(load_config())
+
+# "Ask the framework" API (api_v1.py): mounted only when K9CHAT_API_ENABLED=true.
+from k9chat.api_v1 import AskApi, build_router as build_api_router
+_ASK_API = AskApi(load_config(), framework_locked=is_framework_mode_locked)
+if _ASK_API.enabled:
+    app.include_router(build_api_router(_ASK_API))
 log = logging.getLogger("k9chat.app")
 
 # Shield blocks are a reply, not a dead stream: a PermissionError from the

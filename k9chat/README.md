@@ -130,3 +130,45 @@ k9chat/ubuntu/build-run.sh stop
 mount at `k9chat/data/` on the host. Override the published port with
 `HOST_PORT=<port> k9chat/ubuntu/build-run.sh start`.
 
+
+## Ask API (for other applications)
+
+`api_v1.py` lets another application ask K9Chat a question (K9X Studio's Help, later a question bar on
+k9x.ai). It is separate from the browser UI's `/chat`, and off unless `K9CHAT_API_ENABLED=true`. With
+`K9CHAT_API_SIMULATED=true` (the default) answers are canned and marked `"simulated": true`.
+
+| Method | Path | |
+|---|---|---|
+| `POST` | `/api/v1/ask` | question → answer; SSE stream by default, `"stream": false` for one JSON reply |
+| `GET` | `/api/v1/ask/options` | the defaults, and which ones this caller may change |
+| `GET` | `/api/v1/health` | 200 up / 503 down (cached 15 s), for the k9x dashboard |
+
+```bash
+curl -s https://<k9chat-host>/api/v1/ask -H "Authorization: Bearer $K9_KEY_STUDIO" \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "How do I add a HIL step in Studio?", "options": {"stream": false}}'
+```
+
+Request: `question` (required), `session_id` (optional, keeps follow-ups in context), `context` (optional
+page context, screened like the question), `options`. Defaults: framework **on**, faq **on**, internet
+**off**, stream **on**, eval **off**. Framework and internet are one switch (internet = not framework).
+Reply: `answer`, `sources`, `answered_by` (`faq` | `model` | `simulated`), `model`, `session_id`,
+`elapsed_ms`, `options_applied`, `simulated`. Stream events: `queued`, `token`, then `done` (the same JSON)
+or `error`. Errors: `{"error": {"code", "message"}}` with `unauthorized` 401, `forbidden` /
+`option_not_allowed` / `origin_not_allowed` / `challenge_*` 403, `invalid` 400, `too_large` 413,
+`blocked` 422 (Shield), `rate_limited` 429, `busy` 503.
+
+Callers (config.yaml `api`):
+
+- **Keyed** (e.g. Studio): `Authorization: Bearer <key>`, checked by the framework's `ApiKeyAuthenticator`.
+  The key lives only in `.env` (`K9_KEY_STUDIO`); the caller keeps it server-side, never in browser code.
+  `K9_KEY_STUDIO_FROM` optionally pins it to source addresses on the internal path (never via the tunnel).
+  Only a key with the `ask_options` role may change framework/internet/eval. Own budget per key.
+- **Anonymous** (a browser on k9x.ai): allowed `Origin` plus a Cloudflare Turnstile token
+  (`X-Turnstile-Token`, verified server-side including its hostname). Locked to the defaults; per-IP
+  budget plus one daily budget for all anonymous callers. `K9CHAT_API_ANONYMOUS=false` turns it off.
+
+Every request is refused as cheaply as possible: size cap → caller → body shape → options → budgets →
+FAQ shortcut (CPU) → GPU queue (full = 503 at once) → model. API conversations are kept apart from
+browser visitors' (`api-<caller>-<session_id>`), and correction learning never runs for API callers.
+Tests: `k9chat/tests/test_api_v1.py`.

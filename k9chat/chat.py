@@ -335,6 +335,7 @@ def _clamp_tone_for_framework_mode(unhinged_level: int, profanity_level: int) ->
 def send_message(
     text: str, session_id: str = "default", project_id: str | None = None,
     unhinged_level: int = 0, profanity_level: int = 0, length_level: int = 1,
+    sources_out: list | None = None,
 ) -> dict:
     """Returns the full result dict, not just the reply text -- callers
     need "blocked" too (ChatAgent.execute() sets it when GuardAgent
@@ -347,6 +348,8 @@ def send_message(
     agent = build_chat_agent()
     instructions, context = _resolve_project_context(project_id, text)
     knowledge_context = _resolve_knowledge_context(text)
+    if sources_out is not None:                 # the API reports what the answer was grounded on
+        sources_out.extend(knowledge_context)
     web_context = _resolve_web_context(text)
     url_context = _resolve_url_context(text)
     result = agent.execute({
@@ -389,12 +392,15 @@ def toggle_streaming() -> bool:
 async def send_message_stream(
     text: str, session_id: str = "default", project_id: str | None = None,
     unhinged_level: int = 0, profanity_level: int = 0, length_level: int = 1,
+    sources_out: list | None = None,
 ):
     """Yield response chunks as they arrive — used when chat.stream: true."""
     unhinged_level, profanity_level = _clamp_tone_for_framework_mode(unhinged_level, profanity_level)
     agent = build_chat_agent()
     instructions, context = _resolve_project_context(project_id, text)
     knowledge_context = _resolve_knowledge_context(text)
+    if sources_out is not None:
+        sources_out.extend(knowledge_context)
     web_context = _resolve_web_context(text)
     url_context = await asyncio.to_thread(_resolve_url_context, text)
     streamed: list = []
