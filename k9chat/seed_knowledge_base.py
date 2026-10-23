@@ -124,7 +124,8 @@ def _read_github(label: str) -> str:
 # it covers) plus one for the channel, so "is there a video on X?" finds
 # the right one. Sources, never a hand-copied list:
 #   - k9x_video_series/videos.yaml: the single list of published videos
-#     (titles, lengths), when it's on disk (the Mac);
+#     (titles, lengths, and an "about" used when the feed is down), when
+#     it's on disk (the Mac; on PowerAI copy just that one file);
 #   - the channel's public feed: each video's description, and the list
 #     itself when videos.yaml isn't there (PowerAI).
 YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@k9-aif"
@@ -186,8 +187,11 @@ def _video_docs():
         for v in (yaml.safe_load(VIDEOS_YAML.read_text()) or {}).get("videos", []):
             vid = _video_id(v.get("url", ""))
             if vid:
+                # The feed's description when it's up, else the list's own "about"
+                # (the feed returned 404 from every host on 2026-10-22).
                 videos.append({"id": vid, "title": v.get("title", ""), "length": v.get("length", ""),
-                               "published": str(v.get("published", "")), **{"description": feed.get(vid, {}).get("description", "")}})
+                               "published": str(v.get("published", "")),
+                               "description": feed.get(vid, {}).get("description", "") or v.get("about", "")})
         where = str(VIDEOS_YAML)
     elif feed:
         videos = [{"id": vid, "length": "", **meta} for vid, meta in feed.items()]
