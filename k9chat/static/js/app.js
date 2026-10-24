@@ -195,9 +195,8 @@
         : "Click to toggle Framework Mode. ON = scoped to K9-AIF/K9X only, no internet access. OFF = general questions answered via live web search (self-hosted SearxNG)";
       wrap.style.cursor = cfg.framework_mode_locked ? "not-allowed" : "pointer";
 
-      // Read-only mirror of Framework Mode, positioned in row 2 (left of
-      // "ollama") rather than a second interactive badge in row 1 --
-      // Framework Mode above is the actual control.
+      // Read-only mirror of Framework Mode, beside it in row 2 (left of
+      // the model picker) -- Framework Mode is the actual control.
       const statusDot = document.getElementById("internet-status-dot");
       const statusLabel = document.getElementById("badge-internet-status");
       if (statusDot && statusLabel) {

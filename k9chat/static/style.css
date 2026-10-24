@@ -233,11 +233,6 @@ body {
   color: var(--text);
 }
 
-.badge-host-name {
-  background: linear-gradient(135deg, var(--accent), #8b5cf6);
-  color: #fff;
-}
-
 /* ---------------- Job Queue (shared, DAS-style) ---------------- */
 
 .jobqueue-block {
@@ -608,46 +603,70 @@ body {
   color: var(--text-muted);
 }
 
+/* One line when there's room; otherwise the two groups (gates + toggles,
+   mode + internet + model) stack whole; a group only splits when it
+   can't fit a line by itself (narrow windows). */
+.topbar-title {
+  flex-shrink: 0;
+}
+
 .badge-group {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 8px;
+  min-width: 0;
 }
 
 .badge-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   justify-content: flex-end;
 }
 
 .badge {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  box-sizing: border-box;
   background: var(--badge-bg);
   color: var(--badge-text);
-  padding: 10px 14px;
+  padding: 0 12px;
   border-radius: 999px;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* Flex drops the space before the value ("Internet ON"); restore it. */
+.badge > span[id^="badge-"] {
+  margin-left: 4px;
+}
+
+.badge-model-picker select {
+  background: transparent;
+  color: inherit;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.badge-model-picker option {
+  background: var(--badge-bg);
+  color: var(--badge-text);
 }
 
 .badge-guardian {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  font-size: 0.8rem;
-  padding: 6px 12px;
   cursor: default;
   background: rgba(148, 163, 184, 0.12);
   color: var(--text-muted);
-}
-
-/* Guardian + online count stay together (.topbar spaces its children apart). */
-.topbar-status {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
 }
 
 /* "# users N" beside the Guardian badge: visitors here right now. */
@@ -656,8 +675,9 @@ body {
   align-items: center;
   gap: 6px;                      /* the space between "# users" and the number */
   flex-shrink: 0;
-  margin-left: 10px;
-  padding: 6px 12px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--badge-bg);
