@@ -18,11 +18,9 @@
   --secondary-btn-bg: #e5e7eb;
   --secondary-btn-text: #111827;
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
-  --online-count: #c2410c;
 }
 
 [data-theme="dark"] {
-  --online-count: #fb923c;
   --bg: #0f1320;
   --bg-elevated: #161b2c;
   --bg-sunken: #131726;
@@ -641,12 +639,16 @@ body {
   white-space: nowrap;
 }
 
-/* Flex drops the space before the value ("Internet ON"); restore it. */
+/* Flex drops the space before the value ("Internet ON"); restore it.
+   ON and OFF share one width so toggling never reflows the header. */
 .badge > span[id^="badge-"] {
+  display: inline-block;
+  min-width: 3.6ch;
   margin-left: 4px;
 }
 
 .badge-model-picker select {
+  field-sizing: content;          /* size to the chosen model, not the longest option */
   background: transparent;
   color: inherit;
   border: none;
@@ -669,22 +671,15 @@ body {
   color: var(--text-muted);
 }
 
-/* "# users N" beside the Guardian badge: visitors here right now. */
-.online-label { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; }
+/* "N online" left of Clear chat: visitors here right now. Presence, not a
+   setting, so it stays quiet -- muted text, no badge. */
 .online-count {
   align-items: center;
-  gap: 6px;                      /* the space between "# users" and the number */
-  flex-shrink: 0;
-  height: 30px;
-  box-sizing: border-box;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--badge-bg);
-  font-size: 0.95rem;
-  font-weight: 700;
+  gap: 4px;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
-  color: var(--online-count);
+  color: var(--text-muted);
+  opacity: 0.8;
   cursor: default;
 }
 
@@ -1253,6 +1248,8 @@ textarea:focus {
 
 .input-footer {
   display: flex;
+  align-items: center;
+  gap: 12px;
   justify-content: flex-end;
   margin-top: 8px;
 }
