@@ -12,6 +12,8 @@ answers are sent with Cache-Control: no-store.
     GET  /login, POST /login, POST /logout
     GET  /app               the demo (Weather and Architecture tabs); needs a session
     POST /api/weather       {"zip": "30301", "role": "customer", "poison": false}; needs a session
+    GET  /health            public: 200 {"status": "ok"} when the demo can answer, 503 when its model server
+                            is unreachable (for the K9X Dashboard; no model names)
     GET  /api/health        model server reachable? which catalog models?
     GET  /api/agent         the agent YAML and the Shield checks in force
 """
@@ -177,6 +179,26 @@ async def weather(req: WeatherRequest, request: Request):
         _ONE_AT_A_TIME.release()
     # One visitor's answer must never be served to another from a browser or CDN cache.
     return JSONResponse(result, headers={"Cache-Control": "no-store, private"})
+
+
+def _model_server_reachable(timeout: float = 4) -> bool:
+    inference = STATE["adapter"].orchestrator_adapter.config.get("inference", {})
+    base = (inference.get("llm_factory", {}).get("base_url") or "").rstrip("/")
+    try:
+        with urllib.request.urlopen(f"{base}/v1/models", timeout=timeout) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+@app.get("/health")
+def public_health():
+    """Public liveness for the K9X Dashboard: the demo answers only when its model server does, so an unreachable
+    model server is reported as 503, not as "up". Says nothing about which models run."""
+    if _model_server_reachable(timeout=2):
+        return {"status": "ok", "service": "openai-weather"}
+    return JSONResponse({"status": "unavailable", "service": "openai-weather",
+                         "reason": "model server unreachable"}, status_code=503)
 
 
 @app.get("/api/health")
