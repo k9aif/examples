@@ -2,6 +2,11 @@
 """
 One weather request, with the governance trace that came with it. Used by the CLI
 (run_weather.py) and the web page (webui/app.py).
+
+Isolation between visitors: nothing about a request is kept after it returns. Its trace events
+are collected under its own random trace id and handed back only to that request; the demo
+"poison" switch is a per-request context variable. The adapter, Shield and the router keep no
+request content between calls (the router is asked with an empty prompt).
 """
 
 from __future__ import annotations
@@ -71,7 +76,7 @@ async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dic
                "action_type": "weather.lookup", "trace_id": tid}
     with _LOCK:
         _EVENTS[tid] = []
-        tools.POISON_NEXT_LOOKUP = poison
+    token = tools.POISON_NEXT_LOOKUP.set({"armed": poison})   # this request only
     try:
         result = await adapter.execute_async(payload)
         outcome, text = "answer", result["output_text"]
@@ -80,6 +85,7 @@ async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dic
     except Exception as exc:                       # reported to the caller, not hidden
         outcome, text = "error", f"{type(exc).__name__}: {exc}"
     finally:
+        tools.POISON_NEXT_LOOKUP.reset(token)
         with _LOCK:
             events = _EVENTS.pop(tid, [])
     trace = [d for d in (describe(e) for e in events) if d]

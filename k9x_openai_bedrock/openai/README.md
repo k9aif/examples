@@ -41,6 +41,20 @@ model server. On Ubuntu, see [ubuntu/README.md](ubuntu/README.md): `ubuntu/setup
 The page's **Architecture** tab shows how the pieces fit, what is checked where, the agent's YAML and the
 policy in force, and the last request step by step.
 
+## Where the code is
+
+The orchestrator adapter is part of the K9-AIF framework, like its CrewAI, LangGraph and Claude Agent SDK
+adapters: `k9_aif_abb/k9_adapters/openai_agents/` in
+[k9-aif-framework](https://github.com/k9aif/k9-aif-framework) (branch `feature/openai-agents-adapter` until
+1.27.0). This example configures it in `weather_zip/app.py` (`build_adapter()`, named
+`WeatherZipOrchestrator`) and supplies only the tools, the agent YAML and the policy.
+
+## The page
+
+`/` is a public overview. **Try the demo** signs you in with the demo login (shown on the page; there is no
+admin account) and opens `/app`. Every sign-in is its own private session: nothing one visitor sends or
+receives is stored or shown to anyone else, and answers are sent with `Cache-Control: no-store`.
+
 ## Read more
 
 - [integration-design.md](integration-design.md): what the OpenAI Agents SDK provides, what K9-AIF adds,

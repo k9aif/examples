@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in: K9-AIF and OpenAI Agents SDK</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; color: #0f172a;
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(160deg, #0f172a 0%, #12324a 55%, #064e3b 100%); padding: 20px; }
+  .box { width: 100%; max-width: 400px; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
+  .brand { display: inline-block; font-weight: 800; letter-spacing: 0.05em; color: #fff; background: #047857;
+    padding: 3px 10px; border-radius: 6px; text-decoration: none; }
+  h1 { font-size: 19px; margin: 14px 0 4px; }
+  p { color: #475569; margin: 0 0 18px; font-size: 14px; }
+  label { display: grid; gap: 4px; font-size: 13px; color: #475569; margin-bottom: 12px; }
+  input { font: inherit; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 9px; }
+  button { width: 100%; font: inherit; font-weight: 650; border: 0; border-radius: 10px; padding: 11px; cursor: pointer;
+    background: #10b981; color: #052e2b; margin-top: 4px; }
+  .demo { margin-top: 16px; padding: 12px; background: #ecfdf5; border-radius: 10px; font-size: 13.5px; color: #065f46; }
+  .demo code { background: #fff; padding: 1px 6px; border-radius: 4px; }
+  .err { background: #fef2f2; color: #991b1b; border-radius: 9px; padding: 9px 12px; font-size: 13.5px; margin-bottom: 12px; }
+  .back { display: block; text-align: center; margin-top: 14px; font-size: 13.5px; color: #047857; }
+</style>
+</head>
+<body>
+  <form class="box" method="post" action="/login">
+    <a class="brand" href="https://k9x.ai">K9X</a>
+    <h1>K9-AIF and the OpenAI Agents SDK</h1>
+    <p>Sign in to try the governed weather agent.</p>
+    <!--ERROR-->
+    <label>User name <input name="username" autocomplete="username" required></label>
+    <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+    <button type="submit">Sign in</button>
+    <div class="demo">Demo login: <code>demo</code> / <code>__DEMO_PASSWORD__</code><br>Each sign-in is its own private session.</div>
+    <a class="back" href="/">← Back to the overview</a>
+  </form>
+</body>
+</html>

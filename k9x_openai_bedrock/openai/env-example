@@ -18,3 +18,9 @@ PORT=8003
 
 # Requests a minute per visitor on the page (public hosting).
 WEATHER_RATE_PER_MIN=6
+
+# Demo sign-in shown on the landing page (demo login only; there is no admin account).
+DEMO_USER=demo
+DEMO_PASSWORD=demo
+# Signs session cookies. Set it in production; unset = random per start (everyone signed out on restart).
+# SESSION_SECRET=

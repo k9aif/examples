@@ -27,6 +27,8 @@
   .brand { display: inline-block; font-weight: 800; letter-spacing: 0.04em; font-size: 15px; text-decoration: none;
     color: #fff; background: #0f172a; padding: 3px 10px; border-radius: 6px; margin-bottom: 10px; }
   .brand:hover { background: #1d4ed8; }
+  .signout { font: inherit; font-size: 13px; background: rgba(255,255,255,0.7); border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px 10px; cursor: pointer; color: var(--ink); }
   footer { max-width: 980px; margin: 0 auto; padding: 0 20px 28px; font-size: 12.5px; color: var(--muted); }
   footer a { color: inherit; }
   body[data-sky="storm"] footer, body[data-sky="evening"] footer { color: #1e293b; }
@@ -87,7 +89,10 @@
 </head>
 <body data-sky="default">
 <header>
-  <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai">K9X</a>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai">K9X</a>
+    <form method="post" action="/logout" style="margin:0"><button class="signout" type="submit">Sign out</button></form>
+  </div>
   <h1>K9-AIF Framework, K9X Ecosystem and OpenAI Agents SDK in Collaboration</h1>
   <p class="sub">Weather by US zip code. An OpenAI agent does the work; K9-AIF governs every step.</p>
   <nav role="tablist">
@@ -249,6 +254,7 @@ $("ask").addEventListener("submit", async (ev) => {
   try {
     const resp = await fetch("/api/weather", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ zip: $("zip").value, role: $("role").value, poison: $("poison").checked }) });
+    if (resp.status === 401) { window.location.href = "/login"; return; }
     const r = await resp.json();
     if (!resp.ok) throw new Error(typeof r.detail === "string" ? r.detail : (r.detail ? JSON.stringify(r.detail) : resp.statusText));
     $("result").className = "result " + r.outcome;

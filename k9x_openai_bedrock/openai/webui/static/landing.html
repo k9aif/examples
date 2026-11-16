@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K9-AIF and OpenAI Agents SDK</title>
+<style>
+  :root {
+    --ink: #0f172a; --muted: #475569; --line: #e2e8f0; --bg: #f8fafc; --card: #ffffff;
+    --em: #047857; --em-2: #10b981; --em-soft: #ecfdf5; --slate: #0f172a; --blue: #1d4ed8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); background: var(--bg);
+    font: 15.5px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--em); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+  /* header */
+  .top { position: sticky; top: 0; z-index: 5; background: rgba(15,23,42,0.96); color: #e2e8f0; }
+  .top .wrap { display: flex; align-items: center; gap: 22px; height: 56px; }
+  .brand { font-weight: 800; letter-spacing: 0.05em; color: #fff; text-decoration: none; background: var(--em);
+    padding: 3px 10px; border-radius: 6px; }
+  .top nav { display: flex; gap: 18px; flex: 1; font-size: 14px; }
+  .top nav a { color: #cbd5e1; text-decoration: none; }
+  .top nav a:hover { color: #fff; }
+  .signin { color: #fff; border: 1px solid #475569; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 14px; }
+  /* hero */
+  .hero { background: radial-gradient(1200px 400px at 80% -10%, #065f46 0%, transparent 60%),
+                       linear-gradient(160deg, #0f172a 0%, #12324a 55%, #064e3b 100%);
+    color: #f8fafc; padding: 64px 0 56px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 12.5px; color: #6ee7b7; font-weight: 700; }
+  .hero h1 { font-size: 38px; line-height: 1.15; margin: 10px 0 14px; max-width: 840px; letter-spacing: -0.015em; }
+  .hero p.lede { font-size: 18px; color: #cbd5e1; max-width: 760px; margin: 0 0 26px; }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .btn { font: inherit; font-weight: 650; border: 0; border-radius: 10px; padding: 12px 20px; cursor: pointer; text-decoration: none; }
+  .btn.primary { background: var(--em-2); color: #052e2b; }
+  .btn.primary:hover { background: #34d399; }
+  .btn.ghost { background: transparent; color: #f8fafc; border: 1px solid #64748b; }
+  .demo-login { font-size: 13.5px; color: #a7f3d0; margin-top: 14px; }
+  .demo-login code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px; color: #ecfdf5; }
+  /* sections */
+  section { padding: 54px 0 10px; }
+  h2 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; }
+  .card h3 { font-size: 16px; margin: 0 0 6px; display: flex; gap: 8px; align-items: center; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .tag { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
+  .tag.oa { background: #e0f2fe; color: #075985; }
+  .tag.k9 { background: var(--em-soft); color: var(--em); }
+  .card.k9 { border-top: 3px solid var(--em-2); }
+  .card.oa { border-top: 3px solid #38bdf8; }
+  .split { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: start; }
+  .framework { background: var(--slate); color: #e2e8f0; border-radius: 16px; padding: 24px; }
+  .framework h3 { margin: 0 0 8px; font-size: 19px; color: #fff; }
+  .framework p { color: #cbd5e1; margin: 0 0 12px; font-size: 14.5px; }
+  .framework ul { margin: 0 0 14px; padding-left: 18px; color: #cbd5e1; font-size: 14.5px; }
+  .framework code { background: #1e293b; padding: 2px 7px; border-radius: 5px; color: #a7f3d0; }
+  .framework a { color: #6ee7b7; }
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  ol.steps li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px 12px 54px; position: relative; font-size: 14.5px; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 14px; top: 11px; width: 26px; height: 26px;
+    border-radius: 50%; background: var(--em); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 13px; }
+  ol.steps b { color: var(--ink); }
+  .figure { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+  .figure img { width: 100%; display: block; }
+  .eco { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .eco a { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px; }
+  .eco a:hover { border-color: var(--em-2); }
+  .eco b { display: block; color: var(--ink); }
+  .eco span { color: var(--muted); font-size: 13.5px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { background: #f1f5f9; border-top: 0; }
+  footer { margin-top: 56px; padding: 26px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5px; }
+  @media (max-width: 900px) { .grid, .eco { grid-template-columns: 1fr 1fr; } .split { grid-template-columns: 1fr; }
+    .top nav { display: none; } .hero h1 { font-size: 30px; } }
+  @media (max-width: 560px) { .grid, .eco { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai">K9X</a>
+    <nav>
+      <a href="#what">What it does</a>
+      <a href="#how">How it works</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="#scope">Scope</a>
+    </nav>
+    <a class="signin" href="/login">Sign in</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Governed agents, any runtime</div>
+    <h1>K9-AIF Framework, K9X Ecosystem and OpenAI Agents SDK in Collaboration</h1>
+    <p class="lede">An OpenAI Agents SDK agent answers "what is the weather at this zip code?". K9-AIF governs every
+      step it takes: who may ask, what reaches the model, every tool call and tool result, every reply, and which
+      model thinks. Watch each check happen, live.</p>
+    <div class="cta">
+      <form method="post" action="/login" style="margin:0">
+        <input type="hidden" name="username" value="demo">
+        <input type="hidden" name="password" value="__DEMO_PASSWORD__">
+        <button class="btn primary" type="submit">Try the demo →</button>
+      </form>
+      <a class="btn ghost" href="/login">Sign in</a>
+    </div>
+    <div class="demo-login">Demo login: <code>demo</code> / <code>__DEMO_PASSWORD__</code> · every visitor gets a private session</div>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section id="what">
+    <h2>What the OpenAI Agents SDK brings</h2>
+    <p class="sub">A well-made library for agent loops. These are its own features, from its
+      <a href="https://openai.github.io/openai-agents-python/">documentation</a>.</p>
+    <div class="grid">
+      <div class="card oa"><h3><span class="tag oa">SDK</span> Agent loop</h3><p>The Runner calls the model, runs tools and repeats until there is a final answer.</p></div>
+      <div class="card oa"><h3><span class="tag oa">SDK</span> Handoffs</h3><p>One agent can delegate to another that specialises in a different area.</p></div>
+      <div class="card oa"><h3><span class="tag oa">SDK</span> Guardrails</h3><p>Input, output and tool guardrails that each application attaches and writes.</p></div>
+      <div class="card oa"><h3><span class="tag oa">SDK</span> Approvals</h3><p>A tool can require approval; the run pauses and resumes from its saved state.</p></div>
+      <div class="card oa"><h3><span class="tag oa">SDK</span> Tracing</h3><p>Every run traced by default, with processors you can add or replace.</p></div>
+      <div class="card oa"><h3><span class="tag oa">SDK</span> Any compatible model</h3><p>OpenAI's models, or any OpenAI-compatible endpoint: here, a local model on Ollama.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What K9-AIF adds</h2>
+    <p class="sub">One governance configuration that holds for every agent on every runtime. The adapter wraps the
+      SDK; it doesn't change it.</p>
+    <div class="grid">
+      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> Shield on every step</h3><p>The request, each tool call, each tool result, every agent's reply and the final answer pass k9x Shield.</p></div>
+      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> Zero Trust</h3><p>Who may run the request, and who may reach each agent, from a role policy the solution owns.</p></div>
+      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> K9 Model Router</h3><p>Picks the model for every call, eligibility first: a tool-using agent only gets a model that can call tools.</p></div>
+      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> Agents in YAML</h3><p>The OpenAI agent is declared in K9-AIF agent YAML. A tool it isn't registered for fails at start-up.</p></div>
+      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> Sole broker</h3><p>The adapter builds every agent and tool itself, so nothing ungoverned can be slipped in.</p></div>
+      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> One layer, every runtime</h3><p>The same checks already govern CrewAI, LangGraph and the Claude Agent SDK. Now the OpenAI Agents SDK too.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="split">
+      <div class="framework">
+        <h3>The K9-AIF framework</h3>
+        <p>An architecture-first framework for governed, observable multi-agent systems. Abstract building blocks
+          (ABBs) define the contracts; solutions extend them. Router, Orchestrator, Squad and Agent, with governance
+          applied by construction.</p>
+        <ul>
+          <li>The adapter is an <b>orchestrator</b>: the Router sends it the event <code>weather.lookup</code>.</li>
+          <li>On this path the SDK's Runner and agent take the place of Squad and Agent.</li>
+          <li>Failures and human-review signals propagate with their own type.</li>
+          <li>SDK traces stay local unless you choose to export them.</li>
+        </ul>
+        <p><code>pip install k9-aif</code> · <a href="https://github.com/k9aif/k9-aif-framework">github.com/k9aif/k9-aif-framework</a></p>
+      </div>
+      <div>
+        <h2 style="font-size:20px">What you can try</h2>
+        <table>
+          <tr><th>Try</th><th>K9-AIF at work</th></tr>
+          <tr><td>A normal zip code</td><td>Every check listed, step by step</td></tr>
+          <tr><td>A guest caller</td><td>Zero Trust refuses before any agent runs</td></tr>
+          <tr><td>A prompt injection</td><td>Shield refuses before the SDK starts</td></tr>
+          <tr><td>A poisoned upstream response</td><td>The tool result is withheld from the model</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="sub">One request, from the page to the answer.</p>
+    <ol class="steps">
+      <li><b>Zero Trust</b> checks the caller's role for the action <code>weather.lookup</code>.</li>
+      <li><b>Shield ingress</b> screens the request before the OpenAI Agents SDK starts.</li>
+      <li><b>Agent turn:</b> Zero Trust again, for the action <code>openai_agent:WeatherAgent</code>.</li>
+      <li><b>K9 Model Router</b> picks the model for each call; the SDK calls it through its OpenAI-compatible API.</li>
+      <li><b>Each tool call</b> is screened before it runs, and <b>each tool result</b> before the model reads it.
+        The weather tool looks coordinates up from the zip record itself, never from the model.</li>
+      <li><b>Every reply</b> and the <b>final answer</b> pass Shield egress, and the page shows the trace.</li>
+    </ol>
+  </section>
+
+  <section id="architecture">
+    <h2>Architecture</h2>
+    <p class="sub">The orchestrator adapter sits where any K9-AIF orchestrator sits. The services underneath are shared
+      with every other K9-AIF path.</p>
+    <div class="figure"><img src="/static/architecture.png" alt="Block diagram of the weather example: page, orchestrator adapter, OpenAI Runner, WeatherAgent, tools, and the shared K9-AIF services Zero Trust, Shield and Model Router"></div>
+  </section>
+
+  <section id="ecosystem">
+    <h2>Built on K9-AIF, part of K9X</h2>
+    <p class="sub">This demo imports the K9-AIF framework. Other K9X products built on it:</p>
+    <div class="eco">
+      <a href="https://satan.k9x.ai"><b>K9X SATAN</b><span>Attacks the Shield checks to prove they hold</span></a>
+      <a href="https://hil.k9x.ai"><b>K9X HIL</b><span>Human-in-the-loop case management</span></a>
+      <a href="https://studio.k9x.ai"><b>K9X Studio</b><span>Visual builder for K9-AIF applications</span></a>
+      <a href="https://das.k9x.ai"><b>DAS</b><span>A full reference application</span></a>
+    </div>
+  </section>
+
+  <section id="scope">
+    <h2>Scope</h2>
+    <table>
+      <tr><th>This demo</th><th>Notes</th></tr>
+      <tr><td>US zip codes, current weather</td><td>From api.zippopotam.us and api.open-meteo.com, free public services</td></tr>
+      <tr><td>A local model on one GPU</td><td>Requests are queued and limited per visitor; answers may take a few seconds</td></tr>
+      <tr><td>Caller role chosen on the page</td><td>Simulates identity to show Zero Trust; a real deployment takes it from sign-in (OIDC)</td></tr>
+      <tr><td>Private per visitor</td><td>Nothing you send or receive is stored or shown to anyone else</td></tr>
+      <tr><td>OpenAI Agents SDK adapter</td><td>Planned for k9-aif 1.27.0; the source is public now</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    Source: <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai">github.com/k9aif/examples</a>
+    (download it and run <code>./run.sh</code>) · <a href="https://github.com/k9aif/k9-aif-framework">K9-AIF framework</a>
+    · <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a> · <a href="https://k9x.ai">k9x.ai</a>
+  </footer>
+</main>
+</body>
+</html>
