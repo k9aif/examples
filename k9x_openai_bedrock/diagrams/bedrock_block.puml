@@ -1,50 +1,75 @@
 @startuml bedrock_block
-title K9-AIF with AWS Bedrock AgentCore: three integration paths
+title K9-AIF with AWS Bedrock AgentCore: where each piece sits
+top to bottom direction
 
-rectangle "AWS Bedrock AgentCore" {
-  rectangle "Runtime" as RT {
-    rectangle "Path A: K9-AIF application\n(BedrockAgentCoreApp entrypoint\n-> Router -> Orchestrator -> Squad)" as K9App
+rectangle "Client / event source" as Client
+
+rectangle "AgentCore Runtime (Path A: hosting)" as RT {
+  rectangle "K9-AIF Router\n(admit: authenticate, route by event_type)" as Router
+
+  rectangle "Native K9-AIF path" as Native {
+    rectangle "Orchestrator\n(BaseOrchestrator)" as Orch
+    rectangle "Squad\n(BaseSquad, YAML flow)" as Squad
+    rectangle "Agents\n(BaseAgent, llm_invoke)" as Agents
   }
-  rectangle "Harness\n(managed agent loop)" as Harness
-  rectangle "Deployed agent\n(any framework)" as Other
-  rectangle "Gateway\n(Cedar policy engine)" as GW
-  rectangle "Memory" as Mem
-  rectangle "Identity" as Id
-  rectangle "Bedrock models\n(Converse API)" as Bedrock
+
+  rectangle "AgentCore path (Path B)" as PB {
+    rectangle "BedrockAgentCoreOrchestratorAdapter\n(is an Orchestrator: BaseOrchestrator + BaseAdapter)" as Adapter
+    rectangle "AgentCore Harness\n(managed agent loop)\nor a deployed agent" as Harness
+  }
 }
 
-rectangle "K9-AIF" {
-  rectangle "Path B: BedrockAgentCoreOrchestratorAdapter\n(harness mode / runtime mode)" as Adapter
-  rectangle "Shield governance\n+ tool gate + HIL" as Shield
-  rectangle "Path C: Shield interceptor\n(Lambda, REQUEST / RESPONSE)" as Interceptor
+rectangle "Shared K9-AIF services (same config for both paths)" as Shared {
+  rectangle "Shield governance\n(ingress, egress,\ntool args, tool results)" as Shield
+  rectangle "Tool gate\n(registry, record checks,\nrules -> allow / deny / hil)" as Gate
+  rectangle "HIL Orchestrator\n-> k9x HIL" as HIL
+  rectangle "Model Router\n(eligibility, learned scores)" as MR
 }
 
+rectangle "AgentCore Gateway (Path C)\nCedar policy + Shield interceptor" as GW
+
+rectangle "AgentCore Memory\n(session store)" as Mem
+rectangle "Bedrock models\n(Converse API, BedrockLLM)" as Models
 rectangle "Tools\n(MCP servers, APIs, Lambda)" as Tools
 
-K9App --> Mem : AgentCoreMemorySessionStore
-K9App --> Bedrock : BedrockLLM via Model Router
-K9App --> Id : inbound JWT -> OIDC principal
-K9App --> Shield : in-process
+Client --> Router : AgentCore inbound JWT\n-> K9 principal
+Router --> Orch : event_type A
+Router --> Adapter : event_type B
+Orch -[hidden]right-> Adapter
+Shield -[hidden]right-> Gate
 
-Adapter --> Harness : harness mode
-Adapter --> Other : runtime mode
-Adapter --> Shield
+Orch --> Squad
+Squad --> Agents
 
+Adapter --> Harness : invoke
+
+Harness ..> Gate : inline tool calls\ncome back to the adapter
 Harness --> GW : server-side tools
-Other --> GW
-GW --> Interceptor : every tool call and result
-Interceptor --> Shield
+Adapter ..> Shield : ingress, final output
+Agents ..> Shield : governed by construction
+Agents ..> MR : llm_invoke
+Agents ..> Mem : sessions
+Gate ..> HIL : review needed
+Gate ..> Shield : tool args, results
+MR --> Models
+Gate --> Tools : allowed call
+GW ..> Shield : every tool call and result
 GW --> Tools : allowed by Cedar and Shield
 
-note bottom of Adapter
-  harness mode: inline tool calls come back
-  to the adapter (to be verified live).
-  runtime mode: boundary governance only.
+note right of PB
+  The adapter is one of the Router's
+  orchestrators. The Harness takes the
+  place of Squad -> Agent on this path.
+  Harness inline-tool round trip:
+  to be verified live.
+  A deployed agent K9-AIF did not build
+  is governed at its boundary only.
 end note
 
-note bottom of GW
+note right of GW
   Cedar decides who may call which tool.
   Shield checks what the call carries:
   injection, PII, arguments against records.
+  Covers agents in any framework.
 end note
 @enduml
