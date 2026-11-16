@@ -1,15 +1,16 @@
 # Copy to .env and edit. .env is never committed.
 
 # Your Ollama server (it serves the OpenAI-compatible API under /v1).
+# In the container (ubuntu/build-run.sh) use the host's LAN address, not localhost.
 OLLAMA_BASE_URL=http://localhost:11434
 
 # The tool-calling model for the WeatherAgent (pull it first: ollama pull qwen2.5:7b).
 WEATHER_MODEL=qwen2.5:7b
 
-# development keeps the Zero Trust identity warning soft; production refuses ungoverned calls.
+# development keeps the Zero Trust identity warning soft; build-run.sh sets production in the container.
 K9_ENV=development
 
-# Page port.
+# Page port for ./run.sh (the container listens on 8121; build-run.sh's HOST_PORT changes that).
 PORT=8003
 
 # Optional: a local framework checkout instead of PyPI.
