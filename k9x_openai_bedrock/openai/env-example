@@ -14,3 +14,6 @@ PORT=8003
 
 # Optional: a local framework checkout instead of PyPI.
 # K9_FRAMEWORK_DIR=/path/to/k9-aif-framework
+
+# Requests a minute per visitor on the page (public hosting).
+WEATHER_RATE_PER_MIN=6

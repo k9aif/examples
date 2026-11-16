@@ -11,7 +11,18 @@ cd "$(dirname "$0")"
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
 export K9_ENV="${K9_ENV:-development}"
 PORT="${PORT:-8003}"
-PYTHON="${PYTHON:-python3.11}"
+# K9-AIF needs Python 3.11 or later: use $PYTHON if set, else the first suitable one found.
+if [ -z "${PYTHON:-}" ]; then
+  for candidate in python3.11 python3.12 python3.13 python3; do
+    if command -v "$candidate" >/dev/null 2>&1 && \
+       "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
+      PYTHON="$candidate"; break
+    fi
+  done
+fi
+if [ -z "${PYTHON:-}" ]; then
+  echo "Python 3.11 or later is required (see ubuntu/README.md on Ubuntu 22.04)." >&2; exit 1
+fi
 FRAMEWORK="${K9_FRAMEWORK_DIR:-../../../k9-aif-framework}"
 
 if [ ! -x .venv/bin/python ]; then
@@ -32,5 +43,5 @@ if [ "${1:-}" = "--demo" ]; then
   exec .venv/bin/python -m weather_zip.run_weather --demo
 fi
 
-echo "Open http://127.0.0.1:${PORT}   (Ctrl+C to stop)"
-exec .venv/bin/python -m uvicorn webui.app:app --host 127.0.0.1 --port "$PORT"
+echo "Open http://${HOST:-127.0.0.1}:${PORT}   (Ctrl+C to stop)"
+exec .venv/bin/python -m uvicorn webui.app:app --host "${HOST:-127.0.0.1}" --port "$PORT"

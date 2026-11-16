@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: Apache-2.0
+# Zip-code weather: K9-AIF Framework, K9X Ecosystem and OpenAI Agents SDK in collaboration.
+#
+# Build context is ai/ (the parent of k9-aif-framework/ and k9-aif-examples/): the image copies
+# k9_aif_abb/ from the framework checkout, because the OpenAI Agents SDK adapter ships in
+# k9-aif 1.27.0, which isn't on PyPI yet (k9chat does the same). build-run.sh runs the build.
+# No secrets in the image: OLLAMA_BASE_URL and friends come from openai/.env at run time.
+
+ARG K9AIF_DIR=k9-aif-framework
+ARG EXAMPLE_DIR=k9-aif-examples/k9x_openai_bedrock/openai
+
+FROM registry.access.redhat.com/ubi9/python-311:latest
+ARG K9AIF_DIR
+ARG EXAMPLE_DIR
+
+USER root
+WORKDIR /app
+
+COPY ${EXAMPLE_DIR}/requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+# Version (commit ids) after the dependency layers, so a new commit doesn't re-download them.
+ARG APP_VERSION=unknown
+ENV APP_VERSION=${APP_VERSION}
+
+COPY ${K9AIF_DIR}/k9_aif_abb ./k9_aif_abb
+COPY ${EXAMPLE_DIR}/config ./openai/config
+COPY ${EXAMPLE_DIR}/agents ./openai/agents
+COPY ${EXAMPLE_DIR}/weather_zip ./openai/weather_zip
+COPY ${EXAMPLE_DIR}/webui ./openai/webui
+
+RUN mkdir -p /app/openai/runtime \
+ && chown -R 1001:0 /app \
+ && chmod -R g+rwX /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app:/app/openai \
+    K9_ENV=production \
+    PORT=8121
+
+WORKDIR /app/openai
+EXPOSE 8121
+
+HEALTHCHECK --interval=30s --timeout=8s --start-period=20s --retries=3 \
+  CMD python -c "import socket; socket.create_connection(('localhost', 8121), timeout=3).close()" || exit 1
+
+USER 1001
+CMD ["python", "-m", "uvicorn", "webui.app:app", "--host", "0.0.0.0", "--port", "8121", "--proxy-headers"]

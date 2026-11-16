@@ -23,7 +23,13 @@
     background: linear-gradient(180deg, var(--sky-a), var(--sky-b)) fixed;
     transition: background 1.2s ease;
   }
-  header { padding: 22px 20px 0; max-width: 980px; margin: 0 auto; }
+  header { padding: 18px 20px 0; max-width: 980px; margin: 0 auto; }
+  .brand { display: inline-block; font-weight: 800; letter-spacing: 0.04em; font-size: 15px; text-decoration: none;
+    color: #fff; background: #0f172a; padding: 3px 10px; border-radius: 6px; margin-bottom: 10px; }
+  .brand:hover { background: #1d4ed8; }
+  footer { max-width: 980px; margin: 0 auto; padding: 0 20px 28px; font-size: 12.5px; color: var(--muted); }
+  footer a { color: inherit; }
+  body[data-sky="storm"] footer, body[data-sky="evening"] footer { color: #1e293b; }
   h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
   .sub { color: var(--muted); margin: 0; }
   body[data-sky="storm"] header, body[data-sky="evening"] header { color: #f8fafc; }
@@ -81,6 +87,7 @@
 </head>
 <body data-sky="default">
 <header>
+  <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai">K9X</a>
   <h1>K9-AIF Framework, K9X Ecosystem and OpenAI Agents SDK in Collaboration</h1>
   <p class="sub">Weather by US zip code. An OpenAI agent does the work; K9-AIF governs every step.</p>
   <nav role="tablist">
@@ -180,6 +187,12 @@
     <ol class="trace" id="trace-arch"><li><span></span><span class="step">No request yet</span><span class="detail muted">Run one on the Weather tab.</span></li></ol>
   </section>
 </main>
+<footer>
+  Source: <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai">github.com/k9aif/examples</a>
+  (download it and run <code>./run.sh</code>) · Framework: <a href="https://github.com/k9aif/k9-aif-framework">K9-AIF</a>
+  · <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a>
+  · Runs on one GPU: requests are queued and limited per visitor · <span id="version"></span>
+</footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -237,7 +250,7 @@ $("ask").addEventListener("submit", async (ev) => {
     const resp = await fetch("/api/weather", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ zip: $("zip").value, role: $("role").value, poison: $("poison").checked }) });
     const r = await resp.json();
-    if (!resp.ok) throw new Error(r.detail ? JSON.stringify(r.detail) : resp.statusText);
+    if (!resp.ok) throw new Error(typeof r.detail === "string" ? r.detail : (r.detail ? JSON.stringify(r.detail) : resp.statusText));
     $("result").className = "result " + r.outcome;
     $("kind").textContent = { answer: "Answer", refused: "Refused by K9-AIF", error: "Error" }[r.outcome];
     $("text").textContent = r.text;
@@ -258,6 +271,7 @@ fetch("/api/health").then((r) => r.json()).then((h) => {
   $("status").innerHTML = `<span class="dot" style="background:${color}"></span>` +
     (h.model_server_reachable ? "Model server reachable" : "Model server not reachable: check OLLAMA_BASE_URL in .env") +
     ` · model routing: ${h.routing} · Zero Trust: ${h.zero_trust ? "on" : "off"}`;
+  $("version").textContent = h.version ? `Build: ${h.version}` : "";
   $("catalog").textContent = h.catalog.map((c) => `${c.alias}: ${c.model} [${(c.capabilities || []).join(", ")}]`).join("  ·  ");
 }).catch(() => { $("status").textContent = "Health check failed."; });
 

@@ -25,8 +25,9 @@ cp env-example .env          # set OLLAMA_BASE_URL if Ollama isn't on localhost
 Agents SDK adapter is planned for k9-aif 1.27.0; until that release, use the framework branch
 `feature/openai-agents-adapter`.
 
-Nothing here is hosted or containerised. It runs locally and calls two free public services
-(api.zippopotam.us, api.open-meteo.com) and your model server.
+It runs locally and calls two free public services (api.zippopotam.us, api.open-meteo.com) and your
+model server. On Ubuntu, see [ubuntu/README.md](ubuntu/README.md): `ubuntu/setup.sh` for your own machine,
+`ubuntu/build-run.sh` for a container behind a tunnel (how https://openai.k9x.ai is served).
 
 ## What you'll see
 
@@ -53,7 +54,8 @@ policy in force, and the last request step by step.
 config/config.yaml              Model Router catalog, Shield checks, Zero Trust
 agents/yaml/weather_agent.yaml  the OpenAI agent, in K9-AIF agent YAML
 weather_zip/                    tools, wiring, request service, command line
-webui/                          the local page
+webui/                          the page (local or container)
+ubuntu/                         setup.sh (Ubuntu machine), build-run.sh + Containerfile (container)
 diagrams/                       PlantUML sources and PNGs
 run.sh                          set up and start
 ```
