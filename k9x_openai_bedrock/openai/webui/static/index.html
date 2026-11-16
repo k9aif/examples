@@ -356,8 +356,8 @@ async def k9_tool_result_check(data):
     <h2 style="margin-top:0">Several OpenAI agents, modeled in K9-AIF</h2>
     <p>The Weather tab runs one agent. Real assistants get mixed questions, such as "Will it rain in 10001, and do
       I need a coat?". This tab shows how a group of OpenAI agents that hand work to each other is modeled in
-      K9-AIF. It doesn't run here, because this demo has one GPU. You can generate it yourself in K9X Studio
-      from the spec below.</p>
+      K9-AIF. Building it is left to you as an exercise: download the spec below, generate the project in
+      K9X Studio, and add the weather tool from this example.</p>
 
     <div class="ma-flow" aria-label="Router, orchestrator, squad with three OpenAI agents, and the shared K9-AIF services">
       <div class="ma-box ma-k9"><b>Router</b><span>Admits the request and sends it to the orchestrator.</span></div>
@@ -403,7 +403,7 @@ async def k9_tool_result_check(data):
       <tr><td>Conversation-style requests</td><td>Records, rules and approvals; deterministic steps are adapters, not agents</td></tr>
     </table>
 
-    <h2>Build it yourself in K9X Studio</h2>
+    <h2>Exercise: build it in K9X Studio</h2>
     <a class="ma-dl" href="/static/project_spec.md" download="project_spec.md">&#8681; Download project_spec.md</a>
     <ol class="ma-steps">
       <li>Open <a href="https://studio.k9x.ai" target="_blank" rel="noopener noreferrer">K9X Studio</a>, go to Intake, and upload <code>project_spec.md</code>.</li>

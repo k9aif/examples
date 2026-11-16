@@ -47,7 +47,8 @@ The **Multi-agent** tab shows how several OpenAI agents that hand work to each o
 one squad becomes one Runner run, the first agent is the entry agent, and its squad-mates are its handoffs.
 It offers [project_spec.md](webui/static/project_spec.md) to download. Upload it in
 [K9X Studio](https://studio.k9x.ai) Intake: it sets the agent framework to OpenAI Agents SDK and stages
-FrontDeskAgent, WeatherAgent and AttireAdvisorAgent in one squad, ready to scaffold.
+FrontDeskAgent, WeatherAgent and AttireAdvisorAgent in one squad, ready to scaffold. Building and running
+it is left to the developer as an exercise.
 
 Video (4 minutes): https://www.youtube.com/watch?v=75HKTX9BdmI
 
