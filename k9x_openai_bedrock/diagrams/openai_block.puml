@@ -1,0 +1,45 @@
+@startuml openai_block
+title K9-AIF with the OpenAI Agents SDK: block view
+
+rectangle "K9-AIF application" {
+  rectangle "Router / Orchestrator / Squad" as Caller
+  rectangle "Shield governance\n(ingress, egress, tool result)" as Shield
+  rectangle "Tool gate\n(registry, record checks, rules)" as Gate
+  rectangle "HIL Orchestrator\n-> k9x HIL" as HIL
+  rectangle "Model Router\n(eligibility, learned scores)" as Router
+}
+
+rectangle "Adapter (sole broker)" {
+  rectangle "OpenAIAgentsOrchestratorAdapter" as Adapter
+  rectangle "K9ToolGuardrail\n(every function tool)" as TG
+  rectangle "K9ModelProvider\n+ K9GovernedModel" as MP
+}
+
+rectangle "OpenAI Agents SDK" {
+  rectangle "Runner\n(agent loop, handoffs)" as Runner
+}
+
+rectangle "OpenAI-compatible model\n(OpenAI, Azure OpenAI, Ollama, vLLM)" as Model
+rectangle "Tool handlers\n(registered capabilities)" as Tools
+
+Caller --> Adapter : 1. request
+Adapter --> Shield : 2. ingress check
+Adapter --> Runner : 3. run (agent built by adapter)
+Runner --> MP : 4. every model call
+MP --> Router : route()
+MP --> Model : call chosen model
+Runner --> TG : 5. every tool call
+TG --> Shield : tool args / result
+TG --> Gate : propose()
+Gate --> HIL : irreversible or mismatch
+TG --> Tools : allowed call
+Adapter --> Shield : 6. final output check
+Adapter --> Caller : 7. governed result
+
+note bottom of Runner
+  Hosted tools (web search, file search,
+  code interpreter, hosted MCP) run on
+  OpenAI servers. The adapter refuses
+  them unless explicitly allowed.
+end note
+@enduml

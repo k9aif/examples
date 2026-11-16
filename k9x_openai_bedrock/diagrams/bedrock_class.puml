@@ -1,0 +1,95 @@
+@startuml bedrock_class
+title Bedrock AgentCore integration: class diagram
+
+package "K9-AIF ABBs" {
+  abstract class BaseAdapter
+  abstract class BaseOrchestrator {
+    +execute_flow(payload): dict
+    +apply_pre_governance(payload): dict
+    +apply_post_governance(payload): dict
+    +apply_zero_trust(payload): dict
+    +publish_status(status, context)
+  }
+  abstract class BaseLLM
+  abstract class BaseProviderAdapter
+  abstract class BaseSessionStore
+  abstract class BaseGovernance
+  class BaseToolDispatcher {
+    +propose(call): Any
+  }
+}
+
+package "k9_adapters.bedrock_agentcore" {
+  class ToolCapability <<shared>>
+  class BedrockAgentCoreOrchestratorAdapter {
+    +mode: "harness" | "runtime"
+    -_capabilities: dict
+    +execute_flow(payload): dict
+    +execute_flow_async(payload): dict
+    -_invoke_harness(messages): stream
+    -_on_tool_use(block): dict
+    -_invoke_runtime(payload): dict
+  }
+  class AgentCorePayloadMapper {
+    +to_agentcore_input(payload): dict
+    +from_agentcore_output(stream): dict
+  }
+  class K9BedrockAgentCoreAdapter {
+    +execute(payload): dict
+  }
+  class ShieldGatewayInterceptor {
+    +handler(event, context): dict
+  }
+  class K9AgentCoreEntrypoint {
+    +invoke(payload, context): dict
+  }
+}
+
+package "Other new framework classes" {
+  class BedrockLLM {
+    +generate(request): InferenceResponse
+  }
+  class BedrockProviderAdapter
+  class AgentCoreMemorySessionStore {
+    +get(session_id)
+    +append(session_id, turn)
+  }
+}
+
+package "AWS (external)" {
+  class BedrockAgentCoreApp
+  class "bedrock-agentcore client" as AC {
+    +invoke_harness()
+    +invoke_agent_runtime()
+  }
+  class "bedrock-runtime client" as BR {
+    +converse()
+  }
+  class MemoryClient
+}
+
+BaseAdapter <|-- BedrockAgentCoreOrchestratorAdapter
+BaseOrchestrator <|-- BedrockAgentCoreOrchestratorAdapter
+BaseLLM <|-- BedrockLLM
+BaseProviderAdapter <|-- BedrockProviderAdapter
+BaseSessionStore <|-- AgentCoreMemorySessionStore
+
+K9BedrockAgentCoreAdapter *-- BedrockAgentCoreOrchestratorAdapter
+K9BedrockAgentCoreAdapter *-- AgentCorePayloadMapper
+BedrockAgentCoreOrchestratorAdapter o-- "0..N" ToolCapability
+
+BedrockAgentCoreOrchestratorAdapter ..> AC : Path B
+BedrockAgentCoreOrchestratorAdapter ..> BaseToolDispatcher : inline tool calls
+ShieldGatewayInterceptor ..> BaseGovernance : Path C
+K9AgentCoreEntrypoint ..> BedrockAgentCoreApp : Path A, @entrypoint
+BedrockLLM ..> BR
+AgentCoreMemorySessionStore ..> MemoryClient
+
+note bottom of BedrockAgentCoreOrchestratorAdapter
+  harness mode: action-governed for inline tools
+  (round trip to be verified live).
+  runtime mode: boundary-governed only.
+  Server-side tools refused unless the
+  Gateway runs ShieldGatewayInterceptor.
+end note
+@enduml
