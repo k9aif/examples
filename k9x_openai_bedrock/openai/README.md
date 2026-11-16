@@ -7,6 +7,8 @@ the final answer, and the **K9 Model Router** choosing the model for every call.
 
 No OpenAI API key is needed: the SDK talks to your Ollama server through its OpenAI-compatible API.
 
+**Live demo: [openai.k9x.ai](https://openai.k9x.ai)** (demo login on the page).
+
 ![Weather by zip code](diagrams/weather_zip_block.png)
 
 ## Run it
