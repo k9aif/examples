@@ -196,7 +196,38 @@ Open question for the framework: a step-level wrapper, an OpenAI agent as one
 It conflicts with "agents call models only through `llm_invoke()`", so it
 needs a decision before anyone builds it.
 
-### 4.5 Human review: decision needed
+### 4.5 Agents declared in YAML, same shape as framework agents
+
+The adapter builds each OpenAI `Agent` from a YAML file in the framework's
+existing agent format, read by the existing `AgentLoader`. No Python agent
+classes are needed; the tools are Python or MCP.
+
+| Agent YAML field (framework) | OpenAI `Agent` field | Notes |
+|---|---|---|
+| `name` | `name` | |
+| `description` | `handoff_description` | What other agents see when choosing a handoff |
+| `role`, `goal`, `instructions` | `instructions` | Joined in that order |
+| `model` (catalog alias) | `model` | Resolved by `K9ModelProvider`; with `model_routing: direct`, a model name |
+| `output_schema` | `output_type` | |
+| `tools` (new for this runtime) | `tools` | Names only; each must be a registered `ToolCapability`, else `ValueError` at construction |
+| `handoffs` (new for this runtime) | `handoffs` | Agent names from the same folder; count capped by `max_handoffs` |
+| `class`, `module` | not used | This runtime has no Python agent class |
+
+A small runtime file names the entry agent and the limits:
+
+```yaml
+# openai/config/openai_runtime.yaml
+runtime: openai_agents
+entry_agent: SupportTriageAgent
+agents_dir: agents/yaml
+max_handoffs: 3
+model_routing: k9          # k9 | direct
+allow_hosted_tools: false
+```
+
+Sample agent file: `openai/agents/yaml/support_triage_agent.yaml`.
+
+### 4.6 Human review: decision needed
 
 Two pause mechanisms exist: the SDK's `needs_approval` (resumes inside the same
 run state) and the K9 tool gate (durable, across processes, through k9x HIL).
