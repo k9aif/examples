@@ -6,94 +6,154 @@
 <title>K9-AIF and OpenAI Agents SDK</title>
 <style>
   :root {
-    --ink: #0f172a; --muted: #475569; --card: rgba(255,255,255,0.86); --line: rgba(15,23,42,0.12);
-    --ok: #15803d; --bad: #b91c1c; --info: #475569; --accent: #1d4ed8;
-    --sky-a: #dbeafe; --sky-b: #eff6ff;
+    --bg: #08111f; --panel: #0e1729; --panel-2: #111b30; --line: #1f2c46; --ink: #e2e8f0; --muted: #a3b1c6;
+    --ok: #34d399; --bad: #f87171; --accent: #34d399; --gate: #fbbf24; --dawn: #f59e0b;
+    --sky-a: rgba(56,189,248,.20); --sky-b: rgba(245,158,11,.16);
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
-  body[data-sky="clear"]  { --sky-a: #93c5fd; --sky-b: #e0f2fe; }
-  body[data-sky="cloudy"] { --sky-a: #cbd5e1; --sky-b: #f1f5f9; }
-  body[data-sky="rain"]   { --sky-a: #64748b; --sky-b: #cbd5e1; }
-  body[data-sky="storm"]  { --sky-a: #334155; --sky-b: #94a3b8; }
-  body[data-sky="snow"]   { --sky-a: #e2e8f0; --sky-b: #ffffff; }
-  body[data-sky="evening"]{ --sky-a: #1e3a8a; --sky-b: #fcd34d; }
+  /* the sky over the page follows the weather in the last answer */
+  body[data-sky="clear"]  { --sky-a: rgba(56,189,248,.34); --sky-b: rgba(253,224,71,.22); }
+  body[data-sky="cloudy"] { --sky-a: rgba(148,163,184,.30); --sky-b: rgba(148,163,184,.14); }
+  body[data-sky="rain"]   { --sky-a: rgba(71,85,105,.55);   --sky-b: rgba(56,189,248,.14); }
+  body[data-sky="storm"]  { --sky-a: rgba(91,33,182,.40);   --sky-b: rgba(251,191,36,.18); }
+  body[data-sky="snow"]   { --sky-a: rgba(226,232,240,.30); --sky-b: rgba(186,230,253,.20); }
+  body[data-sky="evening"]{ --sky-a: rgba(30,58,138,.55);   --sky-b: rgba(245,158,11,.30); }
   * { box-sizing: border-box; }
   body {
     margin: 0; min-height: 100vh; color: var(--ink);
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(180deg, var(--sky-a), var(--sky-b)) fixed;
-    transition: background 1.2s ease;
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: radial-gradient(70rem 26rem at 50% -6%, var(--sky-a), transparent 62%),
+                radial-gradient(46rem 18rem at 80% 4%, var(--sky-b), transparent 62%), var(--bg);
+    background-attachment: fixed; transition: background 1.2s ease;
   }
-  header { padding: 18px 20px 0; max-width: 980px; margin: 0 auto; }
-  .brand { display: inline-block; font-weight: 800; letter-spacing: 0.04em; font-size: 15px; text-decoration: none;
-    color: #fff; background: #0f172a; padding: 3px 10px; border-radius: 6px; margin-bottom: 10px; }
-  .brand:hover { background: #1d4ed8; }
-  .signout { font: inherit; font-size: 13px; background: rgba(255,255,255,0.7); border: 1px solid var(--line);
-    border-radius: 8px; padding: 4px 10px; cursor: pointer; color: var(--ink); }
-  footer { max-width: 980px; margin: 0 auto; padding: 0 20px 28px; font-size: 12.5px; color: var(--muted); }
-  footer a { color: inherit; }
-  body[data-sky="storm"] footer, body[data-sky="evening"] footer { color: #1e293b; }
-  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  a { color: var(--ok); }
+  header { padding: 16px 20px 0; max-width: 1000px; margin: 0 auto; }
+  .bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 800; letter-spacing: .04em; }
+  .brand img { height: 32px; width: 32px; object-fit: cover; border-radius: 8px; }
+  .signout { font: inherit; font-size: 13px; background: transparent; border: 1px solid #3b4a68; border-radius: 8px;
+    padding: 5px 12px; cursor: pointer; color: var(--ink); }
+  footer { max-width: 1000px; margin: 0 auto; padding: 0 20px 28px; font-size: 12.5px; color: var(--muted); }
+  footer a, footer code { color: var(--muted); }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.3px; }
+  h1 .k9 { color: var(--ok); } h1 .sdk { color: #cbd5e1; }
   .sub { color: var(--muted); margin: 0; }
-  body[data-sky="storm"] header, body[data-sky="evening"] header { color: #f8fafc; }
-  body[data-sky="storm"] .sub, body[data-sky="evening"] .sub { color: #e2e8f0; }
-  nav { display: flex; gap: 6px; margin: 16px 0 0; }
-  nav button { border: 1px solid var(--line); background: rgba(255,255,255,0.6); color: var(--ink);
-    padding: 7px 14px; border-radius: 8px 8px 0 0; cursor: pointer; font: inherit; }
-  nav button[aria-selected="true"] { background: var(--card); font-weight: 600; border-bottom-color: transparent; }
-  main { max-width: 980px; margin: 0 auto; padding: 0 20px 40px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 0 12px 12px 12px;
-    padding: 20px; backdrop-filter: blur(6px); }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
-  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
-  input[type=text], select { font: inherit; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px;
-    background: #fff; color: var(--ink); }
-  input[type=text] { width: 260px; }
-  .check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); padding-bottom: 9px; }
-  button.primary { font: inherit; font-weight: 600; padding: 9px 18px; border: 0; border-radius: 8px;
-    background: var(--accent); color: #fff; cursor: pointer; }
+  nav { display: flex; gap: 6px; margin: 18px 0 0; }
+  nav button { border: 1px solid var(--line); background: transparent; color: var(--muted);
+    padding: 8px 16px; border-radius: 10px 10px 0 0; cursor: pointer; font: inherit; }
+  nav button[aria-selected="true"] { background: var(--panel); color: var(--ink); font-weight: 600; border-bottom-color: var(--panel); }
+  main { max-width: 1000px; margin: 0 auto; padding: 0 20px 40px; }
+  .card { background: rgba(14,23,41,.92); border: 1px solid var(--line); border-radius: 0 14px 14px 14px; padding: 22px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+  label { display: grid; gap: 5px; font-size: 12.5px; color: var(--muted); }
+  input[type=text], select { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px;
+    background: #0b1322; color: var(--ink); }
+  input[type=text]:focus, select:focus { outline: 2px solid rgba(52,211,153,.5); border-color: var(--ok); }
+  input[type=text] { width: 270px; }
+  .check { display: flex; align-items: center; gap: 7px; font-size: 14px; color: var(--ink); padding-bottom: 10px; }
+  button.primary { font: inherit; font-weight: 700; padding: 10px 20px; border: 0; border-radius: 9px;
+    background: #fff; color: #059669; cursor: pointer; }
+  button.primary:hover { background: #ecfdf5; }
   button.primary:disabled { opacity: 0.6; cursor: wait; }
-  .tries { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); align-items: center; }
-  .tries button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line);
-    background: #fff; color: var(--ink); cursor: pointer; }
-  .status { font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .tries { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); align-items: center; }
+  .tries button { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink); cursor: pointer; }
+  .tries button:hover { border-color: var(--ok); }
+  .status { font-size: 12px; color: var(--muted); margin-top: 16px; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-  .result { margin-top: 18px; padding: 16px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+  .result { margin-top: 20px; padding: 16px 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); }
   .result.answer { border-left: 4px solid var(--ok); }
   .result.refused { border-left: 4px solid var(--bad); }
-  .result.error { border-left: 4px solid #b45309; }
-  .result .kind { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-  .result .text { font-size: 17px; margin-top: 4px; }
-  .empty { margin-top: 18px; color: var(--muted); font-size: 14px; }
-  h2 { font-size: 16px; margin: 22px 0 8px; }
-  ol.trace { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-  ol.trace li { display: grid; grid-template-columns: 22px 150px 1fr; gap: 8px; padding: 7px 12px;
-    border-top: 1px solid var(--line); font-size: 13.5px; }
-  ol.trace li:first-child { border-top: 0; }
-  .s-allowed { background: var(--ok); } .s-blocked { background: var(--bad); } .s-info { background: #94a3b8; }
-  ol.trace .step { font-weight: 600; }
-  ol.trace li.blocked { background: #fef2f2; }
-  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  .result.error { border-left: 4px solid var(--dawn); }
+  .result .kind { font: 700 11.5px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .result .text { font-size: 18px; margin-top: 4px; color: #f8fafc; }
+  .empty { margin-top: 20px; color: var(--muted); font-size: 14px; }
+  h2 { font-size: 16px; margin: 24px 0 10px; }
+  ol.trace { list-style: none; margin: 0; padding: 4px 0; border: 1px solid var(--line); border-radius: 12px;
+    background: #0b1322; font-family: var(--mono); }
+  ol.trace li { display: grid; grid-template-columns: 22px 160px 1fr; gap: 8px; padding: 6px 14px; font-size: 12.8px; }
+  ol.trace li + li { border-top: 1px dashed #18233a; }
+  .s-allowed { background: var(--ok); } .s-blocked { background: var(--bad); } .s-info { background: #64748b; }
+  ol.trace .step { font-weight: 700; color: var(--ink); }
+  ol.trace .detail { color: var(--muted); }
+  ol.trace li.blocked { background: rgba(248,113,113,.08); }
+  ol.trace li.blocked .detail { color: #fecaca; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
     overflow: hidden; font-size: 13.5px; }
-  th, td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; }
-  th { background: #f8fafc; border-top: 0; }
-  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
-  pre { background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 10px; overflow: auto; margin: 0; }
-  .diagram { width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { background: #0b1322; border-top: 0; color: var(--gate); font-weight: 600; }
+  code, pre { font-family: var(--mono); font-size: 12.5px; }
+  code { color: #a7f3d0; }
+  pre { background: #0b1322; color: #e2e8f0; border: 1px solid var(--line); padding: 14px; border-radius: 12px; overflow: auto; margin: 0; }
+  .diagram { width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
   .muted { color: var(--muted); }
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  b { color: #f1f5f9; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
   @media (max-width: 760px) { .two { grid-template-columns: 1fr; } input[type=text] { width: 100%; }
     ol.trace li { grid-template-columns: 22px 1fr; } ol.trace .detail { grid-column: 2; } }
   @media (prefers-reduced-motion: reduce) { body { transition: none; } }
   [hidden] { display: none !important; }
+
+  /* weather scene behind the page: an original drawing, follows the last answer */
+  .scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  header, main, footer { position: relative; z-index: 1; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; transition: background 1.2s ease, opacity 1.2s ease; }
+  .b1 { width: 520px; height: 420px; left: -140px; top: 30%; background: #1e3a8a; }
+  .b2 { width: 560px; height: 460px; right: -160px; top: -120px; background: #0e7490; }
+  .b3 { width: 460px; height: 360px; right: 10%; bottom: -160px; background: #b45309; opacity: .35; }
+  .sun { position: absolute; right: 9%; top: 12%; width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #fde68a, #f59e0b 70%); box-shadow: 0 0 80px 20px rgba(245,158,11,.35);
+    transition: opacity 1.2s ease, transform 1.2s ease; }
+  .sun::before { content: ""; position: absolute; inset: -34px; border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(251,191,36,.55) 0 6deg, transparent 6deg 30deg);
+    -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%, #000 72%, transparent 73%);
+            mask: radial-gradient(circle, transparent 60%, #000 61%, #000 72%, transparent 73%);
+    animation: spin 60s linear infinite; }
+  .moon { position: absolute; right: 10%; top: 11%; width: 96px; height: 96px; border-radius: 50%; opacity: 0;
+    box-shadow: -22px 10px 0 0 #e2e8f0; transition: opacity 1.2s ease; }
+  .cloud { position: absolute; width: 260px; height: 92px; border-radius: 60px; background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: opacity 1.2s ease, background 1.2s ease; }
+  .cloud::before, .cloud::after { content: ""; position: absolute; border-radius: 50%; background: inherit;
+    border: 1px solid rgba(255,255,255,.22); border-bottom: 0; }
+  .cloud::before { width: 110px; height: 110px; left: 40px; top: -58px; }
+  .cloud::after  { width: 140px; height: 140px; left: 100px; top: -78px; }
+  .c1 { right: 6%; top: 22%; animation: drift 40s ease-in-out infinite alternate; }
+  .c2 { left: 4%; top: 10%; transform: scale(.7); opacity: .6; animation: drift 55s ease-in-out infinite alternate-reverse; }
+  .bolt { position: absolute; right: 22%; top: 18%; width: 70px; height: 150px; opacity: 0;
+    background: linear-gradient(#fef9c3, #fbbf24); clip-path: polygon(55% 0, 15% 55%, 45% 55%, 25% 100%, 85% 40%, 55% 40%, 75% 0);
+    filter: drop-shadow(0 0 18px rgba(253,224,71,.9)); }
+  .flash { position: absolute; inset: 0; background: rgba(224,231,255,.0); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes drift { from { translate: 0 0; } to { translate: -60px 12px; } }
+  @keyframes strike { 0%, 86%, 100% { opacity: 0; } 87%, 89% { opacity: 1; } 88% { opacity: .2; } }
+  @keyframes flash { 0%, 86%, 100% { background: rgba(224,231,255,0); } 87%, 89% { background: rgba(224,231,255,.10); } }
+  body[data-sky="cloudy"] .sun { opacity: .25; } body[data-sky="cloudy"] .cloud { background: rgba(203,213,225,.16); }
+  body[data-sky="rain"] .sun, body[data-sky="storm"] .sun, body[data-sky="snow"] .sun { opacity: 0; transform: scale(.6); }
+  body[data-sky="rain"] .cloud, body[data-sky="storm"] .cloud { background: rgba(100,116,139,.30); }
+  body[data-sky="storm"] .bolt { animation: strike 5s linear infinite; }
+  body[data-sky="storm"] .flash { animation: flash 5s linear infinite; }
+  body[data-sky="storm"] .b2 { background: #4c1d95; }
+  body[data-sky="snow"] .cloud { background: rgba(241,245,249,.22); }
+  body[data-sky="evening"] .sun { opacity: 0; } body[data-sky="evening"] .moon { opacity: .9; }
+  body[data-sky="evening"] .b3 { opacity: .55; }
+  @media (prefers-reduced-motion: reduce) { .scene * { animation: none !important; } }
+  @media (max-width: 760px) { .sun, .moon, .bolt { right: 4%; transform: scale(.6); } .c1 { display: none; } }
 </style>
 </head>
 <body data-sky="default">
+<div class="scene" aria-hidden="true">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  <div class="sun"></div><div class="moon"></div>
+  <div class="cloud c2"></div><div class="cloud c1"></div>
+  <div class="bolt"></div><div class="flash"></div>
+</div>
 <header>
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai">K9X</a>
+  <div class="bar">
+    <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
     <form method="post" action="/logout" style="margin:0"><button class="signout" type="submit">Sign out</button></form>
   </div>
-  <h1>K9-AIF Framework, K9X Ecosystem and OpenAI Agents SDK in Collaboration</h1>
+  <h1><span class="k9">K9-AIF Framework</span>, K9X Ecosystem and <span class="sdk">OpenAI Agents SDK</span> in Collaboration</h1>
   <p class="sub">Weather by US zip code. An OpenAI agent does the work; K9-AIF governs every step.</p>
   <nav role="tablist">
     <button role="tab" aria-selected="true" data-tab="weather">Weather</button>
@@ -144,6 +204,12 @@
       application the Router sends it the event <code>weather.lookup</code>. This local example calls it directly.
       On this path the SDK's Runner and agent take the place of K9-AIF's Squad and Agent.</p>
     <img class="diagram" src="/static/architecture.png" alt="Block diagram: web page, orchestrator adapter, OpenAI Runner, WeatherAgent, tools, and the shared K9-AIF services: Zero Trust, Shield and Model Router">
+
+    <h2>The classes</h2>
+    <p>The adapter is part of the K9-AIF framework (<code>k9_aif_abb/k9_adapters/openai_agents/</code>), the same shape
+      as its CrewAI, LangGraph and Claude Agent SDK adapters: a facade, an orchestrator adapter that extends
+      <code>BaseOrchestrator</code> and <code>BaseAdapter</code>, and a payload mapper. This example only configures it.</p>
+    <img class="diagram" src="/static/classes.png" alt="Class diagram: K9OpenAIAgentsAdapter, OpenAIAgentsOrchestratorAdapter extending BaseOrchestrator and BaseAdapter, K9ModelProvider and K9GovernedModel, the per-tool K9 guardrails, the run hooks, and the OpenAI Agents SDK types they use">
 
     <h2>What is checked, and where</h2>
     <table>
@@ -201,6 +267,8 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
+const askedSky = new URLSearchParams(location.search).get("sky");   // ?sky=storm|rain|snow|cloudy|clear|evening
+if (askedSky) document.body.dataset.sky = askedSky;
 const TRIES = {
   clean:  { zip: "30301", role: "customer", poison: false },
   guest:  { zip: "30301", role: "guest", poison: false },

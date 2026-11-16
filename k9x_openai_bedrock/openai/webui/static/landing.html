@@ -6,222 +6,353 @@
 <title>K9-AIF and OpenAI Agents SDK</title>
 <style>
   :root {
-    --ink: #0f172a; --muted: #475569; --line: #e2e8f0; --bg: #f8fafc; --card: #ffffff;
-    --em: #047857; --em-2: #10b981; --em-soft: #ecfdf5; --slate: #0f172a; --blue: #1d4ed8;
+    --bg: #08111f; --panel: #0e1729; --panel-2: #111b30; --border: #1f2c46; --text: #e2e8f0; --muted: #a3b1c6;
+    --sdk: #cbd5e1; --k9: #34d399; --k9-d: #059669; --model: #c4b5fd; --tool: #22d3ee; --gate: #fbbf24; --dawn: #f59e0b;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; color: var(--ink); background: var(--bg);
-    font: 15.5px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  a { color: var(--em); }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
-  /* header */
-  .top { position: sticky; top: 0; z-index: 5; background: rgba(15,23,42,0.96); color: #e2e8f0; }
-  .top .wrap { display: flex; align-items: center; gap: 22px; height: 56px; }
-  .brand { font-weight: 800; letter-spacing: 0.05em; color: #fff; text-decoration: none; background: var(--em);
-    padding: 3px 10px; border-radius: 6px; }
-  .top nav { display: flex; gap: 18px; flex: 1; font-size: 14px; }
-  .top nav a { color: #cbd5e1; text-decoration: none; }
-  .top nav a:hover { color: #fff; }
-  .signin { color: #fff; border: 1px solid #475569; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 14px; }
-  /* hero */
-  .hero { background: radial-gradient(1200px 400px at 80% -10%, #065f46 0%, transparent 60%),
-                       linear-gradient(160deg, #0f172a 0%, #12324a 55%, #064e3b 100%);
-    color: #f8fafc; padding: 64px 0 56px; }
-  .eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 12.5px; color: #6ee7b7; font-weight: 700; }
-  .hero h1 { font-size: 38px; line-height: 1.15; margin: 10px 0 14px; max-width: 840px; letter-spacing: -0.015em; }
-  .hero p.lede { font-size: 18px; color: #cbd5e1; max-width: 760px; margin: 0 0 26px; }
-  .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-  .btn { font: inherit; font-weight: 650; border: 0; border-radius: 10px; padding: 12px 20px; cursor: pointer; text-decoration: none; }
-  .btn.primary { background: var(--em-2); color: #052e2b; }
-  .btn.primary:hover { background: #34d399; }
-  .btn.ghost { background: transparent; color: #f8fafc; border: 1px solid #64748b; }
-  .demo-login { font-size: 13.5px; color: #a7f3d0; margin-top: 14px; }
-  .demo-login code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px; color: #ecfdf5; }
-  /* sections */
-  section { padding: 54px 0 10px; }
-  h2 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
-  .sub { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; }
-  .card h3 { font-size: 16px; margin: 0 0 6px; display: flex; gap: 8px; align-items: center; }
-  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
-  .tag { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
-  .tag.oa { background: #e0f2fe; color: #075985; }
-  .tag.k9 { background: var(--em-soft); color: var(--em); }
-  .card.k9 { border-top: 3px solid var(--em-2); }
-  .card.oa { border-top: 3px solid #38bdf8; }
-  .split { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: start; }
-  .framework { background: var(--slate); color: #e2e8f0; border-radius: 16px; padding: 24px; }
-  .framework h3 { margin: 0 0 8px; font-size: 19px; color: #fff; }
-  .framework p { color: #cbd5e1; margin: 0 0 12px; font-size: 14.5px; }
-  .framework ul { margin: 0 0 14px; padding-left: 18px; color: #cbd5e1; font-size: 14.5px; }
-  .framework code { background: #1e293b; padding: 2px 7px; border-radius: 5px; color: #a7f3d0; }
-  .framework a { color: #6ee7b7; }
-  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-  ol.steps li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 14px 12px 54px; position: relative; font-size: 14.5px; }
-  ol.steps li::before { content: counter(s); position: absolute; left: 14px; top: 11px; width: 26px; height: 26px;
-    border-radius: 50%; background: var(--em); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 13px; }
-  ol.steps b { color: var(--ink); }
-  .figure { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
-  .figure img { width: 100%; display: block; }
-  .eco { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  .eco a { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--line);
-    border-radius: 12px; padding: 14px; }
-  .eco a:hover { border-color: var(--em-2); }
-  .eco b { display: block; color: var(--ink); }
-  .eco span { color: var(--muted); font-size: 13.5px; }
-  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14.5px; }
-  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
-  th { background: #f1f5f9; border-top: 0; }
-  footer { margin-top: 56px; padding: 26px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5px; }
-  @media (max-width: 900px) { .grid, .eco { grid-template-columns: 1fr 1fr; } .split { grid-template-columns: 1fr; }
-    .top nav { display: none; } .hero h1 { font-size: 30px; } }
-  @media (max-width: 560px) { .grid, .eco { grid-template-columns: 1fr; } }
+  body { margin: 0; color: var(--text); font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(70rem 26rem at 50% -6%, rgba(56,189,248,.20), transparent 60%),
+      radial-gradient(46rem 18rem at 78% 4%, rgba(245,158,11,.16), transparent 62%),
+      var(--bg); }
+  a { color: var(--k9); }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+
+  .topbar { display: flex; align-items: center; gap: 22px; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 800; letter-spacing: .04em; }
+  .logo img { height: 34px; width: 34px; object-fit: cover; border-radius: 8px; }
+  .topbar nav { margin-left: auto; display: flex; gap: 18px; font-size: 14px; align-items: center; }
+  .topbar nav a { color: var(--muted); text-decoration: none; }
+  .topbar nav a:hover { color: var(--text); }
+  .topbar nav a.signin { color: #04121c; background: var(--k9); border-radius: 8px; padding: 6px 14px; font-weight: 700; }
+
+  .hero { text-align: center; padding: 58px 0 34px; }
+  .eyebrow { font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dawn); }
+  .hero h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.08; margin: 14px auto 18px; max-width: 980px; letter-spacing: -1px; font-weight: 800; }
+  .hero h1 .sdk { color: var(--sdk); } .hero h1 .k9 { color: var(--k9); }
+  .hero p { font-size: 18px; color: var(--muted); max-width: 760px; margin: 0 auto 28px; }
+  .hero p strong { color: var(--gate); font-weight: 600; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { font: inherit; font-weight: 700; font-size: 15px; border-radius: 10px; padding: 13px 24px; cursor: pointer; text-decoration: none; border: 0; }
+  .btn.primary { background: #fff; color: var(--k9-d); }
+  .btn.primary:hover { background: #ecfdf5; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid #3b4a68; }
+  .demo { margin-top: 14px; font-size: 13.5px; color: var(--muted); }
+  .demo code { font-family: var(--mono); background: var(--panel-2); border: 1px solid var(--border); padding: 1px 7px; border-radius: 5px; color: var(--text); }
+
+  /* the two rectangles */
+  .pair { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; align-items: stretch; margin: 26px 0 8px; }
+  .rect { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 26px 28px; position: relative; overflow: hidden; }
+  .rect::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; }
+  .rect.sdk::before { background: linear-gradient(90deg, #94a3b8, #e2e8f0); }
+  .rect.k9::before { background: linear-gradient(90deg, #10b981, #34d399, #fbbf24); }
+  .rect .tag { display: inline-block; font: 700 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; border-radius: 5px; padding: 3px 8px; }
+  .rect.sdk .tag { color: var(--sdk); border: 1px solid #475569; }
+  .rect.k9 .tag { color: var(--k9); border: 1px solid #065f46; }
+  .rect h3 { font-size: 22px; margin: 12px 0 4px; }
+  .rect .lead { color: var(--muted); margin: 0 0 14px; font-size: 15px; }
+  .rect ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+  .rect li { padding-left: 26px; position: relative; font-size: 15px; }
+  .rect li b { color: #f8fafc; }
+  .rect li span { color: var(--muted); }
+  .rect.sdk li::before { content: "▸"; position: absolute; left: 4px; color: var(--sdk); }
+  .rect.k9 li::before { content: "✓"; position: absolute; left: 4px; color: var(--k9); font-weight: 700; }
+  .plus { display: grid; place-items: center; width: 54px; color: var(--gate); font-size: 30px; font-weight: 300; }
+
+  section { padding: 54px 0 6px; }
+  .label { font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dawn); text-align: center; }
+  h2 { font-size: clamp(24px, 3vw, 32px); text-align: center; margin: 8px 0 8px; letter-spacing: -.5px; }
+  .sub { text-align: center; color: var(--muted); max-width: 760px; margin: 0 auto 26px; }
+
+  .diagram { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+  svg.lego { width: 100%; height: auto; display: block; }
+  .key { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; font-size: 13px; color: var(--muted); margin-top: 12px; }
+  .key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 2px solid; margin-right: 6px; vertical-align: -1px; }
+
+  .steps { display: flex; align-items: stretch; gap: 6px; }
+  .step { flex: 1 1 0; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px 20px; min-width: 0; }
+  .step .n { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #04121c; margin-bottom: 14px; }
+  .step b { display: block; font-size: 16px; margin-bottom: 6px; }
+  .step span { color: var(--muted); font-size: 14.5px; }
+  .chev { display: grid; place-items: center; color: #3b4a68; font-size: 28px; }
+
+  .show { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+  .receipt { background: #0b1322; border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; font: 13px/1.85 var(--mono); }
+  .receipt .h { color: var(--muted); border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .receipt .r { display: grid; grid-template-columns: 20px 150px 1fr; }
+  .receipt .ok { color: var(--k9); } .receipt .no { color: #f87171; } .receipt .i { color: #64748b; }
+  .receipt .d { color: var(--muted); }
+  .receipt .a { border-top: 1px dashed var(--border); margin-top: 8px; padding-top: 8px; color: #f8fafc; }
+  .tries { display: grid; gap: 12px; }
+  .try { background: var(--panel); border: 1px solid var(--border); border-left: 4px solid; border-radius: 12px; padding: 14px 16px; }
+  .try b { display: block; } .try span { color: var(--muted); font-size: 14.5px; }
+
+  .built { border: 1px solid rgba(251,191,36,.3); border-radius: 14px; padding: 24px 26px; margin-top: 54px;
+    background: linear-gradient(160deg, rgba(251,191,36,.07), rgba(14,23,41,.7)); }
+  .built h2 { text-align: left; color: var(--gate); font-size: 24px; margin: 0 0 6px; }
+  .built p { color: var(--muted); margin: 10px 0 0; max-width: 860px; }
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .chip { text-decoration: none; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; }
+  .chip:hover { border-color: var(--k9); }
+
+  .scope { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .scope div { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; font-size: 14px; color: var(--muted); }
+  .scope b { display: block; color: var(--text); margin-bottom: 4px; font-size: 14.5px; }
+
+  footer { border-top: 1px solid var(--border); margin-top: 56px; padding: 22px 0 40px; color: var(--muted); font-size: 13.5px; text-align: center; }
+  footer a { color: var(--muted); }
+
+  @media (max-width: 960px) {
+    .pair { grid-template-columns: 1fr; } .plus { width: auto; height: 40px; }
+    .steps { flex-direction: column; } .chev { transform: rotate(90deg); height: 24px; }
+    .show { grid-template-columns: 1fr; } .scope { grid-template-columns: 1fr 1fr; }
+    .topbar nav a:not(.signin) { display: none; }
+  }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<header class="top">
-  <div class="wrap">
-    <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai">K9X</a>
+  <div class="topbar">
+    <a class="logo" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
     <nav>
-      <a href="#what">What it does</a>
+      <a href="#path">The path</a>
       <a href="#how">How it works</a>
-      <a href="#architecture">Architecture</a>
+      <a href="#show">See a run</a>
       <a href="#ecosystem">Ecosystem</a>
       <a href="#scope">Scope</a>
+      <a class="signin" href="/login">Sign in</a>
     </nav>
-    <a class="signin" href="/login">Sign in</a>
   </div>
-</header>
 
-<div class="hero">
-  <div class="wrap">
+  <div class="hero">
     <div class="eyebrow">Governed agents, any runtime</div>
-    <h1>K9-AIF Framework, K9X Ecosystem and OpenAI Agents SDK in Collaboration</h1>
-    <p class="lede">An OpenAI Agents SDK agent answers "what is the weather at this zip code?". K9-AIF governs every
-      step it takes: who may ask, what reaches the model, every tool call and tool result, every reply, and which
-      model thinks. Watch each check happen, live.</p>
+    <h1><span class="k9">K9-AIF Framework</span>, K9X Ecosystem and <span class="sdk">OpenAI Agents SDK</span> in Collaboration</h1>
+    <p>An OpenAI agent finds the weather for a US zip code. K9-AIF governs <strong>every step it takes</strong>: who may
+      ask, what reaches the model, each tool call and result, every reply, and which model does the thinking.</p>
     <div class="cta">
       <form method="post" action="/login" style="margin:0">
         <input type="hidden" name="username" value="demo">
         <input type="hidden" name="password" value="__DEMO_PASSWORD__">
         <button class="btn primary" type="submit">Try the demo →</button>
       </form>
-      <a class="btn ghost" href="/login">Sign in</a>
+      <a class="btn ghost" href="#path">See how it fits</a>
     </div>
-    <div class="demo-login">Demo login: <code>demo</code> / <code>__DEMO_PASSWORD__</code> · every visitor gets a private session</div>
+    <div class="demo">Demo login <code>demo</code> / <code>__DEMO_PASSWORD__</code> · your session is private to you</div>
   </div>
-</div>
 
-<main class="wrap">
-
-  <section id="what">
-    <h2>What the OpenAI Agents SDK brings</h2>
-    <p class="sub">A well-made library for agent loops. These are its own features, from its
-      <a href="https://openai.github.io/openai-agents-python/">documentation</a>.</p>
-    <div class="grid">
-      <div class="card oa"><h3><span class="tag oa">SDK</span> Agent loop</h3><p>The Runner calls the model, runs tools and repeats until there is a final answer.</p></div>
-      <div class="card oa"><h3><span class="tag oa">SDK</span> Handoffs</h3><p>One agent can delegate to another that specialises in a different area.</p></div>
-      <div class="card oa"><h3><span class="tag oa">SDK</span> Guardrails</h3><p>Input, output and tool guardrails that each application attaches and writes.</p></div>
-      <div class="card oa"><h3><span class="tag oa">SDK</span> Approvals</h3><p>A tool can require approval; the run pauses and resumes from its saved state.</p></div>
-      <div class="card oa"><h3><span class="tag oa">SDK</span> Tracing</h3><p>Every run traced by default, with processors you can add or replace.</p></div>
-      <div class="card oa"><h3><span class="tag oa">SDK</span> Any compatible model</h3><p>OpenAI's models, or any OpenAI-compatible endpoint: here, a local model on Ollama.</p></div>
+  <div class="pair">
+    <div class="rect sdk">
+      <span class="tag">OpenAI Agents SDK</span>
+      <h3>Runs the agent</h3>
+      <p class="lead">A well-made library for agent loops. From its <a href="https://openai.github.io/openai-agents-python/">documentation</a>:</p>
+      <ul>
+        <li><b>Agent loop</b> <span>calls the model, runs tools, repeats until done</span></li>
+        <li><b>Handoffs</b> <span>one agent delegates to a specialist</span></li>
+        <li><b>Guardrails</b> <span>on input, output and tools, per application</span></li>
+        <li><b>Approvals</b> <span>pause a run for a decision, then resume</span></li>
+        <li><b>Tracing</b> <span>every run, with pluggable processors</span></li>
+        <li><b>Any compatible model</b> <span>OpenAI's, or an OpenAI-compatible endpoint</span></li>
+      </ul>
     </div>
-  </section>
-
-  <section>
-    <h2>What K9-AIF adds</h2>
-    <p class="sub">One governance configuration that holds for every agent on every runtime. The adapter wraps the
-      SDK; it doesn't change it.</p>
-    <div class="grid">
-      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> Shield on every step</h3><p>The request, each tool call, each tool result, every agent's reply and the final answer pass k9x Shield.</p></div>
-      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> Zero Trust</h3><p>Who may run the request, and who may reach each agent, from a role policy the solution owns.</p></div>
-      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> K9 Model Router</h3><p>Picks the model for every call, eligibility first: a tool-using agent only gets a model that can call tools.</p></div>
-      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> Agents in YAML</h3><p>The OpenAI agent is declared in K9-AIF agent YAML. A tool it isn't registered for fails at start-up.</p></div>
-      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> Sole broker</h3><p>The adapter builds every agent and tool itself, so nothing ungoverned can be slipped in.</p></div>
-      <div class="card k9"><h3><span class="tag k9">K9-AIF</span> One layer, every runtime</h3><p>The same checks already govern CrewAI, LangGraph and the Claude Agent SDK. Now the OpenAI Agents SDK too.</p></div>
+    <div class="plus">+</div>
+    <div class="rect k9">
+      <span class="tag">K9-AIF Framework · K9X Ecosystem</span>
+      <h3>Governs every step</h3>
+      <p class="lead">One configuration that holds for every agent on every runtime:</p>
+      <ul>
+        <li><b>k9x Shield</b> <span>on the request, each tool call and result, every reply</span></li>
+        <li><b>Zero Trust</b> <span>for the caller and for each agent that takes a turn</span></li>
+        <li><b>K9 Model Router</b> <span>picks each model, eligibility first</span></li>
+        <li><b>Agents in K9-AIF YAML</b> <span>declared, not coded; unknown tools fail at start-up</span></li>
+        <li><b>Sole broker</b> <span>the adapter builds every agent and tool itself</span></li>
+        <li><b>One layer, every runtime</b> <span>CrewAI, LangGraph, Claude Agent SDK, and now OpenAI</span></li>
+      </ul>
     </div>
-  </section>
+  </div>
 
-  <section>
-    <div class="split">
-      <div class="framework">
-        <h3>The K9-AIF framework</h3>
-        <p>An architecture-first framework for governed, observable multi-agent systems. Abstract building blocks
-          (ABBs) define the contracts; solutions extend them. Router, Orchestrator, Squad and Agent, with governance
-          applied by construction.</p>
-        <ul>
-          <li>The adapter is an <b>orchestrator</b>: the Router sends it the event <code>weather.lookup</code>.</li>
-          <li>On this path the SDK's Runner and agent take the place of Squad and Agent.</li>
-          <li>Failures and human-review signals propagate with their own type.</li>
-          <li>SDK traces stay local unless you choose to export them.</li>
-        </ul>
-        <p><code>pip install k9-aif</code> · <a href="https://github.com/k9aif/k9-aif-framework">github.com/k9aif/k9-aif-framework</a></p>
-      </div>
-      <div>
-        <h2 style="font-size:20px">What you can try</h2>
-        <table>
-          <tr><th>Try</th><th>K9-AIF at work</th></tr>
-          <tr><td>A normal zip code</td><td>Every check listed, step by step</td></tr>
-          <tr><td>A guest caller</td><td>Zero Trust refuses before any agent runs</td></tr>
-          <tr><td>A prompt injection</td><td>Shield refuses before the SDK starts</td></tr>
-          <tr><td>A poisoned upstream response</td><td>The tool result is withheld from the model</td></tr>
-        </table>
-      </div>
+  <section id="path">
+    <div class="label">The path</div>
+    <h2>Where every check happens</h2>
+    <p class="sub">The adapter is a K9-AIF orchestrator wrapped around the SDK. Each numbered gate is a K9-AIF
+      checkpoint on a real crossing.</p>
+    <div class="diagram">
+<svg class="lego" viewBox="0 0 1120 510" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-label="Request path: visitor, K9-AIF orchestrator adapter, OpenAI Agents SDK runner, K9 Model Router and local model, two tools and their public services, answer with receipt; numbered checkpoints on every crossing inside the Shield band"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7b8baa"/></marker><filter id="gl" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="250" y="150" width="860" height="330" rx="20" fill="rgba(251,191,36,.045)" stroke="#fbbf24" stroke-dasharray="6 6"/>
+<text x="270" y="174" fill="#fbbf24" font-size="12.5" font-weight="700">k9x Shield + Zero Trust: every crossing is a checkpoint</text>
+<rect x="86" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#94a3b8" stroke-width="1.6"/>
+<rect x="142" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#94a3b8" stroke-width="1.6"/>
+<rect x="40" y="46" width="170" height="70" rx="12" fill="#0e1729" stroke="#94a3b8" stroke-width="1.6"/>
+<text x="125" y="79" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">Visitor</text>
+<text x="125" y="99" fill="#94a3b8" font-size="12" text-anchor="middle">zip code · role</text>
+<rect x="361" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
+<rect x="433" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
+<rect x="505" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
+<rect x="577" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
+<rect x="300" y="46" width="360" height="70" rx="12" fill="#0e1729" stroke="#34d399" stroke-width="2.4" filter="url(#gl)"/>
+<text x="480" y="79" fill="#f1f5f9" font-size="16" font-weight="700" text-anchor="middle">K9-AIF orchestrator adapter</text>
+<text x="480" y="99" fill="#34d399" font-size="12" text-anchor="middle">OpenAIAgentsOrchestratorAdapter</text>
+<rect x="824" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
+<rect x="899" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
+<rect x="974" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
+<rect x="760" y="46" width="300" height="70" rx="12" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
+<text x="910" y="79" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">Answer + receipt</text>
+<text x="910" y="99" fill="#34d399" font-size="12" text-anchor="middle">every check, in order</text>
+<rect x="379" y="223" width="22" height="9" rx="3" fill="#0e1729" stroke="#cbd5e1" stroke-width="1.6"/>
+<rect x="439" y="223" width="22" height="9" rx="3" fill="#0e1729" stroke="#cbd5e1" stroke-width="1.6"/>
+<rect x="499" y="223" width="22" height="9" rx="3" fill="#0e1729" stroke="#cbd5e1" stroke-width="1.6"/>
+<rect x="559" y="223" width="22" height="9" rx="3" fill="#0e1729" stroke="#cbd5e1" stroke-width="1.6"/>
+<rect x="330" y="230" width="300" height="84" rx="12" fill="#0e1729" stroke="#cbd5e1" stroke-width="2.4" filter="url(#gl)"/>
+<text x="480" y="270" fill="#f1f5f9" font-size="16" font-weight="700" text-anchor="middle">OpenAI Agents SDK</text>
+<text x="480" y="290" fill="#cbd5e1" font-size="12" text-anchor="middle">Runner · WeatherAgent (YAML)</text>
+<rect x="824" y="223" width="22" height="9" rx="3" fill="#0e1729" stroke="#c4b5fd" stroke-width="1.6"/>
+<rect x="899" y="223" width="22" height="9" rx="3" fill="#0e1729" stroke="#c4b5fd" stroke-width="1.6"/>
+<rect x="974" y="223" width="22" height="9" rx="3" fill="#0e1729" stroke="#c4b5fd" stroke-width="1.6"/>
+<rect x="760" y="230" width="300" height="84" rx="12" fill="#0e1729" stroke="#c4b5fd" stroke-width="1.6"/>
+<text x="910" y="270" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">K9 Model Router</text>
+<text x="910" y="290" fill="#c4b5fd" font-size="12" text-anchor="middle">eligibility first · tool_calling</text>
+<rect x="346" y="383" width="22" height="9" rx="3" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
+<rect x="402" y="383" width="22" height="9" rx="3" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
+<rect x="300" y="390" width="170" height="66" rx="12" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
+<text x="385" y="421" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">lookup_zip</text>
+<text x="385" y="441" fill="#22d3ee" font-size="12" text-anchor="middle">zip → place</text>
+<rect x="556" y="383" width="22" height="9" rx="3" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
+<rect x="622" y="383" width="22" height="9" rx="3" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
+<rect x="500" y="390" width="200" height="66" rx="12" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
+<text x="600" y="421" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">current_weather</text>
+<text x="600" y="441" fill="#22d3ee" font-size="12" text-anchor="middle">zip → conditions</text>
+<rect x="839" y="383" width="22" height="9" rx="3" fill="#111b30" stroke="#c4b5fd" stroke-width="1.6"/>
+<rect x="899" y="383" width="22" height="9" rx="3" fill="#111b30" stroke="#c4b5fd" stroke-width="1.6"/>
+<rect x="959" y="383" width="22" height="9" rx="3" fill="#111b30" stroke="#c4b5fd" stroke-width="1.6"/>
+<rect x="790" y="390" width="240" height="66" rx="12" fill="#111b30" stroke="#c4b5fd" stroke-width="1.6"/>
+<text x="910" y="421" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">Local model</text>
+<text x="910" y="441" fill="#c4b5fd" font-size="12" text-anchor="middle">OpenAI-compatible API</text>
+<rect x="99" y="383" width="22" height="9" rx="3" fill="#111b30" stroke="#94a3b8" stroke-width="1.6"/>
+<rect x="169" y="383" width="22" height="9" rx="3" fill="#111b30" stroke="#94a3b8" stroke-width="1.6"/>
+<rect x="40" y="390" width="210" height="66" rx="12" fill="#111b30" stroke="#94a3b8" stroke-width="1.6"/>
+<text x="145" y="421" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">Public services</text>
+<text x="145" y="441" fill="#94a3b8" font-size="12" text-anchor="middle">zippopotam · open-meteo</text>
+<path d="M210,81 L296,81" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+<text x="253" y="72" fill="#94a3b8" font-size="11.5" text-anchor="middle">request</text>
+<circle cx="253" cy="98" r="12" fill="#0b1220" stroke="#fbbf24" stroke-width="2"/>
+<text x="253" y="102" fill="#fbbf24" font-size="11.5" font-weight="700" text-anchor="middle">1</text>
+<path d="M480,116 L480,226" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#ar)"/>
+<text x="492" y="206" fill="#94a3b8" font-size="11.5" text-anchor="start">run()</text>
+<circle cx="480" cy="140" r="12" fill="#0b1220" stroke="#fbbf24" stroke-width="2"/>
+<text x="480" y="144" fill="#fbbf24" font-size="11.5" font-weight="700" text-anchor="middle">2</text>
+<path d="M630,272 L756,272" fill="none" stroke="#c4b5fd" stroke-width="2" marker-end="url(#ar)"/>
+<text x="693" y="262" fill="#94a3b8" font-size="11.5" text-anchor="middle">every model call</text>
+<circle cx="693" cy="290" r="12" fill="#0b1220" stroke="#fbbf24" stroke-width="2"/>
+<text x="693" y="294" fill="#fbbf24" font-size="11.5" font-weight="700" text-anchor="middle">4</text>
+<path d="M910,314 L910,386" fill="none" stroke="#c4b5fd" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M420,314 C420,350 385,350 385,386" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+<text x="372" y="352" fill="#94a3b8" font-size="11.5" text-anchor="end">tool call</text>
+<circle cx="398" cy="336" r="12" fill="#0b1220" stroke="#fbbf24" stroke-width="2"/>
+<text x="398" y="340" fill="#fbbf24" font-size="11.5" font-weight="700" text-anchor="middle">5</text>
+<path d="M600,386 C600,350 560,350 560,318" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#ar)"/>
+<text x="612" y="352" fill="#94a3b8" font-size="11.5" text-anchor="start">tool result</text>
+<circle cx="585" cy="340" r="12" fill="#0b1220" stroke="#fbbf24" stroke-width="2"/>
+<text x="585" y="344" fill="#fbbf24" font-size="11.5" font-weight="700" text-anchor="middle">6</text>
+<path d="M300,423 L254,423" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M600,456 C600,492 145,492 145,460" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M630,250 C700,200 720,120 756,100" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#ar)"/>
+<text x="744" y="136" fill="#94a3b8" font-size="11.5" text-anchor="start">reply → final answer</text>
+<circle cx="705" cy="178" r="12" fill="#0b1220" stroke="#fbbf24" stroke-width="2"/>
+<text x="705" y="182" fill="#fbbf24" font-size="11.5" font-weight="700" text-anchor="middle">7</text>
+<circle cx="560" cy="216" r="12" fill="#0b1220" stroke="#fbbf24" stroke-width="2"/>
+<text x="560" y="220" fill="#fbbf24" font-size="11.5" font-weight="700" text-anchor="middle">3</text></svg>
+    </div>
+    <div class="key">
+      <span><i style="border-color:var(--k9)"></i>K9-AIF</span>
+      <span><i style="border-color:var(--sdk)"></i>OpenAI Agents SDK</span>
+      <span><i style="border-color:var(--model)"></i>Models</span>
+      <span><i style="border-color:var(--tool)"></i>Tools</span>
+      <span><i style="border-color:var(--gate);border-radius:50%"></i>Checkpoint</span>
     </div>
   </section>
 
   <section id="how">
-    <h2>How it works</h2>
-    <p class="sub">One request, from the page to the answer.</p>
-    <ol class="steps">
-      <li><b>Zero Trust</b> checks the caller's role for the action <code>weather.lookup</code>.</li>
-      <li><b>Shield ingress</b> screens the request before the OpenAI Agents SDK starts.</li>
-      <li><b>Agent turn:</b> Zero Trust again, for the action <code>openai_agent:WeatherAgent</code>.</li>
-      <li><b>K9 Model Router</b> picks the model for each call; the SDK calls it through its OpenAI-compatible API.</li>
-      <li><b>Each tool call</b> is screened before it runs, and <b>each tool result</b> before the model reads it.
-        The weather tool looks coordinates up from the zip record itself, never from the model.</li>
-      <li><b>Every reply</b> and the <b>final answer</b> pass Shield egress, and the page shows the trace.</li>
-    </ol>
-  </section>
-
-  <section id="architecture">
-    <h2>Architecture</h2>
-    <p class="sub">The orchestrator adapter sits where any K9-AIF orchestrator sits. The services underneath are shared
-      with every other K9-AIF path.</p>
-    <div class="figure"><img src="/static/architecture.png" alt="Block diagram of the weather example: page, orchestrator adapter, OpenAI Runner, WeatherAgent, tools, and the shared K9-AIF services Zero Trust, Shield and Model Router"></div>
-  </section>
-
-  <section id="ecosystem">
-    <h2>Built on K9-AIF, part of K9X</h2>
-    <p class="sub">This demo imports the K9-AIF framework. Other K9X products built on it:</p>
-    <div class="eco">
-      <a href="https://satan.k9x.ai"><b>K9X SATAN</b><span>Attacks the Shield checks to prove they hold</span></a>
-      <a href="https://hil.k9x.ai"><b>K9X HIL</b><span>Human-in-the-loop case management</span></a>
-      <a href="https://studio.k9x.ai"><b>K9X Studio</b><span>Visual builder for K9-AIF applications</span></a>
-      <a href="https://das.k9x.ai"><b>DAS</b><span>A full reference application</span></a>
+    <div class="label">How it works</div>
+    <h2>Four moves, every one checked</h2>
+    <p class="sub">The SDK does the work. K9-AIF decides at each crossing.</p>
+    <div class="steps">
+      <div class="step"><div class="n" style="background:#34d399">1</div><b>Admit</b>
+        <span>Zero Trust checks the caller's role; Shield screens the request before the SDK starts.</span></div>
+      <div class="chev">›</div>
+      <div class="step"><div class="n" style="background:#cbd5e1">2</div><b>Run</b>
+        <span>The Runner starts WeatherAgent, built from YAML; Zero Trust checks the agent too.</span></div>
+      <div class="chev">›</div>
+      <div class="step"><div class="n" style="background:#c4b5fd">3</div><b>Think and act</b>
+        <span>The Model Router picks a tool-calling model; each tool call and result passes Shield.</span></div>
+      <div class="chev">›</div>
+      <div class="step"><div class="n" style="background:#fbbf24">4</div><b>Answer</b>
+        <span>Every reply and the final answer pass Shield; you get the answer and its receipt.</span></div>
     </div>
   </section>
 
+  <section id="show">
+    <div class="label">See a run</div>
+    <h2>One real request, and what to try</h2>
+    <p class="sub">Recorded with <code>./run.sh --demo</code> against a local model. In the demo, every request shows
+      a receipt like this.</p>
+    <div class="show">
+      <div class="receipt">
+        <div class="h"><span>zip 30301 · role customer</span><span>recorded run</span></div>
+        <div class="r"><span class="ok">✓</span><span>Zero Trust</span><span class="d">weather.lookup allowed</span></div>
+        <div class="r"><span class="ok">✓</span><span>Shield ingress</span><span class="d">request checks passed</span></div>
+        <div class="r"><span class="ok">✓</span><span>Zero Trust</span><span class="d">openai_agent:WeatherAgent</span></div>
+        <div class="r"><span class="i">·</span><span>Model Router</span><span class="d">weather → local_tools</span></div>
+        <div class="r"><span class="ok">✓</span><span>Shield tool call</span><span class="d">current_weather</span></div>
+        <div class="r"><span class="ok">✓</span><span>Shield tool result</span><span class="d">current_weather</span></div>
+        <div class="r"><span class="ok">✓</span><span>Shield reply</span><span class="d">reply text checked</span></div>
+        <div class="r"><span class="ok">✓</span><span>Shield egress</span><span class="d">final answer</span></div>
+        <div class="a">Atlanta, GA: 40.9°F, clear sky, wind 4.2 mph, humidity 67%.</div>
+      </div>
+      <div class="tries">
+        <div class="try" style="border-left-color:var(--k9)"><b>A normal zip code</b><span>The weather, with every check that ran.</span></div>
+        <div class="try" style="border-left-color:var(--gate)"><b>A guest caller</b><span>Zero Trust refuses before any agent runs.</span></div>
+        <div class="try" style="border-left-color:#f87171"><b>A prompt injection</b><span>Shield refuses it before the SDK starts.</span></div>
+        <div class="try" style="border-left-color:var(--tool)"><b>A poisoned upstream response</b><span>The tool result is withheld; the model never reads it.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="built" id="ecosystem">
+    <h2>Built on the K9-AIF framework</h2>
+    <p><b style="color:var(--text)">The adapter is one more orchestrator.</b> It extends the same
+      <code>BaseOrchestrator</code> contract as every K9-AIF orchestrator, so the Router sends it work like any other.
+      On this path the SDK's Runner and agent take the place of Squad and Agent, while Shield, Zero Trust and the
+      Model Router stay shared with every other path.</p>
+    <p>The <b style="color:var(--text)">K9X ecosystem</b> brings the framework to life: K9X SATAN fires attacks at
+      Shield to prove it holds, K9X HIL handles human decisions, K9X Studio builds K9-AIF applications visually,
+      and DAS is a full reference application.</p>
+    <div class="chips">
+      <a class="chip" href="https://k9x.ai">k9x.ai ↗</a>
+      <a class="chip" href="https://satan.k9x.ai">K9X SATAN ↗</a>
+      <a class="chip" href="https://hil.k9x.ai">K9X HIL ↗</a>
+      <a class="chip" href="https://studio.k9x.ai">K9X Studio ↗</a>
+      <a class="chip" href="https://das.k9x.ai">DAS ↗</a>
+      <a class="chip" href="https://github.com/k9aif/k9-aif-framework">Framework source ↗</a>
+    </div>
+  </div>
+
   <section id="scope">
-    <h2>Scope</h2>
-    <table>
-      <tr><th>This demo</th><th>Notes</th></tr>
-      <tr><td>US zip codes, current weather</td><td>From api.zippopotam.us and api.open-meteo.com, free public services</td></tr>
-      <tr><td>A local model on one GPU</td><td>Requests are queued and limited per visitor; answers may take a few seconds</td></tr>
-      <tr><td>Caller role chosen on the page</td><td>Simulates identity to show Zero Trust; a real deployment takes it from sign-in (OIDC)</td></tr>
-      <tr><td>Private per visitor</td><td>Nothing you send or receive is stored or shown to anyone else</td></tr>
-      <tr><td>OpenAI Agents SDK adapter</td><td>Planned for k9-aif 1.27.0; the source is public now</td></tr>
-    </table>
+    <div class="label">Scope</div>
+    <h2>What this demo is</h2>
+    <div class="scope">
+      <div><b>US zip codes</b>Current weather from two free public services.</div>
+      <div><b>One local GPU</b>Requests are queued and limited per visitor.</div>
+      <div><b>Role on the page</b>Shows Zero Trust; real deployments take it from sign-in.</div>
+      <div><b>Private to you</b>Nothing you send or receive is stored or shared.</div>
+      <div><b>The adapter</b>On K9-AIF main now; on PyPI from 1.27.0.</div>
+    </div>
   </section>
 
   <footer>
     Source: <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai">github.com/k9aif/examples</a>
-    (download it and run <code>./run.sh</code>) · <a href="https://github.com/k9aif/k9-aif-framework">K9-AIF framework</a>
+    (download it and run <code>./run.sh</code>) · <a href="https://github.com/k9aif/k9-aif-framework">K9-AIF</a>
     · <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a> · <a href="https://k9x.ai">k9x.ai</a>
   </footer>
-</main>
+</div>
 </body>
 </html>
