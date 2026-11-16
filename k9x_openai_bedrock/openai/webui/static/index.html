@@ -408,10 +408,77 @@ async def k9_tool_result_check(data):
     <ol class="ma-steps">
       <li>Open <a href="https://studio.k9x.ai" target="_blank" rel="noopener noreferrer">K9X Studio</a>, go to Intake, and upload <code>project_spec.md</code>.</li>
       <li>Check that the Agent Framework card shows <b>OpenAI Agents SDK</b>. The spec sets it.</li>
-      <li>Generate the canvas: one orchestrator, one squad, three agents.</li>
-      <li>Scaffold. The squad's runtime returns <code>K9OpenAIAgentsAdapter</code> with FrontDeskAgent as the entry agent.</li>
-      <li>Put <code>current_weather</code> from this example in <code>runtimes/tools.py</code>, list it in WeatherAgent's YAML, and run it.</li>
+      <li>Generate the canvas (one orchestrator, one squad, three OpenAI agents), then Generate Scaffold.</li>
+      <li>Put <code>current_weather</code> from this example in <code>runtimes/tools.py</code>, and list it under <code>tools</code> in WeatherAgent's YAML.</li>
+      <li>Add <code>current_weather</code> to <code>approved_tools</code> in <code>config/config.yaml</code>.</li>
+      <li>Set <code>OLLAMA_BASE_URL</code> in <code>.env</code>, pull a tool-calling model (<code>K9_MODEL_TOOLS</code>, default <code>qwen2.5:7b</code>), put your question in <code>config/scenario.json</code>, and run <code>./run.sh</code>.</li>
     </ol>
+
+    <h2>What Studio generates</h2>
+    <p>Two files bring in K9-AIF's OpenAI adapter. Everything else is configuration you edit.</p>
+    <table>
+      <tr><th>File</th><th>What it is</th></tr>
+      <tr><td><code>runtimes/weather_desk_intelligence_squad.py</code></td><td>The squad. Imports <code>K9OpenAIAgentsAdapter</code>; <code>build()</code> makes FrontDeskAgent the entry agent and the other two its handoffs.</td></tr>
+      <tr><td><code>runtimes/tools.py</code></td><td>Your tools. Imports <code>ToolCapability</code>; each tool you add gets a K9 guardrail on its call and on its result.</td></tr>
+      <tr><td><code>agents/yaml/*.yaml</code></td><td>One file per OpenAI agent: role, instructions, tools. No Python agent class.</td></tr>
+      <tr><td><code>orchestrators/…_orchestrator.py</code></td><td>Zero Trust and Shield at the entry, then runs the squad. It knows only squads.</td></tr>
+      <tr><td><code>config/config.yaml</code></td><td>A <code>tools</code> model marked <code>tool_calling</code>, and Shield's <code>approved_tools</code> list.</td></tr>
+      <tr><td><code>requirements.txt</code></td><td><code>k9-aif[mcp,openai-agents]&gt;=1.27.0</code></td></tr>
+    </table>
+    <img class="diagram" src="/static/multi-agent-classes.png" alt="Generated class diagram: the orchestrator loads the squad's runtime module, whose build() returns K9OpenAIAgentsAdapter; OpenAIAgentsOrchestratorAdapter extends BaseOrchestrator and BaseAdapter and runs the SDK's Runner; FrontDeskAgent, WeatherAgent and AttireAdvisorAgent are OpenAI Agents, with handoffs from FrontDeskAgent to the other two">
+    <p class="muted">The class diagram Studio generates for this project (<code>docs/diagrams/</code>).</p>
+
+    <h2>A sample run</h2>
+    <p>The generated project, with the exercise steps done, asked: <i>"What is the weather in 30301 right now, and
+      should I wear a jacket?"</i></p>
+    <pre>  K9-AIF Execution Summary
+==================================================================
+  Project:        WeatherDesk
+  Orchestrator:   WeatherDeskIntelligenceOrchestrator
+  Status:         SUCCESS
+  Squad:          —
+  Elapsed:        2.67s
+  Correlation ID: test-001
+──────────────────────────────────────────────────────────────────
+
+  Last agent:     WeatherAgent
+  Model calls:    3
+
+  Answer
+    The current temperature in Atlanta, GA is 54.8°F with
+    clear skies and a humidity of 46%. The wind is blowing at
+    7.4 mph. Given the temperature and clear conditions, you
+    likely won&#x27;t need a jacket, but it might be a bit chilly
+    for light clothing.
+
+──────────────────────────────────────────────────────────────────
+  What K9-AIF checked
+
+  OpenAIAgentStart         FrontDeskAgent         zero_trust=BYPASSED
+  OpenAIModelReply         FrontDeskAgent         screened=False
+  OpenAIHandoff            FrontDeskAgent         to_agent=WeatherAgent
+  OpenAIAgentStart         WeatherAgent           zero_trust=BYPASSED
+  OpenAIModelReply         WeatherAgent           screened=False
+  OpenAIModelReply         WeatherAgent           screened=True
+
+==================================================================
+  Tip: run with --json to print full result JSON
+==================================================================</pre>
+    <table>
+      <tr><th>Line</th><th>What it means</th></tr>
+      <tr><td>OpenAIHandoff … to_agent=WeatherAgent</td><td>FrontDeskAgent read the question and handed it to WeatherAgent. The handoff is a function call, so K9-AIF routes FrontDeskAgent to a tool-calling model.</td></tr>
+      <tr><td>OpenAIAgentStart … zero_trust=BYPASSED</td><td>Zero Trust runs for every agent's turn. It is off in a new scaffold; set <code>enable_zero_trust</code> and a role policy to enforce it.</td></tr>
+      <tr><td>OpenAIModelReply … screened=False</td><td>That reply was only a call (the handoff, then the tool call), with no text for Shield to screen.</td></tr>
+      <tr><td>OpenAIModelReply … screened=True</td><td>The answer text passed Shield egress before it was returned.</td></tr>
+      <tr><td>Model calls: 3</td><td>The handoff, the <code>current_weather</code> call, and the answer.</td></tr>
+      <tr><td>Last agent: WeatherAgent</td><td>The agent that gave the answer. The tool's call and result were screened by its guardrails; a refusal shows in the log.</td></tr>
+    </table>
+    <p><b>Forget step 5 and Shield stops the tool.</b> The run still answers, but without data, and the log shows:</p>
+    <pre>[k9x_Shield] BLOCKED by ToolAuthorizationCheck: Unapproved tool invocation:
+'current_weather' is not on the approved tool allowlist</pre>
+    <p class="muted">Notice that AttireAdvisorAgent didn't run: handoffs go one way, from the entry agent. WeatherAgent
+      answered the jacket question itself. Next exercise: give WeatherAgent a handoff to AttireAdvisorAgent.</p>
+
     <p class="muted">The single-agent source this builds on:
       <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai" target="_blank" rel="noopener noreferrer">github.com/k9aif/examples</a>.</p>
   </section>
