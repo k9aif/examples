@@ -22,8 +22,8 @@ cp env-example .env          # set OLLAMA_BASE_URL if Ollama isn't on localhost
 
 `run.sh` installs K9-AIF from a local framework checkout when one sits next to this repository (or
 `K9_FRAMEWORK_DIR` points to it), otherwise from PyPI (`k9-aif[openai-agents,server]>=1.27.0`). The OpenAI
-Agents SDK adapter is planned for k9-aif 1.27.0; until that release, use the framework branch
-`feature/openai-agents-adapter`.
+Agents SDK adapter is on the framework's `main` branch and ships to PyPI in k9-aif 1.27.0; until that
+release, use a framework checkout.
 
 It runs locally and calls two free public services (api.zippopotam.us, api.open-meteo.com) and your
 model server. On Ubuntu, see [ubuntu/README.md](ubuntu/README.md): `ubuntu/setup.sh` for your own machine,
@@ -45,7 +45,7 @@ policy in force, and the last request step by step.
 
 The orchestrator adapter is part of the K9-AIF framework, like its CrewAI, LangGraph and Claude Agent SDK
 adapters: `k9_aif_abb/k9_adapters/openai_agents/` in
-[k9-aif-framework](https://github.com/k9aif/k9-aif-framework) (branch `feature/openai-agents-adapter` until
+[k9-aif-framework](https://github.com/k9aif/k9-aif-framework) (on `main`; on PyPI from
 1.27.0). This example configures it in `weather_zip/app.py` (`build_adapter()`, named
 `WeatherZipOrchestrator`) and supplies only the tools, the agent YAML and the policy.
 

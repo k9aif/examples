@@ -3,7 +3,7 @@
 # Same structure as k9chat/ubuntu/build-run.sh (build/start/stop/logs/all).
 #
 # Build context is ai/ (parent of k9-aif-framework/ and k9-aif-examples/). The framework checkout
-# must have the OpenAI Agents SDK adapter (k9-aif 1.27.0, or branch feature/openai-agents-adapter).
+# must have the OpenAI Agents SDK adapter (framework main, or 1.27.0 and later).
 #
 # Requires openai/.env on this host (copy env-example; set OLLAMA_BASE_URL). Not baked into the image.
 #
@@ -26,8 +26,7 @@ AI_DIR="$(cd "$EXAMPLES_ROOT/.." && pwd)"               # parent of both repos
 
 [[ -d "$AI_DIR/k9-aif-framework/k9_aif_abb/k9_adapters/openai_agents" ]] || {
   echo "Error: $AI_DIR/k9-aif-framework has no k9_aif_abb/k9_adapters/openai_agents."
-  echo "  Clone k9-aif-framework next to this repo and check out 1.27.0 or later"
-  echo "  (until then: git -C $AI_DIR/k9-aif-framework checkout feature/openai-agents-adapter)."
+  echo "  Clone k9-aif-framework next to this repo, or update it: git -C $AI_DIR/k9-aif-framework pull"
   exit 1
 }
 EXAMPLE_REL="$(basename "$EXAMPLES_ROOT")/${APP_DIR#"$EXAMPLES_ROOT"/}"

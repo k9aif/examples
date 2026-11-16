@@ -44,7 +44,7 @@ cp env-example .env                      # set OLLAMA_BASE_URL to the Ollama ser
 
 | Command | Does |
 |---|---|
-| `build` | Builds `k9x-openai-weather:latest` (needs the framework with the OpenAI adapter: 1.27.0, or branch `feature/openai-agents-adapter`) |
+| `build` | Builds `k9x-openai-weather:latest` (needs a framework checkout with the OpenAI adapter: `main`, or 1.27.0 and later) |
 | `start` | Runs it on `127.0.0.1:${HOST_PORT:-8121}` with `--env-file .env`, `K9_ENV=production`, `--restart=always` |
 | `stop`, `logs`, `all` | As named |
 

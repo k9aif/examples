@@ -3,8 +3,8 @@
 How the K9-AIF framework and the OpenAI Agents SDK work together, and what each one contributes.
 The working example is described in [example-implementation.md](example-implementation.md).
 
-Versions checked: openai-agents 0.24.0, k9-aif 1.27.0 (adapter on the framework branch
-`feature/openai-agents-adapter`, planned for the 1.27.0 release).
+Versions checked: openai-agents 0.24.0, k9-aif framework `main` (the adapter is merged; it ships to PyPI
+in the 1.27.0 release).
 
 ## 1. What the OpenAI Agents SDK provides
 
