@@ -1,5 +1,5 @@
 @startuml openai_class
-title OpenAI Agents SDK adapter: class diagram
+title OpenAI Agents SDK adapter: class diagram (planned k9-aif 1.27.0)
 
 package "K9-AIF ABBs" {
   abstract class BaseAdapter {
@@ -19,6 +19,9 @@ package "K9-AIF ABBs" {
   abstract class BaseModelRouter {
     +route(request): RouteDecision
   }
+  class AgentLoader {
+    +load(agents_dir): agent YAML
+  }
   class BaseToolDispatcher {
     +propose(call): Any
     +resume(reply): dict
@@ -35,7 +38,8 @@ package "k9_adapters.openai_agents" {
   }
   class OpenAIAgentsOrchestratorAdapter {
     -_capabilities: dict
-    -_handoffs: dict
+    -_agent_specs: dict
+    -_max_handoffs: int
     +execute_flow(payload): dict
     +execute_flow_async(payload): dict
     -_build_agent(): Agent
@@ -96,11 +100,14 @@ K9ToolGuardrail ..> ToolInputGuardrail : provides
 K9ToolGuardrail ..> ToolOutputGuardrail : provides
 K9ToolGuardrail ..> BaseGovernance : tool args, tool result
 K9ToolGuardrail ..> BaseToolDispatcher : propose()
-K9ModelProvider ..> BaseModelRouter : route()
+K9ModelProvider ..> BaseModelRouter : llm_route()\n(llm_invoke module only)
 K9ModelProvider ..> K9GovernedModel : returns
+OpenAIAgentsOrchestratorAdapter ..> AgentLoader : agent YAML\n(tools, handoffs, model alias)
 
 note bottom of OpenAIAgentsOrchestratorAdapter
-  Never accepts a pre-built Agent.
+  Builds every Agent from agent YAML;
+  never accepts a pre-built Agent.
+  Handoff agents capped (default 3).
   Hosted tools refused at construction.
   Tier: action and inference governed.
 end note
