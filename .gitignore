@@ -12,3 +12,5 @@ build/
 .chroma/
 data/
 j2ee-petstore/
+k9x_openai_bedrock/openai/runtime/
+logs/

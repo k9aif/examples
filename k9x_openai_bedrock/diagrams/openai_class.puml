@@ -19,9 +19,6 @@ package "K9-AIF ABBs" {
   abstract class BaseModelRouter {
     +route(request): RouteDecision
   }
-  class AgentLoader {
-    +load(agents_dir): agent YAML
-  }
   class BaseToolDispatcher {
     +propose(call): Any
     +resume(reply): dict
@@ -57,9 +54,12 @@ package "k9_adapters.openai_agents" {
     +get_response(...): ModelResponse
     +stream_response(...): AsyncIterator
   }
-  class K9TraceProcessor {
-    +on_span_end(span)
+  class _K9RunHooks {
+    +on_agent_start(ctx, agent)
+    +on_handoff(ctx, from, to)
+    +on_llm_end(ctx, agent, response)
   }
+  class "load_agent_specs()" as LoadSpecs
   class OpenAIAgentsPayloadMapper {
     +to_sdk_input(payload): dict
     +from_sdk_output(result): dict
@@ -76,7 +76,7 @@ package "openai-agents (external)" {
   class FunctionTool
   abstract class Model
   abstract class ModelProvider
-  abstract class TracingProcessor
+  class RunHooks
   class ToolInputGuardrail
   class ToolOutputGuardrail
 }
@@ -85,7 +85,9 @@ BaseAdapter <|-- OpenAIAgentsOrchestratorAdapter
 BaseOrchestrator <|-- OpenAIAgentsOrchestratorAdapter
 ModelProvider <|-- K9ModelProvider
 Model <|-- K9GovernedModel
-TracingProcessor <|-- K9TraceProcessor
+RunHooks <|-- _K9RunHooks
+OpenAIAgentsOrchestratorAdapter *-- _K9RunHooks
+_K9RunHooks ..> BaseGovernance : reply egress\n(every agent)
 
 K9OpenAIAgentsAdapter *-- OpenAIAgentsOrchestratorAdapter
 K9OpenAIAgentsAdapter *-- OpenAIAgentsPayloadMapper
@@ -102,7 +104,7 @@ K9ToolGuardrail ..> BaseGovernance : tool args, tool result
 K9ToolGuardrail ..> BaseToolDispatcher : propose()
 K9ModelProvider ..> BaseModelRouter : llm_route()\n(llm_invoke module only)
 K9ModelProvider ..> K9GovernedModel : returns
-OpenAIAgentsOrchestratorAdapter ..> AgentLoader : agent YAML\n(tools, handoffs, model alias)
+K9OpenAIAgentsAdapter ..> LoadSpecs : agent YAML\n(tools, handoffs, model alias)
 
 note bottom of OpenAIAgentsOrchestratorAdapter
   Builds every Agent from agent YAML;

@@ -1,0 +1,57 @@
+@startuml weather_zip_block
+title Weather by zip code: OpenAI Agents SDK governed by K9-AIF
+top to bottom direction
+
+rectangle "Web page or CLI\n(zip code, role)" as Client
+
+rectangle "K9-AIF Router\n(in a deployed app: event_type weather.lookup over Kafka)" as Router #line.dashed
+
+rectangle "OpenAI path" as OAI {
+  rectangle "WeatherZipOrchestrator\nOpenAIAgentsOrchestratorAdapter\n(is an Orchestrator)" as Adapter
+  rectangle "OpenAI Agents SDK Runner" as Runner
+  rectangle "WeatherAgent\n(agents/yaml/weather_agent.yaml)" as Agent
+}
+
+rectangle "Shared K9-AIF services (config/config.yaml)" as Shared {
+  rectangle "Zero Trust\n(role policy: customer, staff)" as ZT
+  rectangle "k9x Shield\n(ingress, tool calls, tool results,\nevery reply, final answer)" as Shield
+  rectangle "K9 Model Router\n(task 'weather', tool_calling required)" as MR
+}
+
+rectangle "Ollama, OpenAI-compatible API\nlocal_tools: qwen2.5:7b (tool_calling)\nlocal_tiny: llama3.2:1b (not eligible)" as Models
+
+rectangle "Tools" as T {
+  rectangle "lookup_zip" as LZ
+  rectangle "current_weather" as CW
+}
+
+rectangle "api.zippopotam.us\n(zip -> place, coordinates)" as Zip
+rectangle "api.open-meteo.com\n(coordinates -> weather)" as Meteo
+
+Client --> Adapter : this example:\ndirect call
+Client ..> Router : deployed app
+Router ..> Adapter
+
+Adapter --> Runner : run()
+Runner --> Agent
+
+Adapter ..> ZT : run: action weather.lookup
+Agent ..> ZT : each turn: openai_agent:WeatherAgent
+Adapter ..> Shield : request, final answer
+Agent ..> Shield : every tool call, result, reply
+Agent ..> MR : every model call
+MR --> Models
+
+Agent --> LZ
+Agent --> CW
+LZ --> Zip
+CW --> Zip
+CW --> Meteo
+
+note right of T
+  current_weather takes the zip code and
+  looks the coordinates up itself: a tool
+  never runs on a value the model supplies
+  when the system of record has it.
+end note
+@enduml

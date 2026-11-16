@@ -1,0 +1,50 @@
+# Zip-code weather on the OpenAI Agents SDK, governed by K9-AIF.
+# Secrets and hosts come from the environment (.env), never from this file.
+
+app_name: weather_zip_openai
+
+inference:
+  router:
+    type: k9_model_router
+    default_model: local_tools
+    persistence:
+      enabled: true
+      provider: sqlite
+      sqlite:
+        db_path: "./runtime/weather_zip_router.db"
+    learning:
+      enabled: false           # rules only; no graded evidence in a demo
+
+  llm_factory:
+    backend: ollama
+    base_url: "${OLLAMA_BASE_URL:-http://localhost:11434}"
+    models:
+      qwen_tools: "${WEATHER_MODEL:-qwen2.5:7b}"
+      tiny_chat: "llama3.2:1b"
+
+  # Two local models can serve the "weather" task. Only one is marked tool_calling,
+  # and the agent has tools, so the router's eligibility rule picks it every time.
+  model_catalog:
+    default_model: local_tools
+    models:
+      local_tools:
+        provider: ollama
+        llm_ref: qwen_tools
+        capabilities: [weather, general, tool_calling, on_prem, confidential]
+      local_tiny:
+        provider: ollama
+        llm_ref: tiny_chat
+        capabilities: [weather, general, chat]
+
+security:
+  shield:
+    enabled: true
+    ingress:
+      checks: [InputSizeCheck, PromptInjectionCheck, PIIBoundaryCheck]
+    egress:
+      checks: [SemanticDriftCheck, ToolArgumentCheck, ExecutionGuardCheck, PIIBoundaryCheck]
+
+enable_zero_trust: true
+
+openai_agents:
+  export_traces: false         # keep SDK traces out of OpenAI's backend

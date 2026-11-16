@@ -225,7 +225,7 @@ model_routing: k9          # k9 | direct
 allow_hosted_tools: false
 ```
 
-Sample agent file: `openai/agents/yaml/support_triage_agent.yaml`.
+Working agent file: `openai/agents/yaml/weather_agent.yaml` (the zip-code weather example).
 
 ### 4.6 Human review: decision needed
 

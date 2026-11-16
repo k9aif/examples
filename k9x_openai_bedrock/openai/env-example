@@ -1,0 +1,16 @@
+# Copy to .env and edit. .env is never committed.
+
+# Your Ollama server (it serves the OpenAI-compatible API under /v1).
+OLLAMA_BASE_URL=http://localhost:11434
+
+# The tool-calling model for the WeatherAgent (pull it first: ollama pull qwen2.5:7b).
+WEATHER_MODEL=qwen2.5:7b
+
+# development keeps the Zero Trust identity warning soft; production refuses ungoverned calls.
+K9_ENV=development
+
+# Page port.
+PORT=8003
+
+# Optional: a local framework checkout instead of PyPI.
+# K9_FRAMEWORK_DIR=/path/to/k9-aif-framework
