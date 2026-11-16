@@ -120,6 +120,15 @@
   .cloud::after  { width: 140px; height: 140px; left: 100px; top: -78px; }
   .c1 { right: 6%; top: 22%; animation: drift 40s ease-in-out infinite alternate; }
   .c2 { left: 4%; top: 10%; transform: scale(.7); opacity: .6; animation: drift 55s ease-in-out infinite alternate-reverse; }
+  /* drops and flakes: drawn only when the answer reports rain, a storm or snow */
+  .precip { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease; }
+  .precip i { position: absolute; top: -60px; }
+  .precip.rain i { width: 1.4px; height: 38px; border-radius: 2px; background: linear-gradient(transparent, rgba(186,230,253,.45));
+    animation: drop linear infinite; }
+  .precip.snow i { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,.65); animation: flake linear infinite; }
+  body[data-sky="rain"] .precip.rain, body[data-sky="storm"] .precip.rain, body[data-sky="snow"] .precip.snow { opacity: 1; }
+  @keyframes drop { to { transform: translate(-18vh, 115vh); } }
+  @keyframes flake { 50% { transform: translate(16px, 55vh); } to { transform: translate(-10px, 115vh); } }
   .bolt { position: absolute; right: 22%; top: 18%; width: 70px; height: 150px; opacity: 0;
     background: linear-gradient(#fef9c3, #fbbf24); clip-path: polygon(55% 0, 15% 55%, 45% 55%, 25% 100%, 85% 40%, 55% 40%, 75% 0);
     filter: drop-shadow(0 0 18px rgba(253,224,71,.9)); }
@@ -147,6 +156,7 @@
   <div class="sun"></div><div class="moon"></div>
   <div class="cloud c2"></div><div class="cloud c1"></div>
   <div class="bolt"></div><div class="flash"></div>
+  <div class="precip rain"></div><div class="precip snow"></div>
 </div>
 <header>
   <div class="bar">
@@ -268,7 +278,17 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const askedSky = new URLSearchParams(location.search).get("sky");   // ?sky=storm|rain|snow|cloudy|clear|evening
-if (askedSky) document.body.dataset.sky = askedSky;
+function setSky(sky) {               // the scene follows the weather; drops are drawn on first need
+  document.body.dataset.sky = sky;
+  const kind = (sky === "rain" || sky === "storm") ? "rain" : (sky === "snow" ? "snow" : null);
+  const box = kind && document.querySelector(".scene .precip." + kind);
+  if (!box || box.childElementCount) return;
+  const n = kind === "rain" ? 55 : 40, dur = kind === "rain" ? [0.7, 0.5] : [7, 5];
+  for (let k = 0; k < n; k++) { const i = document.createElement("i");
+    i.style.left = (Math.random() * 118) + "%"; i.style.animationDuration = (dur[0] + Math.random() * dur[1]) + "s";
+    i.style.animationDelay = (-Math.random() * 8) + "s"; box.appendChild(i); }
+}
+if (askedSky) setSky(askedSky);
 const TRIES = {
   clean:  { zip: "30301", role: "customer", poison: false },
   guest:  { zip: "30301", role: "guest", poison: false },
@@ -331,7 +351,7 @@ $("ask").addEventListener("submit", async (ev) => {
     $("result").hidden = false;
     renderTrace($("trace"), r.trace); renderTrace($("trace-arch"), r.trace);
     $("trace-wrap").hidden = false;
-    document.body.dataset.sky = r.outcome === "answer" ? skyFor(r.text) : "default";
+    setSky(r.outcome === "answer" ? skyFor(r.text) : "default");
   } catch (e) {
     $("result").className = "result error"; $("kind").textContent = "Error";
     $("text").textContent = String(e); $("result").hidden = false;
