@@ -1,5 +1,7 @@
 # Running the example on Ubuntu
 
+`setup.sh` was run end to end on clean Ubuntu 22.04 and 24.04 images (2026-11-15).
+
 Two ways to run it on Ubuntu: on your own machine (`setup.sh`), or as a container behind a tunnel
 (`build-run.sh`, how openai.k9x.ai is served).
 

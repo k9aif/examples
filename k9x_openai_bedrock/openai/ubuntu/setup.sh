@@ -5,6 +5,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# No interactive prompts (tzdata asks for a region on a fresh system); sudo drops the variable,
+# so it is passed explicitly.
+APT="sudo DEBIAN_FRONTEND=noninteractive apt-get"
+
 . /etc/os-release
 echo "Ubuntu ${VERSION_ID:-unknown}"
 
@@ -13,7 +17,7 @@ suitable() { "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else
 # 1. Ubuntu's own python3 (missing only on minimal images).
 if ! command -v python3 >/dev/null 2>&1; then
   echo "Installing python3 from Ubuntu's archive..."
-  sudo apt-get update -q && sudo apt-get install -y -q python3
+  $APT update -q && $APT install -y -q python3
 fi
 
 # 2. K9-AIF needs 3.11+: 24.04 ships 3.12 (fine); 22.04 ships 3.10, so add 3.11 from deadsnakes.
@@ -23,11 +27,11 @@ elif suitable python3; then
   PY=python3
 else
   echo "Ubuntu's python3 is $(python3 --version 2>&1 | cut -d' ' -f2); K9-AIF needs 3.11+. Installing python3.11 from the deadsnakes PPA..."
-  sudo apt-get update -q
-  sudo apt-get install -y -q software-properties-common
+  $APT update -q
+  $APT install -y -q software-properties-common
   sudo add-apt-repository -y ppa:deadsnakes/ppa
-  sudo apt-get update -q
-  sudo apt-get install -y -q python3.11
+  $APT update -q
+  $APT install -y -q python3.11
   PY=python3.11
 fi
 VER=$($PY -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
@@ -36,10 +40,10 @@ echo "Python: $($PY --version)"
 # 3. venv support for that Python.
 if ! $PY -c 'import venv, ensurepip' 2>/dev/null; then
   echo "Installing python${VER}-venv..."
-  sudo apt-get install -y -q "python${VER}-venv" || { sudo apt-get update -q && sudo apt-get install -y -q "python${VER}-venv"; }
+  $APT install -y -q "python${VER}-venv" || { $APT update -q && $APT install -y -q "python${VER}-venv"; }
 fi
 
-command -v curl >/dev/null 2>&1 || { sudo apt-get update -q && sudo apt-get install -y -q curl; }
+command -v curl >/dev/null 2>&1 || { $APT update -q && $APT install -y -q curl; }
 
 if [ ! -f .env ]; then
   cp env-example .env
