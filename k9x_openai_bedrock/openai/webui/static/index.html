@@ -308,15 +308,6 @@ document.querySelectorAll("[data-try]").forEach((b) => b.addEventListener("click
   $("ask").requestSubmit();
 }));
 
-function skyFor(text) {
-  const t = (text || "").toLowerCase();
-  if (/thunder|lightning|storm/.test(t)) return "storm";
-  if (/rain|drizzle|shower/.test(t)) return "rain";
-  if (/snow/.test(t)) return "snow";
-  if (/overcast|cloud|fog/.test(t)) return "cloudy";
-  const h = new Date().getHours();
-  return (h >= 18 || h < 6) ? "evening" : "clear";
-}
 
 function renderTrace(el, trace) {
   el.innerHTML = "";
@@ -351,7 +342,7 @@ $("ask").addEventListener("submit", async (ev) => {
     $("result").hidden = false;
     renderTrace($("trace"), r.trace); renderTrace($("trace-arch"), r.trace);
     $("trace-wrap").hidden = false;
-    setSky(r.outcome === "answer" ? skyFor(r.text) : "default");
+    setSky(r.sky || "default");     // from the weather service's own codes, not the model's words
   } catch (e) {
     $("result").className = "result error"; $("kind").textContent = "Error";
     $("text").textContent = String(e); $("result").hidden = false;

@@ -77,6 +77,8 @@ async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dic
     with _LOCK:
         _EVENTS[tid] = []
     token = tools.POISON_NEXT_LOOKUP.set({"armed": poison})   # this request only
+    observed: Dict[str, Any] = {}
+    seen_token = tools.OBSERVED.set(observed)
     try:
         result = await adapter.execute_async(payload)
         outcome, text = "answer", result["output_text"]
@@ -86,8 +88,27 @@ async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dic
         outcome, text = "error", f"{type(exc).__name__}: {exc}"
     finally:
         tools.POISON_NEXT_LOOKUP.reset(token)
+        tools.OBSERVED.reset(seen_token)
         with _LOCK:
             events = _EVENTS.pop(tid, [])
     trace = [d for d in (describe(e) for e in events) if d]
     return {"question": question, "role": role, "poisoned": poison, "outcome": outcome, "text": text,
-            "trace": trace}
+            "trace": trace, "sky": _sky(observed) if outcome == "answer" else "default"}
+
+
+def _sky(observed: Dict[str, Any]) -> str:
+    """The page background from the weather service's own WMO code and day/night flag."""
+    code = observed.get("code")
+    if code is None:
+        return "default"
+    if code >= 95:
+        return "storm"
+    if code in (71, 73, 75, 77, 85, 86):
+        return "snow"
+    if 51 <= code <= 67 or 80 <= code <= 82:
+        return "rain"
+    if not observed.get("is_day", True):
+        return "evening"
+    if code in (2, 3, 45, 48):
+        return "cloudy"
+    return "clear"

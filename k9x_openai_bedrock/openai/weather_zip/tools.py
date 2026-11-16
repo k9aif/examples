@@ -34,6 +34,10 @@ _ZIP = re.compile(r"^\d{5}$")
 # (a context variable, not a module flag), so one visitor's switch never touches another's run.
 POISON_NEXT_LOOKUP: contextvars.ContextVar = contextvars.ContextVar("weather_poison", default=None)
 
+# What the weather service reported in this request (conditions, day or night), for the page's
+# background. Taken from the service's own codes, never from the model's wording. Per request.
+OBSERVED: contextvars.ContextVar = contextvars.ContextVar("weather_observed", default=None)
+
 
 def _maybe_poison(record: Dict[str, Any]) -> Dict[str, Any]:
     state = POISON_NEXT_LOOKUP.get()            # {"armed": bool} for this request, or None
@@ -83,10 +87,13 @@ async def current_weather(args: Dict[str, Any]) -> Dict[str, Any]:
         return record
     query = urllib.parse.urlencode({
         "latitude": record["latitude"], "longitude": record["longitude"],
-        "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code",
+        "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,is_day",
         "temperature_unit": "fahrenheit", "wind_speed_unit": "mph", "timezone": "auto"})
     data = await asyncio.to_thread(_get_json, f"https://api.open-meteo.com/v1/forecast?{query}")
     cur = data["current"]
+    seen = OBSERVED.get()
+    if seen is not None:
+        seen.update({"code": cur["weather_code"], "is_day": bool(cur.get("is_day", 1))})
     return _maybe_poison({"zip_code": record["zip_code"], "place": record["place"], "state": record["state"],
             "temperature_f": cur["temperature_2m"], "humidity_pct": cur["relative_humidity_2m"],
             "wind_mph": cur["wind_speed_10m"], "conditions": _WMO.get(cur["weather_code"], "unknown"),
