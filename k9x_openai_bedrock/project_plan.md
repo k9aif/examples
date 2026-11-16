@@ -40,6 +40,21 @@ marked **unverified** need a live run before anything public relies on them.
 | Tracing is pluggable: `add_trace_processor()`, `set_trace_processors()`; a `TracingProcessor` sees every trace and span start and end. | `agents/tracing/__init__.py` |
 | Agent-level `input_guardrails` default to `run_in_parallel=True`, so the model may start before the check finishes. | `agents/guardrail.py` |
 
+**Live spike, 2026-11-15** (no OpenAI key): `Runner.run()` with
+`OpenAIChatCompletionsModel` pointed at Ollama's OpenAI-compatible endpoint,
+model `qwen2.5:7b`, one function tool carrying an input and an output tool
+guardrail, SDK tracing off.
+
+| Request | Guardrail events | Outcome |
+|---|---|---|
+| Status of a clean order | args checked, result checked | Correct answer |
+| Status of an order whose record carries an injected instruction | args checked, result withheld | Injection never reached the model. The model then stated a status it never received. |
+
+The second row matters for the blog. Withholding a poisoned result stops the
+attack, but a small model may fill the gap. The adapter should tell the model
+the result was withheld, which `reject_content` already does. The example
+should also check that the final answer doesn't state facts no tool returned.
+
 ### 2.2 AWS Bedrock AgentCore (SDK 1.26.0, boto3 1.44.3)
 
 AgentCore is a hosting and services platform, not an agent loop. The agent
@@ -151,7 +166,37 @@ Claude Agent SDK does not. Limits to state plainly:
 - Agent-level SDK guardrails supplied by the caller are not accepted; Shield is
   the guardrail.
 
-### 4.4 Human review: decision needed
+### 4.4 Many agents: squads for structure, handoffs for autonomy
+
+Inside one Runner, which agent works next is a handoff the model decides at
+run time. Nothing declares the order, so a ten-agent Runner is a black box for
+process: you can't review the flow before it runs, test a step on its own, or
+say which step failed.
+
+The adapter still governs every tool call and model call, because it builds
+every agent and tool. The SDK's spans (agent, handoff, tool, generation) are
+forwarded to K9 trace events by `K9TraceProcessor`, so who did what is
+visible afterwards. Visible afterwards is not the same as declared before.
+
+Rule for the examples and the blog:
+
+| Work | Use |
+|---|---|
+| A known process (intake, check, decide, act, notify) | K9 squad: YAML flow, each agent governed by construction, failures stop the flow at a named step |
+| One step that needs model-driven delegation (triage across 2 or 3 specialists) | OpenAI adapter with handoffs, kept small |
+| Both | Router sends each `event_type` to its own orchestrator; results chain through topics. An orchestrator never calls another (K9-DEC-002). |
+
+Adapter limits that follow: a configurable cap on handoff agents (default 3),
+each handoff agent's tools validated as a subset of the registered
+capabilities (same rule as the Claude adapter's subagents), and the trace
+processor on by default.
+
+Open question for the framework: a step-level wrapper, an OpenAI agent as one
+`BaseAgent` step inside a squad, would put autonomy inside a declared flow.
+It conflicts with "agents call models only through `llm_invoke()`", so it
+needs a decision before anyone builds it.
+
+### 4.5 Human review: decision needed
 
 Two pause mechanisms exist: the SDK's `needs_approval` (resumes inside the same
 run state) and the K9 tool gate (durable, across processes, through k9x HIL).
