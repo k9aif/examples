@@ -97,6 +97,30 @@
   @media (prefers-reduced-motion: reduce) { body { transition: none; } }
   [hidden] { display: none !important; }
 
+  /* Inside the orchestrator */
+  .orch { border: 2px solid var(--ok); border-radius: 16px; padding: 30px 16px 16px; position: relative;
+    background: linear-gradient(180deg, rgba(52,211,153,.05), transparent 40%); }
+  .olabel { position: absolute; top: -12px; left: 16px; background: var(--bg); color: var(--ok); padding: 0 8px;
+    font: 700 12.5px var(--mono); }
+  .stage { border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: 12px; background: var(--panel-2); padding: 12px 14px; }
+  .stage.sdk { border-left-color: #cbd5e1; border-color: #475569; }
+  .shead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .sn { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ok);
+    color: #04121c; font-weight: 800; font-size: 12px; }
+  .stage.sdk .sn { background: #cbd5e1; }
+  .sd { color: var(--muted); font-size: 13.5px; }
+  pre.snip { font-size: 12px; padding: 10px 12px; margin: 0; white-space: pre; }
+  .sl { margin-top: 6px; font-size: 12px; }
+  .src { color: var(--ok); text-decoration: none; }
+  .src:hover { text-decoration: underline; }
+  .down { text-align: center; color: #475569; font-size: 18px; line-height: 1.6; }
+  .subs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .sub { border: 1px dashed #3b4a68; border-top: 3px solid var(--ok); border-radius: 10px; padding: 10px 12px; background: #0b1322; }
+  .sub.model { border-top-color: #c4b5fd; } .sub.tool { border-top-color: #22d3ee; }
+  .sub b { display: block; margin-bottom: 2px; }
+  .sub .sd { display: block; margin-bottom: 8px; }
+  @media (max-width: 860px) { .subs { grid-template-columns: 1fr; } }
+
   /* weather scene behind the page: an original drawing, follows the last answer */
   .scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
   header, main, footer { position: relative; z-index: 1; }
@@ -224,7 +248,8 @@
     <h2>The classes</h2>
     <p>The adapter is part of the K9-AIF framework (<code>k9_aif_abb/k9_adapters/openai_agents/</code>), the same shape
       as its CrewAI, LangGraph and Claude Agent SDK adapters: a facade, an orchestrator adapter that extends
-      <code>BaseOrchestrator</code> and <code>BaseAdapter</code>, and a payload mapper. This example only configures it.</p>
+      <code>BaseOrchestrator</code> and <code>BaseAdapter</code>, and a payload mapper. This example only configures it.
+      Source: <a href="https://github.com/k9aif/k9-aif-framework/tree/main/k9_aif_abb/k9_adapters/openai_agents" target="_blank" rel="noopener noreferrer">github.com/k9aif/k9-aif-framework · k9_adapters/openai_agents</a>.</p>
     <img class="diagram" src="/static/classes.png" alt="Class diagram: K9OpenAIAgentsAdapter, OpenAIAgentsOrchestratorAdapter extending BaseOrchestrator and BaseAdapter, K9ModelProvider and K9GovernedModel, the per-tool K9 guardrails, the run hooks, and the OpenAI Agents SDK types they use">
 
     <h2>What is checked, and where</h2>
@@ -270,8 +295,44 @@
       </div>
     </div>
 
+
     <h2>Last request, step by step</h2>
     <ol class="trace" id="trace-arch"><li><span></span><span class="step">No request yet</span><span class="detail muted">Run one on the Weather tab.</span></li></ol>
+
+    <h2>Inside the orchestrator</h2>
+    <p>What <code>OpenAIAgentsOrchestratorAdapter</code> does with one request, in order, with the real lines from the
+      framework. Every link opens the exact lines on GitHub. Full source:
+      <a href="https://github.com/k9aif/k9-aif-framework/tree/main/k9_aif_abb/k9_adapters/openai_agents" target="_blank" rel="noopener noreferrer">k9_aif_abb/k9_adapters/openai_agents</a>.</p>
+    <div class="orch">
+      <div class="olabel">OpenAIAgentsOrchestratorAdapter._execute_flow_governed()</div>
+      <div class="stage k9"><div class="shead"><span class="sn">1</span><b>Zero Trust for the run</b><span class="sd">The caller's role must be allowed for <code>weather.lookup</code>, or nothing runs.</span></div><pre class="snip">zt = self.apply_zero_trust(sdk_input)
+if not zt[&quot;allowed&quot;]:
+    raise PermissionError(f&quot;... Zero Trust denied run: {zt.get(&#x27;reason&#x27;)}&quot;)</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L371-L373" target="_blank" rel="noopener noreferrer">lines 371–373 ↗</a></div></div>
+      <div class="down">↓</div>
+      <div class="stage k9"><div class="shead"><span class="sn">2</span><b>Shield ingress</b><span class="sd">The request is screened before the OpenAI Agents SDK starts.</span></div><pre class="snip">governed = await self.apply_pre_governance(sdk_input, self._governance_context())</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L375-L375" target="_blank" rel="noopener noreferrer">lines 375–375 ↗</a></div></div>
+      <div class="down">↓</div>
+      <div class="stage sdk"><div class="shead"><span class="sn">3</span><b>Run the OpenAI Agents SDK</b><span class="sd">The SDK's own loop, inside the orchestrator's checks.</span></div><pre class="snip">run_result = await Runner.run(entry, prompt, run_config=self._run_config(), hooks=hooks)</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L426-L427" target="_blank" rel="noopener noreferrer">lines 426–427 ↗</a></div><div class="subs"><div class="sub k9"><b>Each agent's turn</b><span class="sd">Zero Trust again, for <code>openai_agent:&lt;name&gt;</code>.</span><pre class="snip">async def on_agent_start(self, context, agent):
+    zt = self.adapter.apply_zero_trust(
+        {**self.identity, &quot;action_type&quot;: f&quot;openai_agent:{agent.name}&quot;})
+    if not zt[&quot;allowed&quot;]:
+        raise PermissionError(...)</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L170-L175" target="_blank" rel="noopener noreferrer">lines 170–175 ↗</a></div></div><div class="sub model"><b>Each model call</b><span class="sd">The K9 Model Router is the SDK's model provider.</span><pre class="snip">kwargs[&quot;model_provider&quot;] = K9ModelProvider(
+    self.config, tools_by_alias=tools_by_alias, ...)
+# inside K9ModelProvider.get_model():
+route = llm_route(self.config, request)</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L404-L406" target="_blank" rel="noopener noreferrer">lines 404–406 ↗</a> · <a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/k9_model_provider.py#L107-L107" target="_blank" rel="noopener noreferrer">k9_model_provider.py 107 ↗</a></div></div><div class="sub tool"><b>Each tool call and result</b><span class="sd">Two guardrails on every tool the adapter builds.</span><pre class="snip">async def k9_tool_call_check(data):
+    await screen_tool_call(adapter.governance, cap.name, args, ...)
+async def k9_tool_result_check(data):
+    await screen_tool_result(adapter.governance, cap.name, data.output, ...)</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L309-L329" target="_blank" rel="noopener noreferrer">lines 309–329 ↗</a></div></div><div class="sub k9"><b>Each model reply</b><span class="sd">Shield egress on every agent's reply text.</span><pre class="snip">async def on_llm_end(self, context, agent, response):
+    text = _reply_text(response)
+    if text:
+        await self.adapter.apply_post_governance({&quot;output&quot;: text}, ...)</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L180-L184" target="_blank" rel="noopener noreferrer">lines 180–184 ↗</a></div></div></div></div>
+      <div class="down">↓</div>
+      <div class="stage k9"><div class="shead"><span class="sn">4</span><b>Shield egress on the final answer</b><span class="sd">The answer is checked once more before it's returned.</span></div><pre class="snip">await self.apply_post_governance({&quot;output&quot;: final ...}, self._governance_context())</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L387-L388" target="_blank" rel="noopener noreferrer">lines 387–388 ↗</a></div></div>
+      <div class="down">↓</div>
+      <div class="stage k9"><div class="shead"><span class="sn">5</span><b>Audit</b><span class="sd">The run is recorded, with the last agent and the number of model calls.</span></div><pre class="snip">self.publish_status(&quot;OpenAIAgentsRunCompleted&quot;, {
+    &quot;adapter&quot;: self.adapter_name, &quot;last_agent&quot;: ..., &quot;model_calls&quot;: ...})</pre><div class="sl"><a class="src" href="https://github.com/k9aif/k9-aif-framework/blob/main/k9_aif_abb/k9_adapters/openai_agents/openai_agents_orchestrator_adapter.py#L391-L393" target="_blank" rel="noopener noreferrer">lines 391–393 ↗</a></div></div>
+    </div>
+
+
   </section>
 </main>
 <footer>
