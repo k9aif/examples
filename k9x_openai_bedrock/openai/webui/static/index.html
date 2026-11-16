@@ -109,7 +109,8 @@
     color: #04121c; font-weight: 800; font-size: 12px; }
   .stage.sdk .sn { background: #cbd5e1; }
   .sd { color: var(--muted); font-size: 13.5px; }
-  pre.snip { font-size: 12px; padding: 10px 12px; margin: 0; white-space: pre; }
+  pre.snip { font-size: 12px; padding: 10px 12px; margin: 0; white-space: pre; overflow-x: auto; }
+  .stage, .sub, .subs { min-width: 0; }
   .sl { margin-top: 6px; font-size: 12px; }
   .src { color: var(--ok); text-decoration: none; }
   .src:hover { text-decoration: underline; }
@@ -122,6 +123,21 @@
   @media (max-width: 860px) { .subs { grid-template-columns: 1fr; } }
 
   /* weather scene behind the page: an original drawing, follows the last answer */
+  /* Multi-agent tab */
+  .ma-flow { display: grid; gap: 10px; margin: 14px 0 6px; }
+  .ma-box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; background: rgba(255,255,255,.03); }
+  .ma-box b { display: block; } .ma-box span { font-size: 13px; color: var(--muted); }
+  .ma-k9 { border-left: 4px solid #34d399; } .ma-sdk { border-left: 4px solid #60a5fa; }
+  .ma-arrow { text-align: center; color: var(--muted); font-size: 13px; line-height: 1; }
+  .ma-agents { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+  .ma-agent { border: 1px dashed #60a5fa; border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .ma-agent.entry { border-style: solid; }
+  .ma-shared { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .ma-shared div { border: 1px solid #34d399; border-radius: 8px; padding: 8px 10px; font-size: 13px; text-align: center; }
+  .ma-steps { padding-left: 20px; } .ma-steps li { margin: 6px 0; }
+  a.ma-dl { display: inline-block; text-decoration: none; margin: 6px 0 4px; font-weight: 700; padding: 10px 20px; border-radius: 9px; background: #fff; color: #059669; }
+  a.ma-dl:hover { background: #ecfdf5; }
+  @media (max-width: 640px) { .ma-agents, .ma-shared { grid-template-columns: 1fr; } table { display: block; overflow-x: auto; } pre { overflow-x: auto; max-width: 100%; } .olabel { right: 16px; overflow-wrap: anywhere; } }
   .scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
   header, main, footer { position: relative; z-index: 1; }
   .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; transition: background 1.2s ease, opacity 1.2s ease; }
@@ -198,6 +214,7 @@
   <nav role="tablist">
     <button role="tab" aria-selected="true" data-tab="weather">Weather</button>
     <button role="tab" aria-selected="false" data-tab="arch">Architecture</button>
+    <button role="tab" aria-selected="false" data-tab="multi">Multi-agent</button>
   </nav>
 </header>
 
@@ -334,10 +351,75 @@ async def k9_tool_result_check(data):
 
 
   </section>
+
+  <section class="card" id="tab-multi" hidden>
+    <h2 style="margin-top:0">Several OpenAI agents, modeled in K9-AIF</h2>
+    <p>The Weather tab runs one agent. Real assistants get mixed questions, such as "Will it rain in 10001, and do
+      I need a coat?". This tab shows how a group of OpenAI agents that hand work to each other is modeled in
+      K9-AIF. It doesn't run here, because this demo has one GPU. You can generate it yourself in K9X Studio
+      from the spec below.</p>
+
+    <div class="ma-flow" aria-label="Router, orchestrator, squad with three OpenAI agents, and the shared K9-AIF services">
+      <div class="ma-box ma-k9"><b>Router</b><span>Admits the request and sends it to the orchestrator.</span></div>
+      <div class="ma-arrow">&#9660;</div>
+      <div class="ma-box ma-k9"><b>WeatherDeskIntelligenceOrchestrator</b><span>Zero Trust and Shield at the entry. It knows only its squad.</span></div>
+      <div class="ma-arrow">&#9660;</div>
+      <div class="ma-box ma-sdk"><b>WeatherDeskIntelligenceSquad: one OpenAI Runner run</b>
+        <span>Built by <code>K9OpenAIAgentsAdapter</code> from agent YAML. The first agent is the entry agent; its squad-mates are its handoffs.</span>
+        <div class="ma-agents">
+          <div class="ma-agent entry"><b>FrontDeskAgent</b>Entry. Reads the question and hands it off.</div>
+          <div class="ma-agent"><b>WeatherAgent</b>Calls the <code>current_weather</code> tool.</div>
+          <div class="ma-agent"><b>AttireAdvisorAgent</b>Advises what to wear from the weather.</div>
+        </div>
+      </div>
+      <div class="ma-arrow">shared by every agent and every handoff</div>
+      <div class="ma-shared"><div>Zero Trust per agent turn</div><div>k9x Shield on every tool call, result and reply</div><div>K9 Model Router for every model call</div></div>
+    </div>
+
+    <h2>How each piece maps</h2>
+    <table>
+      <tr><th>K9-AIF</th><th>On the OpenAI Agents SDK</th><th>Why</th></tr>
+      <tr><td>Squad</td><td>One <code>Runner.run</code>: an entry agent plus handoffs</td><td>The orchestrator still talks only to squads</td></tr>
+      <tr><td>Agent</td><td>An OpenAI <code>Agent</code> built from agent YAML</td><td>No agent is built in code outside the adapter</td></tr>
+      <tr><td>Squad order</td><td>First agent is the entry; the others are its handoffs</td><td>You write instructions and tools, not wiring</td></tr>
+      <tr><td>Tool</td><td>A function tool with two K9 guardrails</td><td>Arguments and results are screened before any agent reads them</td></tr>
+      <tr><td>Model</td><td>The K9 Model Router as the SDK's model provider</td><td>Each agent gets an eligible model, chosen per call</td></tr>
+    </table>
+
+    <h2>Governance on a handoff</h2>
+    <table>
+      <tr><th>Step</th><th>K9-AIF check</th></tr>
+      <tr><td>FrontDeskAgent hands off to WeatherAgent</td><td>Zero Trust for <code>openai_agent:WeatherAgent</code> at that agent's turn. A guest reaches the front desk but is refused here.</td></tr>
+      <tr><td>WeatherAgent calls <code>current_weather</code></td><td>Shield on the arguments, then on the returned data</td></tr>
+      <tr><td>Each agent replies</td><td>Shield egress on every agent's reply, not only the last one</td></tr>
+      <tr><td>Long chains</td><td>The adapter caps handoffs per run, so a group stays small</td></tr>
+    </table>
+
+    <h2>Handoffs or a native K9-AIF squad?</h2>
+    <table>
+      <tr><th>Use handoffs</th><th>Use a native K9-AIF squad</th></tr>
+      <tr><td>The model decides which specialist answers</td><td>The steps and their order are known in advance</td></tr>
+      <tr><td>Two to four agents</td><td>A long, fixed process</td></tr>
+      <tr><td>Conversation-style requests</td><td>Records, rules and approvals; deterministic steps are adapters, not agents</td></tr>
+    </table>
+
+    <h2>Build it yourself in K9X Studio</h2>
+    <a class="ma-dl" href="/static/project_spec.md" download="project_spec.md">&#8681; Download project_spec.md</a>
+    <ol class="ma-steps">
+      <li>Open <a href="https://studio.k9x.ai" target="_blank" rel="noopener noreferrer">K9X Studio</a>, go to Intake, and upload <code>project_spec.md</code>.</li>
+      <li>Check that the Agent Framework card shows <b>OpenAI Agents SDK</b>. The spec sets it.</li>
+      <li>Generate the canvas: one orchestrator, one squad, three agents.</li>
+      <li>Scaffold. The squad's runtime returns <code>K9OpenAIAgentsAdapter</code> with FrontDeskAgent as the entry agent.</li>
+      <li>Put <code>current_weather</code> from this example in <code>runtimes/tools.py</code>, list it in WeatherAgent's YAML, and run it.</li>
+    </ol>
+    <p class="muted">The single-agent source this builds on:
+      <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai" target="_blank" rel="noopener noreferrer">github.com/k9aif/examples</a>.</p>
+  </section>
+
 </main>
 <footer>
   Source: <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai">github.com/k9aif/examples</a>
-  (download it and run <code>./run.sh</code>) · Framework: <a href="https://github.com/k9aif/k9-aif-framework">K9-AIF</a>
+  (download it and run <code>./run.sh</code>) · Framework: <a href="https://github.com/k9aif/k9-aif-framework">K9-AIF</a> · <a href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">Video (4 min)</a>
   · <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a>
   · Runs on one GPU: requests are queued and limited per visitor · <span id="version"></span>
 </footer>
@@ -367,6 +449,7 @@ document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click
   document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", x === b));
   $("tab-weather").hidden = b.dataset.tab !== "weather";
   $("tab-arch").hidden = b.dataset.tab !== "arch";
+  $("tab-multi").hidden = b.dataset.tab !== "multi";
 }));
 
 document.querySelectorAll("[data-try]").forEach((b) => b.addEventListener("click", () => {

@@ -43,6 +43,14 @@ model server. On Ubuntu, see [ubuntu/README.md](ubuntu/README.md): `ubuntu/setup
 The page's **Architecture** tab shows how the pieces fit, what is checked where, the agent's YAML and the
 policy in force, and the last request step by step.
 
+The **Multi-agent** tab shows how several OpenAI agents that hand work to each other are modeled in K9-AIF:
+one squad becomes one Runner run, the first agent is the entry agent, and its squad-mates are its handoffs.
+It offers [project_spec.md](webui/static/project_spec.md) to download. Upload it in
+[K9X Studio](https://studio.k9x.ai) Intake: it sets the agent framework to OpenAI Agents SDK and stages
+FrontDeskAgent, WeatherAgent and AttireAdvisorAgent in one squad, ready to scaffold.
+
+Video (4 minutes): https://www.youtube.com/watch?v=75HKTX9BdmI
+
 ## Where the code is
 
 The orchestrator adapter is part of the K9-AIF framework, like its CrewAI, LangGraph and Claude Agent SDK
