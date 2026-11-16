@@ -94,6 +94,27 @@ runtime underneath changes.
 Framework package `k9_adapters/openai_agents/`, OOB. Optional dependency
 `openai-agents` (extra `k9-aif[openai-agents]`).
 
+### 4.0 Where the adapter sits
+
+The adapter is an orchestrator: it extends `BaseOrchestrator`, and
+`k9aif inspect` gives it the orchestrator role. The Router dispatches an
+`event_type` to it exactly as it would to a native orchestrator:
+
+```
+Router --event_type A--> Orchestrator -> Squad -> Agents          (native)
+Router --event_type B--> OpenAIAgentsOrchestratorAdapter -> Runner -> OpenAI agents
+```
+
+On the OpenAI path, the Runner and its agents take the place of Squad and
+Agent. Shield, the tool gate, HIL and the Model Router are shared by both
+paths and read the same configuration.
+
+The framework's own LangGraph example puts an application orchestrator in
+front of the adapter facade. That is worth doing only when that orchestrator
+does real work, such as choosing between several wrapped runtimes. Otherwise
+it adds a layer that does nothing. The examples here register the adapter
+with the Router directly.
+
 ### 4.1 Classes
 
 | Class | Role |
