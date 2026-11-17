@@ -395,13 +395,24 @@ async def k9_tool_result_check(data):
       <tr><td>Long chains</td><td>The adapter caps handoffs per run, so a group stays small</td></tr>
     </table>
 
-    <h2>Handoffs or a native K9-AIF squad?</h2>
+    <h2>Who decides which agent runs next?</h2>
+    <p>With handoffs, <b>the model decides</b>. Each handoff is offered to the model as a tool
+      (<code>transfer_to_weather_agent</code>), described by that agent's YAML <code>description</code>, and the model
+      picks one. The OpenAI Agents SDK also supports the other way. Its
+      <a href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank" rel="noopener noreferrer">multi-agent guide</a>
+      calls it <b>orchestrating via code</b>: you build each agent and call <code>Runner.run</code> on them in an order
+      your code sets, for example chaining them so one agent's output becomes the next one's input. In the guide's
+      words, this "makes tasks more deterministic and predictable, in terms of speed, cost and performance."</p>
     <table>
-      <tr><th>Use handoffs</th><th>Use a native K9-AIF squad</th></tr>
-      <tr><td>The model decides which specialist answers</td><td>The steps and their order are known in advance</td></tr>
-      <tr><td>Two to four agents</td><td>A long, fixed process</td></tr>
-      <tr><td>Conversation-style requests</td><td>Records, rules and approvals; deterministic steps are adapters, not agents</td></tr>
+      <tr><th></th><th>Orchestrating via the LLM (handoffs)</th><th>Orchestrating via code</th></tr>
+      <tr><td>Who picks the next agent</td><td>The model, from the agents' descriptions</td><td>Your code, in a fixed order</td></tr>
+      <tr><td>Same input, same path?</td><td>Not guaranteed</td><td>Yes</td></tr>
+      <tr><td>Fits</td><td>Open-ended, conversation-style requests</td><td>Known steps: records, rules, approvals</td></tr>
+      <tr><td>In K9-AIF</td><td>This tab's squad, with handoffs capped per run</td><td>A native K9-AIF squad: agents run in the order its YAML sets, with optional synthesis at the end</td></tr>
     </table>
+    <p><b>The K9-AIF way: the squad decides, not the model.</b> Keep a squad small, five agents at most, run them in
+      the order the architecture sets, and let a synthesis step combine their results. Use handoffs only where letting
+      the model choose the specialist is the point. Deterministic steps are adapters, not agents.</p>
 
     <h2>Exercise: build it in K9X Studio</h2>
     <a class="ma-dl" href="/static/project_spec.md" download="project_spec.md">&#8681; Download project_spec.md</a>
