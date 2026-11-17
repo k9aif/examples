@@ -450,7 +450,7 @@ async def k9_tool_result_check(data):
       <tr><td><code>orchestrators/…_orchestrator.py</code></td><td>Zero Trust and Shield at the entry, then runs the squad. It knows only squads.</td></tr>
       <tr><td><code>requirements.txt</code></td><td><code>k9-aif[mcp,openai-agents]</code>, 1.28.0 or later</td></tr>
     </table>
-    <img class="diagram" src="/static/multi-agent-squad-classes.png?v=0424c9b64c" alt="Generated class diagram: FrontDeskAgent, WeatherAgent and AttireAdvisorAgent extend K9OpenAIAgent, which extends BaseAgent; WeatherDeskIntelligenceSquad extends BaseSquad and owns the three agents; the orchestrator extends BaseOrchestrator and loads the squad. No handoffs.">
+    <img class="diagram" src="/static/multi-agent-squad-classes.png?v=72fdea77d4" alt="Generated class diagram, laid out like the handoff one below for comparison: FrontDeskAgent, WeatherAgent and AttireAdvisorAgent extend K9OpenAIAgent; K9OpenAIAgent runs one OpenAI Runner step; WeatherDeskIntelligenceSquad extends BaseSquad, owns the three agents and lists its flow; then-arrows show step 2 and step 3 where the handoff diagram has handoffs.">
     <p class="muted">The class diagram Studio generates for this project (<code>docs/diagrams/</code>).</p>
 
     <h2>A sample run</h2>
