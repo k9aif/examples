@@ -403,11 +403,6 @@ async def k9_tool_result_check(data):
       <tr><td>Model</td><td>The K9 Model Router as the SDK's model provider</td><td>Each agent gets an eligible model, chosen per call</td></tr>
     </table>
 
-    <h2>The flow, step by step</h2>
-    <p>The squad runs its three agents in order. Each step is screened on the way in and out, the tool call and its
-      result are screened inside step 2, and no agent is ever offered a handoff.</p>
-    <img class="diagram" src="/static/multi_agent_squad_flow.png?v=6adc366c66" alt="Sequence diagram: the orchestrator checks Zero Trust and Shield, then runs the squad; the squad runs FrontDeskAgent, then WeatherAgent (which calls current_weather, with the call and the result screened), then AttireAdvisorAgent; Shield checks every step's input and output; the squad's flow sets the order and no agent is offered a handoff.">
-
     <h2>Who decides which agent runs next?</h2>
     <p>The OpenAI Agents SDK offers two ways. With <b>handoffs</b>, the model decides: each handoff is offered to the
       model as a tool (<code>transfer_to_weather_agent</code>), described by that agent's YAML <code>description</code>,
@@ -423,11 +418,19 @@ async def k9_tool_result_check(data):
       <tr><td>In the design spec</td><td><code>Agent Routing: sequence</code> (or nothing)</td><td><code>Agent Routing: handoffs</code></td></tr>
       <tr><td>Studio generates</td><td>A squad of <code>K9OpenAIAgent</code> steps</td><td>A handoff group (<code>K9OpenAIAgentsAdapter</code>), capped per run, with Zero Trust on every agent turn</td></tr>
     </table>
-    <p><b>For comparison, the handoff option.</b> If the design spec says <code>Agent Routing: handoffs</code>, Studio
-      generates this instead: one runtime module returns <code>K9OpenAIAgentsAdapter</code>, FrontDeskAgent is the entry
-      agent, and the model may hand off to WeatherAgent or AttireAdvisorAgent. This exercise does not use it.</p>
-    <img class="diagram" src="/static/multi-agent-handoff-classes.png?v=2de1db5da0" alt="Handoff option, for comparison: the squad's runtime module returns K9OpenAIAgentsAdapter, OpenAIAgentsOrchestratorAdapter runs the OpenAI Runner, and FrontDeskAgent has handoffs to WeatherAgent and AttireAdvisorAgent.">
-    <p class="muted">Class diagram Studio generates with <code>Agent Routing: handoffs</code>.</p>
+
+    <h2>The two approaches, as class diagrams</h2>
+    <p>Studio generates one of these from the design spec. They are laid out the same way, so the difference is easy to see.</p>
+
+    <h3>1. K9-AIF squad (default)</h3>
+    <p>The squad is a <code>BaseSquad</code> with a flow. Each agent extends <code>K9OpenAIAgent</code> and runs as one
+      step; the "then" arrows are the flow's order. This exercise uses this approach.</p>
+    <img class="diagram" src="/static/multi-agent-squad-classes.png?v=72fdea77d4" alt="Class diagram, K9-AIF squad: FrontDeskAgent, WeatherAgent and AttireAdvisorAgent extend K9OpenAIAgent; K9OpenAIAgent runs one OpenAI Runner step; WeatherDeskIntelligenceSquad extends BaseSquad, owns the three agents and lists its flow; then-arrows show step 2 and step 3.">
+
+    <h3>2. Handoffs (opt-in)</h3>
+    <p>With <code>Agent Routing: handoffs</code>, a runtime module returns <code>K9OpenAIAgentsAdapter</code>;
+      FrontDeskAgent is the entry agent, and the model may hand off to WeatherAgent or AttireAdvisorAgent.</p>
+    <img class="diagram" src="/static/multi-agent-handoff-classes.png?v=2de1db5da0" alt="Class diagram, handoffs: the squad's runtime module returns K9OpenAIAgentsAdapter, OpenAIAgentsOrchestratorAdapter runs the OpenAI Runner, and FrontDeskAgent has handoffs to WeatherAgent and AttireAdvisorAgent.">
 
     <h2>Exercise: build it in K9X Studio</h2>
     <a class="ma-dl" href="/static/design_spec.md" download="design_spec.md">&#8681; Download design_spec.md</a>
@@ -450,8 +453,6 @@ async def k9_tool_result_check(data):
       <tr><td><code>orchestrators/…_orchestrator.py</code></td><td>Zero Trust and Shield at the entry, then runs the squad. It knows only squads.</td></tr>
       <tr><td><code>requirements.txt</code></td><td><code>k9-aif[mcp,openai-agents]</code>, 1.28.0 or later</td></tr>
     </table>
-    <img class="diagram" src="/static/multi-agent-squad-classes.png?v=72fdea77d4" alt="Generated class diagram, laid out like the handoff one below for comparison: FrontDeskAgent, WeatherAgent and AttireAdvisorAgent extend K9OpenAIAgent; K9OpenAIAgent runs one OpenAI Runner step; WeatherDeskIntelligenceSquad extends BaseSquad, owns the three agents and lists its flow; then-arrows show step 2 and step 3 where the handoff diagram has handoffs.">
-    <p class="muted">The class diagram Studio generates for this project (<code>docs/diagrams/</code>).</p>
 
     <h2>A sample run</h2>
     <p>The generated project, with the exercise steps done, asked: <i>"What is the weather in 30301 right now, and
