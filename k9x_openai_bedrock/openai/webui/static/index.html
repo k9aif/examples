@@ -262,6 +262,20 @@
       On this path the SDK's Runner and agent take the place of K9-AIF's Squad and Agent.</p>
     <img class="diagram" src="/static/architecture.png" alt="Block diagram: web page, orchestrator adapter, OpenAI Runner, WeatherAgent, tools, and the shared K9-AIF services: Zero Trust, Shield and Model Router">
 
+    <div class="author-rec" style="margin:22px 0;padding:16px 20px;border-left:4px solid #2dd4bf;border-radius:10px;background:rgba(45,212,191,.06)">
+      <h2 style="margin-top:0">Author's recommendation</h2>
+      <p>I don't let the model decide which agent runs next. In K9-AIF, each agent is an individual, runnable unit,
+        and the <b>squad</b> invokes them in a known sequence set by the architecture. A squad stays small, at most
+        five agents, and a synthesis step can combine their results at the end. The same input takes the same path
+        every time, so the flow can be tested, audited and explained.</p>
+      <p>The OpenAI Agents SDK supports this directly; its
+        <a href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank" rel="noopener noreferrer">multi-agent guide</a>
+        calls it <i>orchestrating via code</i>. This example runs a single agent, so the question doesn't arise here.
+        Handoffs, where the model picks the specialist, are for open-ended conversations where that choice is the
+        point. The Multi-agent tab compares the two.</p>
+      <p class="muted" style="margin-bottom:0">Ravi Natarajan, author of K9-AIF</p>
+    </div>
+
     <h2>The classes</h2>
     <p>The adapter is part of the K9-AIF framework (<code>k9_aif_abb/k9_adapters/openai_agents/</code>), the same shape
       as its CrewAI, LangGraph and Claude Agent SDK adapters: a facade, an orchestrator adapter that extends
@@ -410,9 +424,7 @@ async def k9_tool_result_check(data):
       <tr><td>Fits</td><td>Open-ended, conversation-style requests</td><td>Known steps: records, rules, approvals</td></tr>
       <tr><td>In K9-AIF</td><td>This tab's squad, with handoffs capped per run</td><td>A native K9-AIF squad: agents run in the order its YAML sets, with optional synthesis at the end</td></tr>
     </table>
-    <p><b>The K9-AIF way: the squad decides, not the model.</b> Keep a squad small, five agents at most, run them in
-      the order the architecture sets, and let a synthesis step combine their results. Use handoffs only where letting
-      the model choose the specialist is the point. Deterministic steps are adapters, not agents.</p>
+    <p class="muted">The author's recommendation is on the Architecture tab. Deterministic steps are adapters, not agents.</p>
 
     <h2>Exercise: build it in K9X Studio</h2>
     <a class="ma-dl" href="/static/project_spec.md" download="project_spec.md">&#8681; Download project_spec.md</a>
