@@ -43,12 +43,14 @@ model server. On Ubuntu, see [ubuntu/README.md](ubuntu/README.md): `ubuntu/setup
 The page's **Architecture** tab shows how the pieces fit, what is checked where, the agent's YAML and the
 policy in force, and the last request step by step.
 
-The **Multi-agent** tab shows how several OpenAI agents that hand work to each other are modeled in K9-AIF:
-one squad becomes one Runner run, the first agent is the entry agent, and its squad-mates are its handoffs.
-It offers [project_spec.md](webui/static/project_spec.md) to download. Upload it in
-[K9X Studio](https://studio.k9x.ai) Intake: it sets the agent framework to OpenAI Agents SDK and stages
-FrontDeskAgent, WeatherAgent and AttireAdvisorAgent in one squad, ready to scaffold. Building and running
-it is left to the developer as an exercise.
+The **Multi-agent** tab shows several OpenAI agents run the K9-AIF way: each agent is an individual,
+runnable step (`K9OpenAIAgent`, k9-aif 1.28.0), and a K9-AIF squad runs them in the order of its flow, with
+synthesis. The squad decides which agent runs next, never the model. Handoffs, where the model picks the
+agent, remain an explicit opt-in (`Agent Routing: handoffs` in the design spec). The tab offers
+[design_spec.md](webui/static/design_spec.md) to download. Upload it in [K9X Studio](https://studio.k9x.ai)
+Intake: it sets the agent framework to OpenAI Agents SDK with sequence routing and stages FrontDeskAgent,
+WeatherAgent and AttireAdvisorAgent in one squad, ready to scaffold. Building and running it is left to the
+developer as an exercise; the tab shows a real run.
 
 Video (4 minutes): https://www.youtube.com/watch?v=75HKTX9BdmI
 
