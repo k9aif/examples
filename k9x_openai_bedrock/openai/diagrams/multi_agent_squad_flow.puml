@@ -1,0 +1,32 @@
+@startuml multi_agent_squad_flow
+title Weather Desk: the squad runs three OpenAI agents in a known sequence
+
+participant "Orchestrator" as O
+participant "WeatherDeskIntelligenceSquad\n(BaseSquad)" as S
+participant "FrontDeskAgent\n(K9OpenAIAgent)" as F
+participant "WeatherAgent\n(K9OpenAIAgent)" as W
+participant "current_weather\n(tool)" as T
+participant "AttireAdvisorAgent\n(K9OpenAIAgent)" as A
+
+O -> O : Zero Trust, Shield ingress
+O -> S : run squad (question)
+
+S -> F : step 1: question
+F -> F : Shield on input; model call (K9 Model Router)
+F --> S : what the visitor needs\n(Shield on output)
+
+S -> W : step 2: question + step 1
+W -> W : Shield on input; model call (tool-calling model)
+W -> T : current_weather(zip_code)\n(Shield on the call)
+T --> W : weather data\n(Shield on the result)
+W --> S : the current weather\n(Shield on output)
+
+S -> A : step 3: question + steps 1 and 2\n(a governed digest if they grow large)
+A -> A : Shield on input; model call (K9 Model Router)
+A --> S : final answer\n(Shield on output)
+
+S --> O : results of every step
+O -> O : Shield egress on the answer
+
+note over S : The squad's flow sets the order.\nNo agent is offered a handoff.
+@enduml
