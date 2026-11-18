@@ -264,7 +264,8 @@ def agent(request: Request):
 AP_OPEN_PER_SESSION = int(os.environ.get("AP_OPEN_PER_SESSION", "3"))   # runs not yet finished, per visitor
 _AP_DONE = {"completed", "rejected", "error"}
 _HIL_FIELDS = ("id", "title", "status", "priority", "queue_name", "application_name", "assigned_to",
-               "correlation_id", "reply_to", "ttl_hours", "ttl_action", "created_at", "completed_at", "payload")
+               "correlation_id", "reply_to", "ttl_hours", "ttl_action", "created_at", "completed_at", "payload",
+               "task_type", "required_role", "decision_authority", "artifact_list", "contract")
 _NO_STORE = {"Cache-Control": "no-store, private"}
 
 

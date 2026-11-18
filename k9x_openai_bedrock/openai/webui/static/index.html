@@ -579,7 +579,8 @@ async def k9_tool_result_check(data):
         <h2>K9X HIL (hil.k9x.ai) view for the OpenAI demo</h2>
         <p class="muted" style="margin:0 0 10px;font-size:13.5px">This task came in to K9X HIL on Kafka
           (<code>hil.requests.openai-ap-payments</code>), under <b>OpenAI Demo Application → Invoice Approvals</b>. This pane
-          reads and decides it through K9X HIL's REST API (the API key stays on this server). The decision itself goes
+          reads and decides it through K9X HIL's REST API (the API key stays on this server). The invoice itself is a PDF in
+          object storage (S3/MinIO): the task carries its <code>s3://</code> link, and K9X HIL fetches it for the reviewer. The decision itself goes
           back on Kafka (<code>hil.replies.openai-ap-payments</code>). You can also decide it at
           <a id="hil-link" href="https://hil.k9x.ai" target="_blank" rel="noopener noreferrer">hil.k9x.ai</a> with the demo login.</p>
         <div id="hil-wait" class="muted">Waiting for K9X HIL to take the task…</div>
@@ -588,6 +589,8 @@ async def k9_tool_result_check(data):
             <dt class="muted">Task</dt><dd id="hil-id" style="margin:0"></dd>
             <dt class="muted">Title</dt><dd id="hil-title" style="margin:0"></dd>
             <dt class="muted">Wants to run</dt><dd id="hil-call" style="margin:0;font-family:var(--mono);font-size:12.5px"></dd>
+            <dt class="muted">Decided by</dt><dd id="hil-role" style="margin:0"></dd>
+            <dt class="muted">Documents</dt><dd id="hil-docs" style="margin:0;font-size:13px"></dd>
             <dt class="muted">Status</dt><dd id="hil-status" style="margin:0"></dd>
             <dt class="muted">If nobody decides</dt><dd id="hil-ttl" style="margin:0" class="muted"></dd>
           </dl>
@@ -833,6 +836,10 @@ async function hilRefresh(id, run) {
     const open = task.status !== "completed" && task.status !== "rejected" && task.status !== "expired";
     pill($("hil-status"), open ? "wait" : task.status === "completed" ? "ok" : "bad", open ? task.status : (task.status === "completed" ? "approved" : task.status));
     $("hil-ttl").textContent = task.ttl_hours ? `${task.ttl_action || "reject"} after ${task.ttl_hours} hours` : "";
+    $("hil-role").textContent = task.required_role
+      ? `${task.decision_authority ? task.decision_authority + ", " : ""}role ${task.required_role} or above` : "any role";
+    const docs = (task.artifact_list || []).map((a) => `${a.title || a.uri} (${a.uri})`);
+    $("hil-docs").textContent = docs.length ? docs.join(" · ") + ". K9X HIL opens each one for the reviewer." : "none";
     const canDecide = open && run.status === "pending_hil";
     $("hil-approve").disabled = !canDecide; $("hil-reject").disabled = !canDecide;
   } catch (e) { $("hil-wait").hidden = false; $("hil-wait").textContent = String(e.message || e); }

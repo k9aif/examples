@@ -79,6 +79,13 @@ the run. `OpenAIHILAdapter` saves it in `PausedRunStore` and raises `RequiresHIL
 The decision comes back on `hil.replies.openai-ap-payments`, and the Router resumes. The squad skips the steps
 already done, and PaymentAgent continues the same OpenAI run.
 
+Each paused payment becomes a K9X HIL task in HIL's own task contract (`k9x.hil.task/v1`). The invoice is a PDF in
+object storage: `accounts_payable/invoices/upload_invoices.py` puts the four demo invoices in the bucket
+`openai-ap-invoices`, and the task carries the invoice's `s3://` link as its primary artifact, so K9X HIL fetches it
+for the reviewer. The rules' approver role decides who may approve: a manager, with a written justification, for
+AP-03 and AP-04, and otherwise anyone in the queue. The task's deadline is 24 hours, after which the payment is
+rejected.
+
 The page's **Accounts payable + HIL** tab shows the run, the rule that fired, and a K9X HIL pane. The pane
 reads and decides the task through K9X HIL's REST API, using `HIL_API_KEY`, which stays on the server. The
 demo is on when `KAFKA_BOOTSTRAP_SERVERS` is set. The other keys are in `env-example`: the rules engine URL,

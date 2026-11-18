@@ -43,5 +43,8 @@ DEMO_PASSWORD=demo
 # POSTGRES_PASSWORD=
 # AP_POSTGRES_DB=k9x
 # AP_POSTGRES_SCHEMA=openai
+# The S3/MinIO bucket with the invoice PDFs (accounts_payable/invoices/upload_invoices.py puts them there;
+# K9X HIL reads them with its own S3 credentials).
+# AP_INVOICE_BUCKET=openai-ap-invoices
 # Invoices still in flight per visitor.
 # AP_OPEN_PER_SESSION=3
