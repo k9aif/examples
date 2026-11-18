@@ -21,6 +21,9 @@ header { padding: 16px 20px 0; max-width: 1000px; margin: 0 auto; }
 .links { display: flex; gap: 10px; align-items: center; }
 .home { font-size: 13px; color: var(--ink); text-decoration: none; border: 1px solid #3b4a68; border-radius: 8px; padding: 5px 12px; }
 .home:hover, .signout:hover { border-color: var(--ok); }
+.gbadge { font: 600 11px var(--mono); color: #fcd34d; background: rgba(251,191,36,.10); border: 1px solid rgba(251,191,36,.35); border-radius: 999px; padding: 2px 9px; white-space: nowrap; cursor: default; }
+.gbadge.off { color: var(--muted); background: transparent; border-color: var(--line); }
+@media (max-width: 640px) { .gbadge { display: none; } }
 .build { font: 10.5px var(--mono); color: var(--muted); opacity: .55; white-space: nowrap; margin-left: 4px; cursor: default; user-select: all; }
 .build:empty { display: none; }
 @media (max-width: 640px) { .build { display: none; } }

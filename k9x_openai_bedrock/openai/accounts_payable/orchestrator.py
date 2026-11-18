@@ -25,6 +25,13 @@ INVOICE_FILES = {"INV-1042", "INV-1043", "INV-2001", "INV-4001", "INV-0999", "IN
 RULES_PAGE = "https://openai.k9x.ai/ap"
 
 
+def _without_guardian(config: Dict[str, Any]) -> Dict[str, Any]:
+    import copy
+    cfg = copy.deepcopy(config or {})
+    cfg.setdefault("governance", {}).setdefault("guardian", {})["enabled"] = False
+    return cfg
+
+
 def invoice_bucket(config: Dict[str, Any]) -> str:
     return ((config or {}).get("ap") or {}).get("invoice_bucket") or os.environ.get("AP_INVOICE_BUCKET") \
         or "openai-ap-invoices"
@@ -39,7 +46,10 @@ class APOrchestrator(BaseOrchestrator):
             raise PermissionError(f"[{self.layer}] Zero Trust denied: {zt.get('reason')}")
         # for the page's step list: what Zero Trust decided, before any agent ran
         checked = {"decision": zt.get("decision"), "roles": list(payload.get("roles") or [])}
-        squad = self.squads.load_one(SQUADS_YAML, SQUAD_ID)
+        # the visitor may switch Granite Guardian off for their own runs (the Bad invoices tab), to see what it adds;
+        # the squad is then built with a per-run config without it. Shield and Zero Trust always stay on.
+        run_config = _without_guardian(self.config) if payload.get("guardian_off") else None
+        squad = self.squads.load_one(SQUADS_YAML, SQUAD_ID, config=run_config)
         try:
             results = self.execute_squads([squad], payload)
         except RequiresHIL as exc:

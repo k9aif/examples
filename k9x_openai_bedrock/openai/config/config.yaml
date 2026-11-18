@@ -45,6 +45,16 @@ security:
     egress:
       checks: [SemanticDriftCheck, ToolArgumentCheck, ExecutionGuardCheck, PIIBoundaryCheck]
 
+# Granite Guardian: the semantic layer after k9x Shield (Shield first: deterministic and cheap, so the obvious
+# cases never reach the model). Every agent gets both (governance_from_config -> ChainedGovernance). Fail closed: if
+# Guardian can't answer, the step is refused, never waved through. Off: OPENAI_GUARDIAN_ENABLED=false.
+governance:
+  guardian:
+    enabled: ${OPENAI_GUARDIAN_ENABLED:-true}
+    model: "${GUARDIAN_MODEL:-granite4.1-guardian:8b}"
+    on_unavailable: fail_closed
+    temperature: 0
+
 enable_zero_trust: true
 
 openai_agents:

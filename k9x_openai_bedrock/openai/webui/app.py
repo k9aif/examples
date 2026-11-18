@@ -299,6 +299,9 @@ def health(request: Request):
         "zero_trust": adapter.enable_zero_trust,
         # for the signed-in pages' top bar, like das.k9x.ai: the model agents with tools are routed to, and where it runs
         "agent_model": _agent_model(inference),
+        "shield": bool(((adapter.config.get("security") or {}).get("shield") or {}).get("enabled")),
+        "guardian": str(((adapter.config.get("governance") or {}).get("guardian") or {}).get("enabled", "")).lower()
+                    in ("1", "true", "yes"),
         "model_host": os.environ.get("MODEL_HOST_LABEL", ""),
     }
 
@@ -345,7 +348,8 @@ def _ap():
 
 
 class APSubmit(BaseModel):
-    invoice: str = Field(..., pattern="^(small|large|bank|blocked|inject|disclose|divert|flood|guest)$")
+    invoice: str = Field(..., pattern="^(small|large|bank|blocked|inject|disclose|divert|flood|guest|reworded)$")
+    guardian: bool = True          # False: Granite Guardian off for this run only (the visitor's own experiment)
 
 
 @app.get("/api/ap/status")
@@ -373,7 +377,7 @@ async def ap_submit(req: APSubmit, request: Request):
         raise HTTPException(429, f"You have {len(working)} invoices still running. Wait for one to finish.")
     if len(waiting) >= AP_WAITING_PER_SESSION:
         raise HTTPException(429, f"You have {len(waiting)} invoices waiting for a person. Decide some first.")
-    run_id = await asyncio.to_thread(rt.submit, req.invoice, sid)
+    run_id = await asyncio.to_thread(rt.submit, req.invoice, sid, req.guardian)
     return JSONResponse({"run_id": run_id}, headers=_NO_STORE)
 
 

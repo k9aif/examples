@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 
 from k9_aif_abb.k9_adapters.openai_agents import K9OpenAIAgentsAdapter
-from k9_aif_abb.k9_security.vulnerability.shield_governance import ShieldGovernance
+from k9_aif_abb.k9_core.governance.pipeline import governance_from_config
 from k9_aif_abb.k9_security.zero_trust.guards import DefaultZeroTrustGuard, RoleBasedAuthorizationGuard
 from k9_aif_abb.k9_utils.config_loader import load_yaml
 
@@ -34,7 +34,7 @@ ROLE_POLICY = {
 def build_adapter() -> K9OpenAIAgentsAdapter:
     os.chdir(APP_DIR)                      # runtime/ paths in config.yaml are relative to the app
     config = load_yaml(CONFIG_PATH)
-    governance = ShieldGovernance(config)  # whole config: it reads security.shield
+    governance = governance_from_config(config)   # k9x Shield, then Granite Guardian when governance.guardian is on
     guard = DefaultZeroTrustGuard(authorization_guard=RoleBasedAuthorizationGuard(ROLE_POLICY))
     return K9OpenAIAgentsAdapter(
         capabilities=CAPABILITIES,
