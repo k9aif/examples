@@ -119,9 +119,9 @@
 </div>
 <header>
   <div class="bar">
-    <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
+    <span style="display:flex;align-items:baseline;gap:6px"><a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
+      <span class="build" id="build-top" title="The running build: commit ids of the examples and the K9-AIF framework"></span></span>
     <div class="links">
-      <span class="build" id="build-top" title="The running build: commit ids of the examples and the K9-AIF framework"></span>
       <a class="home" href="/">Home</a>
       <form method="post" action="/logout" style="margin:0"><button class="signout" type="submit">Sign out</button></form>
     </div>
@@ -510,7 +510,7 @@ fetch("/api/health").then((r) => r.json()).then((h) => {
     (h.model_server_reachable ? "Model server reachable" : "Model server not reachable: check OLLAMA_BASE_URL in .env") +
     ` · model routing: ${h.routing} · Zero Trust: ${h.zero_trust ? "on" : "off"}`;
   $("version").textContent = h.version ? `Build: ${h.version}` : "";
-  $("build-top").textContent = h.version ? `Build: ${h.version}` : "";
+  $("build-top").textContent = h.version ? `build ${h.version}` : "";
   $("catalog").textContent = h.catalog.map((c) => `${c.alias}: ${c.model} [${(c.capabilities || []).join(", ")}]`).join("  ·  ");
 }).catch(() => { $("status").textContent = "Health check failed."; });
 

@@ -18,7 +18,7 @@
       var(--bg); }
   a { color: var(--k9); }
   .wrap { max-width: 1340px; margin: 0 auto; padding: 0 24px; }
-  .build { font: 12px var(--mono); color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+  .build { font: 10.5px var(--mono); color: var(--muted); opacity: .55; white-space: nowrap; margin-left: 4px; cursor: default; user-select: all; }
   /* side pane: the page's sections, the current one lit as you scroll */
   .layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 40px; }
   .toc { position: sticky; top: 20px; align-self: start; padding-top: 44px; }
@@ -34,6 +34,7 @@
   @media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } .toc { display: none; } }
 
   .topbar { display: flex; align-items: center; gap: 22px; height: 64px; }
+  .topbar .build { margin-left: -12px; }
   .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 800; letter-spacing: .04em; }
   .logo img { height: 34px; width: 34px; object-fit: cover; border-radius: 8px; }
   .topbar nav { margin-left: auto; display: flex; gap: 18px; font-size: 14px; align-items: center; }
@@ -194,8 +195,8 @@
 
   <div class="topbar">
     <a class="logo" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
+    <span class="build" title="The running build: commit ids of the examples and the K9-AIF framework">build __BUILD__</span>
     <nav>
-      <span class="build" title="The running build: commit ids of the examples and the K9-AIF framework">Build: __BUILD__</span>
       <a href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">Video ↗</a>
       <a class="signin" href="/login">Sign in</a>
     </nav>

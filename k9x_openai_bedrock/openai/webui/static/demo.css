@@ -21,7 +21,7 @@ header { padding: 16px 20px 0; max-width: 1000px; margin: 0 auto; }
 .links { display: flex; gap: 10px; align-items: center; }
 .home { font-size: 13px; color: var(--ink); text-decoration: none; border: 1px solid #3b4a68; border-radius: 8px; padding: 5px 12px; }
 .home:hover, .signout:hover { border-color: var(--ok); }
-.build { font: 12px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.build { font: 10.5px var(--mono); color: var(--muted); opacity: .55; white-space: nowrap; margin-left: 4px; cursor: default; user-select: all; }
 .build:empty { display: none; }
 @media (max-width: 640px) { .build { display: none; } }
 .signout { font: inherit; font-size: 13px; background: transparent; border: 1px solid #3b4a68; border-radius: 8px;

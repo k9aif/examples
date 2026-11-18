@@ -48,9 +48,9 @@
 <body>
 <header>
   <div class="bar">
-    <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
+    <span style="display:flex;align-items:baseline;gap:6px"><a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
+      <span class="build" id="build-top" title="The running build: commit ids of the examples and the K9-AIF framework"></span></span>
     <div class="links">
-      <span class="build" id="build-top" title="The running build: commit ids of the examples and the K9-AIF framework"></span>
       <a class="home" href="/">Home</a>
       <form method="post" action="/logout" style="margin:0"><button class="signout" type="submit">Sign out</button></form>
     </div>
@@ -190,7 +190,7 @@ document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click
 { const start = document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`); if (start) start.click(); }
 fetch("/api/health").then((r) => r.json()).then((h) => {
   $("version").textContent = h.version ? `Build: ${h.version}` : "";
-  $("build-top").textContent = h.version ? `Build: ${h.version}` : "";
+  $("build-top").textContent = h.version ? `build ${h.version}` : "";
 }).catch(() => {});
 // ── Accounts payable (use case 3) ──────────────────────────────────────────
 const AP = { run: null, timer: null, invoices: {} };
