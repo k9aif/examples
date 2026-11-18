@@ -35,6 +35,12 @@
 
   .topbar { display: flex; align-items: center; gap: 22px; height: 64px; }
   .topbar .build { margin-left: -12px; }
+  .topbar nav .signin { font: inherit; font-size: 14px; color: #04121c; background: var(--k9); border: 0; border-radius: 8px; padding: 6px 14px; font-weight: 700; cursor: pointer; }
+  .topbar nav .signout { font: inherit; font-size: 13px; color: var(--muted); background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; cursor: pointer; }
+  .topbar nav .signout:hover { color: var(--text); }
+  .who { font: 11px var(--mono); color: var(--muted); opacity: .7; }
+  .toclink { font: inherit; font-size: 14px; color: var(--muted); background: none; border: 0; padding: 5px 8px; cursor: pointer; }
+  .toclink:hover { color: var(--text); }
   .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 800; letter-spacing: .04em; }
   .logo img { height: 34px; width: 34px; object-fit: cover; border-radius: 8px; }
   .topbar nav { margin-left: auto; display: flex; gap: 18px; font-size: 14px; align-items: center; }
@@ -187,6 +193,7 @@
     .show { grid-template-columns: 1fr; } .scope { grid-template-columns: 1fr 1fr; }
     .topbar nav a:not(.signin) { display: none; }
     .topbar .build { display: none; }
+    .topbar .who { display: none; }
   }
 </style>
 </head>
@@ -198,7 +205,7 @@
     <span class="build" title="The running build: commit ids of the examples and the K9-AIF framework">build __BUILD__</span>
     <nav>
       <a href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">Video ↗</a>
-      <a class="signin" href="/login">Sign in</a>
+      <!--AUTH-->
     </nav>
   </div>
 
@@ -216,7 +223,7 @@
     </ul>
     <ul class="ext">
       <li><a href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">Video ↗</a></li>
-      <li><a href="/login">Sign in →</a></li>
+      <!--AUTH_TOC-->
     </ul>
   </aside>
   <div class="main">

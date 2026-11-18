@@ -99,10 +99,38 @@ def _require_session(request: Request) -> str:
     return sid
 
 
-def _page(name: str) -> str:
+def _session_ref(sid: str | None) -> str:
+    """A short fingerprint of the session for the page (never the session id itself: that is the secret that keeps
+    each visitor's runs private)."""
+    return hashlib.sha256(sid.encode()).hexdigest()[:8] if sid else ""
+
+
+_SIGN_IN_FORM = ('<form method="post" action="/login" style="margin:0"><input type="hidden" name="username" '
+                 'value="__DEMO_USER__"><input type="hidden" name="password" value="__DEMO_PASSWORD__">'
+                 '<input type="hidden" name="tab" value="home"><button class="{cls}" type="submit">{label}</button></form>')
+
+
+def _auth_bits(sid: str | None) -> dict:
+    """The landing page's sign-in controls: signed out, Sign in signs in as the demo user at once; signed in, the
+    session's fingerprint (subtle) and Sign out."""
+    if sid:
+        who = (f'<span class="who" title="Your private session (a fingerprint, not the session id)">'
+               f'{DEMO_USER} · session {_session_ref(sid)}</span>'
+               '<form method="post" action="/logout" style="margin:0"><button class="signout" type="submit">'
+               'Sign out</button></form>')
+        return {"<!--AUTH-->": who, "<!--AUTH_TOC-->": ""}
+    return {"<!--AUTH-->": _SIGN_IN_FORM.format(cls="signin", label="Sign in"),
+            "<!--AUTH_TOC-->": "<li>" + _SIGN_IN_FORM.format(cls="toclink", label="Sign in →") + "</li>"}
+
+
+def _page(name: str, sid: str | None = None) -> str:
     import html
     import re
-    text = ((STATIC / name).read_text(encoding="utf-8").replace("__DEMO_PASSWORD__", DEMO_PASSWORD)
+    text = (STATIC / name).read_text(encoding="utf-8")
+    for marker, value in _auth_bits(sid).items():
+        text = text.replace(marker, value)
+    text = (text.replace("__SESSION_REF__", f"session {_session_ref(sid)}" if sid else "")
+            .replace("__DEMO_USER__", html.escape(DEMO_USER)).replace("__DEMO_PASSWORD__", DEMO_PASSWORD)
             .replace("__BUILD__", html.escape(os.environ.get("APP_VERSION", "local")))
             .replace("__DEMO_CSS_V__", "__V:demo.css__"))
     # __V:<static file>__ -> its content hash: a changed file gets a new URL, so a CDN never serves a stale copy
@@ -149,8 +177,8 @@ class WeatherRequest(BaseModel):
 
 
 @app.get("/", response_class=HTMLResponse)
-def landing():
-    return _page("landing.html")
+def landing(request: Request):
+    return HTMLResponse(_page("landing.html", _session(request)), headers={"Cache-Control": "no-store, private"})
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -173,9 +201,14 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     now = time.time()
     for old in [k for k, t in _SESSIONS.items() if now - t > _SESSION_TTL_S]:
         _SESSIONS.pop(old, None)
-    sid = secrets.token_urlsafe(24)
-    _SESSIONS[sid] = now
-    target = "/ap" if tab == "ap" else "/app" + (f"#{tab}" if tab in _TABS else "")   # use case 3 is its own page
+    sid = _session(request)                    # already signed in: keep the same session (and its runs)
+    if sid is None:
+        sid = secrets.token_urlsafe(24)
+        _SESSIONS[sid] = now
+    if tab == "home":
+        target = "/"                           # Sign in on the landing page: stay there, pick a use case
+    else:
+        target = "/ap" if tab == "ap" else "/app" + (f"#{tab}" if tab in _TABS else "")   # use case 3 is its own page
     resp = RedirectResponse(target, status_code=303)
     secure = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
     resp.set_cookie(_COOKIE, _sign(sid), httponly=True, samesite="lax", secure=secure, max_age=_SESSION_TTL_S)
@@ -196,7 +229,7 @@ def logout(request: Request):
 def demo_app(request: Request):
     if _session(request) is None:
         return RedirectResponse("/login", status_code=303)
-    return HTMLResponse(_page("index.html"), headers={"Cache-Control": "no-store, private"})
+    return HTMLResponse(_page("index.html", _session(request)), headers={"Cache-Control": "no-store, private"})
 
 
 @app.get("/ap")
@@ -204,7 +237,7 @@ def ap_demo(request: Request):
     """Use case 3, accounts payable with K9X HIL: its own page (the weather demo is /app)."""
     if _session(request) is None:
         return RedirectResponse("/login", status_code=303)
-    return HTMLResponse(_page("ap.html"), headers={"Cache-Control": "no-store, private"})
+    return HTMLResponse(_page("ap.html", _session(request)), headers={"Cache-Control": "no-store, private"})
 
 
 @app.post("/api/weather")
