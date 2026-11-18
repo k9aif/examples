@@ -12,6 +12,17 @@
     background: var(--panel-2); color: var(--ink); cursor: pointer; }
   .ap-pick button:hover { border-color: var(--ok); }
   .ap-pick button:disabled { opacity: .55; cursor: wait; }
+  .ap-pick > button { display: flex; flex-direction: column; justify-content: flex-start; }
+  .ap-pick .go { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--ok); }
+  .ap-pick .go .spin { display: inline-block; margin: 0; }
+  .ap-pick button.busy { opacity: 1; border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
+  .pickhint { margin: 14px 0 0; font-size: 14px; font-weight: 600; }
+  .live { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ok); }
+  .live[hidden] { display: none; }
+  .spin { width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+         display: inline-block; vertical-align: -1px; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
   .ap-pick b { display: block; } .ap-pick span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
   .ap-pick .exp { font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--gate); margin-top: 6px; }
   .ap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
@@ -134,6 +145,7 @@
       <code>needs_approval</code> pause becomes a task in <b>K9X HIL</b> (hil.k9x.ai) over Kafka, and the run waits there
       while other invoices move on. Decide it in K9X HIL: the decision comes back on Kafka, the Router resumes, and the
       same OpenAI run carries on. Payments are simulated.</p>
+    <p class="pickhint">Click an invoice below to run it.</p>
     <div class="ap-pick" id="ap-pick">
       <button type="button" data-inv="small"><b>INV-1043 · $900</b><span>Acme Supplies, office supplies</span><span class="exp">AP-08 · pays automatically</span></button>
       <button type="button" data-inv="large"><b>INV-1042 · $48,500</b><span>Acme Supplies, warehouse racking</span><span class="exp">AP-07 · over $15,000 → PaymentAgent asks HIL</span></button>
@@ -142,7 +154,8 @@
     </div>
     <div class="batchrow">
       <button type="button" class="primary" id="ap-batch">Run a batch of 10 invoices</button>
-      <span class="muted" style="font-size:13px">The way a day's invoices arrive: most pay automatically, the rules reject
+      <span class="live" id="ap-live" role="status" aria-live="polite" hidden><span class="spin" aria-hidden="true"></span><span id="ap-live-t"></span></span>
+      <span class="muted" id="ap-batch-note" style="font-size:13px">The way a day's invoices arrive: most pay automatically, the rules reject
         two, and three wait for a person in K9X HIL while the rest move on.</span>
     </div>
     <div id="ap-off" class="empty" hidden></div>
@@ -416,7 +429,17 @@ async function apJson(url, opts) {
   }
   return body;
 }
-function apPick(disabled) { $("ap-batch").disabled = disabled; document.querySelectorAll("#ap-pick button").forEach((b) => { b.disabled = disabled; }); }
+function apPick(disabled) {
+  $("ap-batch").disabled = disabled;
+  document.querySelectorAll("#ap-pick button").forEach((b) => {
+    b.disabled = disabled;
+    if (!disabled) { b.classList.remove("busy"); b.querySelector(".go").innerHTML = "Run ▶"; }
+  });
+  if (!disabled) apLive("");
+}
+function apLive(text) { $("ap-live-t").textContent = text; $("ap-live").hidden = !text; $("ap-batch-note").hidden = !!text; }
+document.querySelectorAll("#ap-pick button").forEach((b) => {   // every card says it runs on a click
+  const go = document.createElement("span"); go.className = "go"; go.textContent = "Run ▶"; b.appendChild(go); });
 
 fetch("/api/ap/status").then((r) => r.json()).then((s) => {
   if (!s.running) { $("ap-off").textContent = "The accounts payable demo isn't running on this server (it needs Kafka)."; $("ap-off").hidden = false; apPick(true); return; }
@@ -440,6 +463,8 @@ function showRun(id) {          // switch the run panel to one of this visitor's
 
 document.querySelectorAll("#ap-pick button").forEach((b) => b.addEventListener("click", async () => {
   apPick(true);
+  b.classList.add("busy"); b.querySelector(".go").innerHTML = '<span class="spin" aria-hidden="true"></span> Running…';
+  apLive(`Running ${b.querySelector("b").textContent}…`);
   try {
     const r = await apJson("/api/ap/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invoice: b.dataset.inv }) });
     showRun(r.run_id);
@@ -512,6 +537,9 @@ async function apPoll() {
     const run = await apJson(`/api/ap/runs/${encodeURIComponent(id)}`);
     if (id !== AP.run) return;
     apRender(run);
+    const name = AP_LABEL[run.invoice] || run.label || "The invoice";
+    if (run.status === "submitted" || run.status === "running") apLive(`Running ${name}…`);
+    else if (run.status === "resuming") apLive(`Resuming ${name} after the decision in K9X HIL…`);
     if (run.correlation_id) await hilRefresh(id, run);
     if (AP_DONE.has(run.status)) { apPick(false); refreshRuns(); return; }
     if (run.status === "pending_hil") apPick(false);    // parked for a person: nothing is busy, start another invoice
@@ -544,7 +572,7 @@ async function hilRefresh(id, run) {
 
 // ── a batch of 10 ─────────────────────────────────────────────────────────
 $("ap-batch").addEventListener("click", async () => {
-  apPick(true);
+  apPick(true); apLive("Sending 10 invoices…");
   try {
     const r = await apJson("/api/ap/batch", { method: "POST" });
     $("ap-empty").hidden = false;
