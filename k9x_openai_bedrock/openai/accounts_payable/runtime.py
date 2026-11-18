@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-The accounts payable demo's runtime, wired the K9-AIF way and the same way as das.k9x.ai: the shared Redpanda,
-one Router, one Orchestrator, the K9X Rules Engine and K9X HIL.
+The accounts payable demo's runtime, wired the K9-AIF way: the enterprise Redpanda (each application on its own
+topics), one Router, one Orchestrator, the K9X Rules Engine and K9X HIL.
 
   submit()  -> K9EventRouter.route(event_type="openai.ap.invoice") -> Kafka openai.ap.in
   consumer  -> APOrchestrator.execute_flow() -> squad -> pending_hil, completed, or rejected

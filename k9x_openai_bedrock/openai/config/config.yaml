@@ -50,7 +50,7 @@ openai_agents:
   export_traces: false         # keep SDK traces out of OpenAI's backend
 
 # ── Accounts payable demo (use case 3) ────────────────────────────────────────────────────────────────────────────
-# The shared Redpanda, the same as das.k9x.ai (KAFKA_BOOTSTRAP_SERVERS in .env).
+# The enterprise Redpanda (Podman container), shared by K9X applications, each on its own topics (KAFKA_BOOTSTRAP_SERVERS in .env).
 messaging:
   topic: openai.ap.status               # status events; the orchestrator's input is openai.ap.in (routing.table)
   group_id: openai-demo

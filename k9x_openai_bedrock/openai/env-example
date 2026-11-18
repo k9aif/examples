@@ -27,7 +27,7 @@ DEMO_PASSWORD=demo
 
 # ── Accounts payable + K9X HIL (use case 3). Off unless KAFKA_BOOTSTRAP_SERVERS is set. ──
 # In the container use LAN addresses, not localhost.
-# The shared Redpanda (the same one das.k9x.ai uses).
+# The enterprise Redpanda (Kafka API, Podman container), shared by K9X applications; this demo uses its own topics.
 # KAFKA_BOOTSTRAP_SERVERS=redpanda-host:9092
 # The K9X Rules Engine (k9x-ecosystem/k9x_rules_engine; LAN only).
 # K9X_RULES_ENGINE_URL=http://rules-host:8130
