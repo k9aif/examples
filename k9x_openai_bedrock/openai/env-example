@@ -17,6 +17,10 @@ PORT=8003
 # Optional: a local framework checkout instead of PyPI.
 # K9_FRAMEWORK_DIR=/path/to/k9-aif-framework
 
+# Granite Guardian after k9x Shield on every agent (fail closed: the model must be on the Ollama host).
+# OPENAI_GUARDIAN_ENABLED=true
+# GUARDIAN_MODEL=granite4.1-guardian:8b
+
 # Shown next to the model on the signed-in pages (e.g. the GPU host's name). Optional.
 # MODEL_HOST_LABEL=
 
