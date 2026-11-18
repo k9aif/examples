@@ -42,6 +42,35 @@
   .demo code { font-family: var(--mono); background: var(--panel-2); border: 1px solid var(--border); padding: 1px 7px; border-radius: 5px; color: var(--text); }
 
   /* the two rectangles */
+
+  /* SDK component map */
+  .sdkmap { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .sdkmap table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .sdkmap th { text-align: left; font: 700 11.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+               background: var(--panel-2); padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .sdkmap td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .sdkmap tr:last-child td { border-bottom: 0; }
+  .sdkmap td.c b { color: var(--sdk); display: block; }
+  .sdkmap td.c code, .sdkmap td code { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+  .sdkmap td.k9 { color: #d1fae5; }
+  .sdkmap tr.grp td { background: #0b1322; font: 700 11.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dawn); padding: 9px 16px; }
+  .pill { display: inline-block; font: 700 11px var(--mono); letter-spacing: .04em; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+  .pill.used { color: #04121c; background: var(--k9); }
+  .pill.opt { color: #04121c; background: var(--tool); }
+  .pill.new { color: #1f1503; background: var(--gate); }
+  .pill.plan { color: var(--model); border: 1px solid var(--model); }
+  .pill.no { color: var(--muted); border: 1px solid #3b4a68; }
+  .sdkmap .foot { padding: 12px 16px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--border); background: var(--panel-2); }
+  @media (max-width: 760px) {
+    .show { grid-template-columns: 1fr; }
+    .show > * { min-width: 0; }
+    .sdkmap table, .sdkmap tbody, .sdkmap tr, .sdkmap td { display: block; width: 100%; box-sizing: border-box; }
+    .sdkmap thead { display: none; }
+    .sdkmap tr { border-bottom: 1px solid var(--border); padding: 6px 0; }
+    .sdkmap td { border: 0; padding: 4px 16px; }
+    .sdkmap tr.grp td { padding: 9px 16px; }
+  }
+
   .pair { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; align-items: stretch; margin: 26px 0 8px; }
   .rect { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 26px 28px; position: relative; overflow: hidden; }
   .rect::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; }
@@ -78,7 +107,7 @@
   .chev { display: grid; place-items: center; color: #3b4a68; font-size: 28px; }
 
   .show { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
-  .receipt { background: #0b1322; border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; font: 13px/1.85 var(--mono); }
+  .receipt { max-width: 100%; box-sizing: border-box; overflow-x: auto; background: #0b1322; border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; font: 13px/1.85 var(--mono); }
   .receipt .h { color: var(--muted); border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; }
   .receipt .r { display: grid; grid-template-columns: 20px 150px 1fr; }
   .receipt .ok { color: var(--k9); } .receipt .no { color: #f87171; } .receipt .i { color: #64748b; }
@@ -117,6 +146,7 @@
   <div class="topbar">
     <a class="logo" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
     <nav>
+      <a href="#sdk-map">SDK map</a>
       <a href="#path">The path</a>
       <a href="#how">How it works</a>
       <a href="#show">See a run</a>
@@ -173,6 +203,41 @@
       </ul>
     </div>
   </div>
+
+
+  <section id="sdk-map">
+    <div class="label">Every component, mapped</div>
+    <h2>How the OpenAI Agents SDK is used here</h2>
+    <p class="sub">OpenAI defines where you can step in; K9-AIF decides what happens there. Every component of the SDK,
+      what it does in these demos, and what K9-AIF puts inside it, including what we leave out and why.</p>
+    <div class="sdkmap">
+      <table>
+        <thead><tr><th>SDK component</th><th>Status</th><th>Used for</th><th>K9-AIF's part</th></tr></thead>
+        <tbody>
+        <tr class="grp"><td colspan="4">In use</td></tr>
+        <tr><td class="c"><b>Agent</b><code>Agent</code></td><td><span class="pill used">In use</span></td><td>Every agent, declared in K9-AIF agent YAML</td><td class="k9">Built by K9-AIF only; unknown tools fail at start-up</td></tr>
+        <tr><td class="c"><b>Runner</b><code>Runner.run</code></td><td><span class="pill used">In use</span></td><td>Runs every agent turn</td><td class="k9">Wrapped by a K9-AIF orchestrator; Shield on the request and the final answer</td></tr>
+        <tr><td class="c"><b>Function tools</b><code>FunctionTool</code></td><td><span class="pill used">In use</span></td><td><code>lookup_zip</code>, <code>current_weather</code></td><td class="k9">Built from registered K9 tool capabilities; hosted tools can't be added</td></tr>
+        <tr><td class="c"><b>Tool guardrails</b><code>tool_input_guardrail · tool_output_guardrail</code></td><td><span class="pill used">In use</span></td><td>Every tool call and every result</td><td class="k9">k9x Shield on the arguments before the tool runs, and on the data before the model reads it</td></tr>
+        <tr><td class="c"><b>RunHooks</b><code>on_agent_start · on_llm_end · on_handoff</code></td><td><span class="pill used">In use</span></td><td>Handoff mode: each agent's turn, each model reply</td><td class="k9">Zero Trust per agent turn, Shield on every reply, K9-AIF trace events</td></tr>
+        <tr><td class="c"><b>Model provider · ModelSettings</b><code>RunConfig.model_provider</code></td><td><span class="pill used">In use</span></td><td>Every model call</td><td class="k9">The K9 Model Router chooses an eligible model per call</td></tr>
+        <tr><td class="c"><b>Tracing</b><code>RunConfig.tracing_disabled</code></td><td><span class="pill used">In use · kept local</span></td><td>Off by default (the SDK sends traces to OpenAI otherwise)</td><td class="k9">K9-AIF trace events instead; export only when configured</td></tr>
+        <tr><td class="c"><b>Handoffs</b><code>Agent.handoffs</code></td><td><span class="pill opt">Opt-in</span></td><td>Only when the design spec asks for model routing</td><td class="k9">Governed and capped; the default is a K9-AIF squad that runs agents in a known sequence</td></tr>
+        <tr><td class="c"><b>Human in the loop</b><code>needs_approval · RunState · approve · reject</code></td><td><span class="pill new">New · 1.29.0</span></td><td>The pause before a tool that needs a person (accounts payable demo coming)</td><td class="k9">Routed to K9X HIL: a task with sign-in, role, deadline and audit; the same run resumes after the decision</td></tr>
+        <tr class="grp"><td colspan="4">Next</td></tr>
+        <tr><td class="c"><b>Structured output</b><code>Agent.output_type</code></td><td><span class="pill plan">Planned</span></td><td>The accounts payable check as a typed result</td><td class="k9">The reviewer sees clean fields, screened like any output</td></tr>
+        <tr><td class="c"><b>Sessions</b><code>SQLiteSession</code></td><td><span class="pill plan">Planned</span></td><td>Follow-up questions on the weather demo</td><td class="k9">Session data screened like any input</td></tr>
+        <tr class="grp"><td colspan="4">Left out, and why</td></tr>
+        <tr><td class="c"><b>Agent input/output guardrails</b><code>Agent.input_guardrails</code></td><td><span class="pill no">Not used, on purpose</span></td><td>They cover only the first agent's input and the last agent's output</td><td class="k9">K9-AIF checks every agent's every step instead</td></tr>
+        <tr><td class="c"><b>Hosted tools</b><code>web search · file search · code interpreter</code></td><td><span class="pill no">Not used, on purpose</span></td><td>They run on OpenAI's servers</td><td class="k9">Nothing on our side could check them, so the sole broker refuses them</td></tr>
+        <tr><td class="c"><b>MCP servers</b><code>Agent.mcp_servers</code></td><td><span class="pill no">Not used, on purpose</span></td><td>Not needed here</td><td class="k9">K9-AIF reaches tools through its own governed MCP connectors</td></tr>
+        <tr><td class="c"><b>Streaming</b><code>Runner.run_streamed</code></td><td><span class="pill plan">Not yet</span></td><td>Not wrapped yet</td><td class="k9">Replies are screened as a whole before they're shown</td></tr>
+        </tbody>
+      </table>
+      <div class="foot">Verified against openai-agents 0.24.0 and k9-aif 1.29.0. Source:
+        <a href="https://github.com/k9aif/k9-aif-framework/tree/main/k9_aif_abb/k9_adapters/openai_agents" target="_blank" rel="noopener noreferrer">k9_adapters/openai_agents</a>.</div>
+    </div>
+  </section>
 
   <section id="path">
     <div class="label">The path</div>
