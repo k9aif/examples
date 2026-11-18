@@ -43,6 +43,19 @@
 
   /* the two rectangles */
 
+
+  /* Integration demo use cases */
+  .usecases { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .usecases table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .usecases th { text-align: left; font: 700 11.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+                 background: var(--panel-2); padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .usecases td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .usecases tr:last-child td { border-bottom: 0; }
+  .usecases td.n { font: 800 15px var(--mono); color: var(--dawn); width: 34px; }
+  .usecases td b { color: #f8fafc; }
+  .usecases td code { font-family: var(--mono); font-size: 12.5px; color: var(--sdk); }
+  .usecases tr.up td { color: var(--muted); }
+
   /* SDK component map */
   .sdkmap { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
   .sdkmap table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
@@ -146,6 +159,7 @@
   <div class="topbar">
     <a class="logo" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
     <nav>
+      <a href="#use-cases">Use cases</a>
       <a href="#sdk-map">SDK map</a>
       <a href="#path">The path</a>
       <a href="#how">How it works</a>
@@ -204,6 +218,34 @@
     </div>
   </div>
 
+
+
+  <section id="use-cases">
+    <div class="label">Integration demos</div>
+    <h2>Integration demo use cases</h2>
+    <p class="sub">Each demo puts more of the OpenAI Agents SDK to work under K9-AIF governance. The list grows until
+      every component is covered.</p>
+    <div class="usecases">
+      <table>
+        <thead><tr><th>#</th><th>Use case</th><th>SDK components it shows</th><th>K9-AIF / K9X</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="n">1</td><td><b>Weather</b><br>One agent finds the weather for a US zip code</td>
+            <td><code>Agent</code> · <code>Runner</code> · function tools · tool guardrails · <code>RunHooks</code> · model provider</td>
+            <td>Shield on every step, Zero Trust, K9 Model Router</td><td><span class="pill used">Live</span></td></tr>
+          <tr><td class="n">2</td><td><b>Weather desk (multi-agent)</b><br>Three OpenAI agents answer one question</td>
+            <td><code>Agent</code> per step · <code>Runner</code> per step · handoffs (opt-in, for comparison)</td>
+            <td>A K9-AIF squad runs the agents in a known sequence; built in K9X Studio</td><td><span class="pill opt">Exercise</span></td></tr>
+          <tr><td class="n">3</td><td><b>Accounts payable, with a person's approval</b><br>An agent proposes a payment; a person approves it in K9X HIL</td>
+            <td><code>needs_approval</code> · <code>RunState</code> · <code>approve</code> / <code>reject</code> · structured output</td>
+            <td>K9X HIL task (role, deadline, audit) over Kafka; the same run resumes after the decision</td><td><span class="pill new">Coming</span></td></tr>
+          <tr class="up"><td class="n">4</td><td><b>Follow-up questions</b><br>The weather agent remembers the conversation</td>
+            <td>Sessions</td><td>Session data screened like any input</td><td><span class="pill plan">Upcoming</span></td></tr>
+          <tr class="up"><td class="n">5</td><td><b>Streaming answers</b><br>Replies appear as they're written</td>
+            <td><code>Runner.run_streamed</code></td><td>Governed streaming</td><td><span class="pill plan">Upcoming</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <section id="sdk-map">
     <div class="label">Every component, mapped</div>
