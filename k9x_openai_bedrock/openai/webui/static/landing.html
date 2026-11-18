@@ -226,8 +226,10 @@
             <td>Sessions</td><td>K9-AIF session store (Redis); session data screened like any input</td><td><span class="pill plan">Upcoming</span></td></tr>
           <tr class="up"><td class="n">5</td><td><b>Weather via the K9X MCP Server</b><br>The weather tool served over MCP</td>
             <td>MCP tools</td><td>K9X MCP Server, called through K9-AIF's governed MCP connector</td><td><span class="pill plan">Upcoming</span></td></tr>
-          <tr class="up"><td class="n">6</td><td><b>Streaming answers</b><br>Replies appear as they're written</td>
-            <td><code>Runner.run_streamed</code></td><td>Governed streaming</td><td><span class="pill plan">Upcoming</span></td></tr>
+          <tr class="up"><td class="n">6</td><td><b>Live business context</b><br>The agent acts on current facts, e.g. an invoice's live status</td>
+            <td>function tools · agent input</td><td>K9X Streams and k9x Origin: current facts with provenance, screened before the agent reads them (see <a href="https://streams.k9x.ai" target="_blank" rel="noopener noreferrer">streams.k9x.ai</a>)</td><td><span class="pill plan">Upcoming</span></td></tr>
+          <tr class="up"><td class="n">7</td><td><b>Streaming answers</b><br>Replies appear as they're written</td>
+            <td><code>Runner.run_streamed</code></td><td>Governed streaming through K9-AIF's <code>execute_stream</code>: the request checked before the first word, the full reply at the end</td><td><span class="pill plan">Upcoming</span></td></tr>
         </tbody>
       </table>
     </div>
