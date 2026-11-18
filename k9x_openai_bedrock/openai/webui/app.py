@@ -99,7 +99,9 @@ def _require_session(request: Request) -> str:
 
 
 def _page(name: str) -> str:
-    return (STATIC / name).read_text(encoding="utf-8").replace("__DEMO_PASSWORD__", DEMO_PASSWORD)
+    import html
+    return ((STATIC / name).read_text(encoding="utf-8").replace("__DEMO_PASSWORD__", DEMO_PASSWORD)
+            .replace("__BUILD__", html.escape(os.environ.get("APP_VERSION", "local"))))
 
 
 def _rate_limit(client: str) -> None:

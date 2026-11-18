@@ -34,6 +34,9 @@
   .links { display: flex; gap: 10px; align-items: center; }
   .home { font-size: 13px; color: var(--ink); text-decoration: none; border: 1px solid #3b4a68; border-radius: 8px; padding: 5px 12px; }
   .home:hover, .signout:hover { border-color: var(--ok); }
+  .build { font: 12px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+  .build:empty { display: none; }
+  @media (max-width: 640px) { .build { display: none; } }
   .signout { font: inherit; font-size: 13px; background: transparent; border: 1px solid #3b4a68; border-radius: 8px;
     padding: 5px 12px; cursor: pointer; color: var(--ink); }
   footer { max-width: 1000px; margin: 0 auto; padding: 0 20px 28px; font-size: 12.5px; color: var(--muted); }
@@ -242,6 +245,7 @@
   <div class="bar">
     <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
     <div class="links">
+      <span class="build" id="build-top" title="The running build: commit ids of the examples and the K9-AIF framework"></span>
       <a class="home" href="/">Home</a>
       <form method="post" action="/logout" style="margin:0"><button class="signout" type="submit">Sign out</button></form>
     </div>
@@ -736,6 +740,7 @@ fetch("/api/health").then((r) => r.json()).then((h) => {
     (h.model_server_reachable ? "Model server reachable" : "Model server not reachable: check OLLAMA_BASE_URL in .env") +
     ` · model routing: ${h.routing} · Zero Trust: ${h.zero_trust ? "on" : "off"}`;
   $("version").textContent = h.version ? `Build: ${h.version}` : "";
+  $("build-top").textContent = h.version ? `Build: ${h.version}` : "";
   $("catalog").textContent = h.catalog.map((c) => `${c.alias}: ${c.model} [${(c.capabilities || []).join(", ")}]`).join("  ·  ");
 }).catch(() => { $("status").textContent = "Health check failed."; });
 

@@ -17,7 +17,21 @@
       radial-gradient(46rem 18rem at 78% 4%, rgba(245,158,11,.16), transparent 62%),
       var(--bg); }
   a { color: var(--k9); }
-  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+  .wrap { max-width: 1340px; margin: 0 auto; padding: 0 24px; }
+  .build { font: 12px var(--mono); color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+  /* side pane: the page's sections, the current one lit as you scroll */
+  .layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 40px; }
+  .toc { position: sticky; top: 20px; align-self: start; padding-top: 44px; }
+  .toc .label { margin-bottom: 10px; }
+  .toc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .toc a { display: flex; align-items: center; gap: 10px; color: var(--muted); text-decoration: none; font-size: 14px; padding: 5px 8px; border-radius: 8px; }
+  .toc a::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--k9); opacity: .55; flex-shrink: 0; }
+  .toc a:hover { color: var(--text); }
+  .toc a.on { color: var(--text); background: rgba(52,211,153,.08); }
+  .toc a.on::before { opacity: 1; box-shadow: 0 0 0 3px rgba(52,211,153,.25); }
+  .toc .ext { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .toc .ext a::before { display: none; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } .toc { display: none; } }
 
   .topbar { display: flex; align-items: center; gap: 22px; height: 64px; }
   .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 800; letter-spacing: .04em; }
@@ -171,6 +185,7 @@
     .steps { flex-direction: column; } .chev { transform: rotate(90deg); height: 24px; }
     .show { grid-template-columns: 1fr; } .scope { grid-template-columns: 1fr 1fr; }
     .topbar nav a:not(.signin) { display: none; }
+    .topbar .build { display: none; }
   }
 </style>
 </head>
@@ -180,17 +195,30 @@
   <div class="topbar">
     <a class="logo" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
     <nav>
-      <a href="#use-cases">Use cases</a>
-      <a href="#sdk-map">SDK map</a>
-      <a href="#path">The path</a>
-      <a href="#how">How it works</a>
-      <a href="#show">See a run</a>
-      <a href="#ecosystem">Ecosystem</a>
-      <a href="#scope">Scope</a>
+      <span class="build" title="The running build: commit ids of the examples and the K9-AIF framework">Build: __BUILD__</span>
       <a href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">Video ↗</a>
       <a class="signin" href="/login">Sign in</a>
     </nav>
   </div>
+
+  <div class="layout">
+  <aside class="toc" aria-label="On this page">
+    <div class="label">On this page</div>
+    <ul>
+      <li><a href="#use-cases">Use cases</a></li>
+      <li><a href="#sdk-map">SDK map</a></li>
+      <li><a href="#path">The path</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#show">See a run</a></li>
+      <li><a href="#ecosystem">Ecosystem</a></li>
+      <li><a href="#scope">Scope</a></li>
+    </ul>
+    <ul class="ext">
+      <li><a href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">Video ↗</a></li>
+      <li><a href="/login">Sign in →</a></li>
+    </ul>
+  </aside>
+  <div class="main">
 
   <div class="hero">
     <div class="eyebrow">Governed agents, any runtime</div>
@@ -478,11 +506,27 @@
     </div>
   </section>
 
+  </div>
+  </div>
+
   <footer>
     Source: <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai">github.com/k9aif/examples</a>
     (download it and run <code>./run.sh</code>) · <a href="https://github.com/k9aif/k9-aif-framework">K9-AIF</a>
     · <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a> · <a href="https://www.youtube.com/watch?v=75HKTX9BdmI">Video (4 min)</a> · <a href="https://k9x.ai">k9x.ai</a>
   </footer>
 </div>
+<script>
+// light the section in view in the side pane
+(() => {
+  const links = new Map([...document.querySelectorAll(".toc ul:first-of-type a")].map((a) => [a.getAttribute("href").slice(1), a]));
+  const seen = new Set();
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) e.isIntersecting ? seen.add(e.target.id) : seen.delete(e.target.id);
+    const first = [...links.keys()].find((id) => seen.has(id));
+    if (first) links.forEach((a, id) => a.classList.toggle("on", id === first));
+  }, { rootMargin: "-20% 0px -55% 0px" });
+  links.forEach((_, id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+})();
+</script>
 </body>
 </html>
