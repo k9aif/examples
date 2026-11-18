@@ -121,6 +121,7 @@
   <div class="bar">
     <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
       <span class="build" id="build-top" title="The running build: commit ids of the examples and the K9-AIF framework"></span>
+      <span class="build" id="model-top" title="The model the K9 Model Router routes the agents to, and where it runs"></span>
       <span class="build" title="Your private session (a fingerprint, not the session id)">__SESSION_REF__</span></span>
     <div class="links">
       <a class="home" href="/">Home</a>
@@ -512,6 +513,7 @@ fetch("/api/health").then((r) => r.json()).then((h) => {
     ` · model routing: ${h.routing} · Zero Trust: ${h.zero_trust ? "on" : "off"}`;
   $("version").textContent = h.version ? `Build: ${h.version}` : "";
   $("build-top").textContent = h.version ? `build ${h.version}` : "";
+  $("model-top").textContent = h.agent_model ? `${h.agent_model}${h.model_host ? " @ " + h.model_host : ""} · K9 Model Router` : "";
   $("catalog").textContent = h.catalog.map((c) => `${c.alias}: ${c.model} [${(c.capabilities || []).join(", ")}]`).join("  ·  ");
 }).catch(() => { $("status").textContent = "Health check failed."; });
 

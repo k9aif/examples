@@ -297,7 +297,21 @@ def health(request: Request):
         "routing": adapter.model_routing,
         "version": os.environ.get("APP_VERSION", "local"),
         "zero_trust": adapter.enable_zero_trust,
+        # for the signed-in pages' top bar, like das.k9x.ai: the model agents with tools are routed to, and where it runs
+        "agent_model": _agent_model(inference),
+        "model_host": os.environ.get("MODEL_HOST_LABEL", ""),
     }
+
+
+def _agent_model(inference: dict) -> str:
+    """The catalog's tool-calling model: the K9 Model Router sends every agent on this site to it (the weather agent,
+    InvoiceAgent and PaymentAgent; checked with K9ModelProvider). A catalog with more models would need the per-run
+    choice shown instead."""
+    models = inference.get("llm_factory", {}).get("models", {})
+    for entry in inference.get("model_catalog", {}).get("models", {}).values():
+        if "tool_calling" in (entry.get("capabilities") or []):
+            return models.get(entry.get("llm_ref"), "") or ""
+    return ""
 
 
 @app.get("/api/agent")

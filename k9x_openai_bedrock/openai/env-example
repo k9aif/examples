@@ -4,7 +4,8 @@
 # In the container (ubuntu/build-run.sh) use the host's LAN address, not localhost.
 OLLAMA_BASE_URL=http://localhost:11434
 
-# The tool-calling model for the WeatherAgent (pull it first: ollama pull qwen2.5:7b).
+# The tool-calling model the K9 Model Router uses for every agent here: weather, multi-agent and accounts payable
+# (pull it first: ollama pull qwen2.5:7b).
 WEATHER_MODEL=qwen2.5:7b
 
 # development keeps the Zero Trust identity warning soft; build-run.sh sets production in the container.
@@ -15,6 +16,9 @@ PORT=8003
 
 # Optional: a local framework checkout instead of PyPI.
 # K9_FRAMEWORK_DIR=/path/to/k9-aif-framework
+
+# Shown next to the model on the signed-in pages (e.g. the GPU host's name). Optional.
+# MODEL_HOST_LABEL=
 
 # Requests a minute per visitor on the page (public hosting).
 WEATHER_RATE_PER_MIN=6
