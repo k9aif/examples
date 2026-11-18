@@ -184,7 +184,7 @@
       </div>
 
       <div class="hil-pane" id="hil-pane" hidden>
-        <h2>Waiting for a person in K9X HIL</h2>
+        <h2 id="hil-h">Waiting for a person in K9X HIL</h2>
         <p style="margin:0 0 8px;font-size:13px">Sent to K9X HIL. It is listed with your other invoices waiting for a
           person on the <a href="#queue" onclick="document.querySelector('nav button[data-tab=queue]').click();return false">Sent to HIL</a> tab.</p>
         <p class="muted" style="margin:0 0 10px;font-size:13.5px">PaymentAgent's run is parked: the task went to K9X HIL on
@@ -530,6 +530,8 @@ async function hilRefresh(id, run) {
     const calls = ((task.payload || {}).tool_calls || []).map((c) => `${c.tool}(${JSON.stringify(c.arguments)})`);
     $("hil-call").textContent = calls.join("; ") || "pay_invoice";
     const open = task.status !== "completed" && task.status !== "rejected" && task.status !== "expired";
+    $("hil-h").textContent = open ? "Waiting for a person in K9X HIL" : "Decided in K9X HIL";
+    document.querySelectorAll("#hil-task .hil-actions").forEach((el) => { el.hidden = !open; });
     pill($("hil-status"), open ? "wait" : task.status === "completed" ? "ok" : "bad", open ? task.status : (task.status === "completed" ? "approved" : task.status));
     $("hil-ttl").textContent = task.ttl_hours ? `${task.ttl_action || "reject"} after ${task.ttl_hours} hours` : "";
     $("hil-role").textContent = task.required_role
