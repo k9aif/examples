@@ -16,12 +16,21 @@ answers are sent with Cache-Control: no-store.
                             is unreachable (for the K9X Dashboard; no model names)
     GET  /api/health        model server reachable? which catalog models?
     GET  /api/agent         the agent YAML and the Shield checks in force
+
+  Accounts payable (use case 3; on when KAFKA_BOOTSTRAP_SERVERS is set), all scoped to the visitor's session:
+    GET  /api/ap/status             is the AP demo running here?
+    POST /api/ap/runs               {"invoice": "small|large|bank|blocked"} -> run_id (Router -> Kafka -> squad)
+    GET  /api/ap/runs/{run_id}      the run: trace, the invoice read, the rule that fired, the payment
+    GET  /api/ap/runs/{run_id}/hil  its K9X HIL task (through the HIL REST API; the key stays on this server)
+    POST /api/ap/runs/{run_id}/hil  {"action": "complete|reject", "comment": "..."}: decide in K9X HIL, which
+                                    replies on Kafka; the Router resumes the same run
 """
 
 from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import hmac
 import os
 import secrets
@@ -36,7 +45,8 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from weather_zip.app import AGENTS_DIR, ROLE_POLICY, build_adapter
+from k9_aif_abb.k9_utils.config_loader import load_yaml
+from weather_zip.app import AGENTS_DIR, CONFIG_PATH, ROLE_POLICY, build_adapter
 from weather_zip.service import ask
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -104,7 +114,17 @@ def _rate_limit(client: str) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     STATE["adapter"] = build_adapter()
+    STATE["ap"] = None
+    if os.environ.get("KAFKA_BOOTSTRAP_SERVERS"):
+        from accounts_payable.runtime import APRuntime
+        STATE["ap"] = APRuntime(load_yaml(CONFIG_PATH))
+        await STATE["ap"].start()
+    else:
+        logging.getLogger("webui").warning(
+            "[webui] KAFKA_BOOTSTRAP_SERVERS not set: the accounts payable demo (use case 3) is off; weather runs")
     yield
+    if STATE["ap"] is not None:
+        await STATE["ap"].stop()
 
 
 app = FastAPI(title="Weather by zip code (K9-AIF + OpenAI Agents SDK)", lifespan=lifespan)
@@ -130,7 +150,7 @@ def login_page(error: int = 0):
     return page
 
 
-_TABS = {"weather", "arch", "multi"}      # tabs a landing-page row may open after sign-in
+_TABS = {"weather", "arch", "multi", "ap"}      # tabs a landing-page row may open after sign-in
 
 
 @app.post("/login")
@@ -238,3 +258,95 @@ def agent(request: Request):
                    "egress": shield.get("egress", {}).get("checks", [])},
         "role_policy": ROLE_POLICY,
     }
+
+
+# ── Accounts payable (use case 3) ─────────────────────────────────────────────
+AP_OPEN_PER_SESSION = int(os.environ.get("AP_OPEN_PER_SESSION", "3"))   # runs not yet finished, per visitor
+_AP_DONE = {"completed", "rejected", "error"}
+_HIL_FIELDS = ("id", "title", "status", "priority", "queue_name", "application_name", "assigned_to",
+               "correlation_id", "reply_to", "ttl_hours", "ttl_action", "created_at", "completed_at", "payload")
+_NO_STORE = {"Cache-Control": "no-store, private"}
+
+
+def _ap():
+    rt = STATE.get("ap")
+    if rt is None:
+        raise HTTPException(503, "The accounts payable demo isn't running here (KAFKA_BOOTSTRAP_SERVERS not set).")
+    return rt
+
+
+class APSubmit(BaseModel):
+    invoice: str = Field(..., pattern="^(small|large|bank|blocked)$")
+
+
+class APDecision(BaseModel):
+    action: str = Field(..., pattern="^(complete|reject)$")
+    comment: str = Field("", max_length=300)
+
+
+@app.get("/api/ap/status")
+def ap_status(request: Request):
+    _require_session(request)
+    rt = STATE.get("ap")
+    if rt is None:
+        return {"running": False}
+    from accounts_payable.runtime import INVOICES
+    return {"running": True, "invoices": INVOICES, "hil_url": rt.hil_url, "hil_api": bool(rt.hil_url and rt.hil_key)}
+
+
+@app.post("/api/ap/runs")
+async def ap_submit(req: APSubmit, request: Request):
+    sid = _require_session(request)
+    rt = _ap()
+    _rate_limit(_client(request))
+    _rate_limit("session:" + sid)
+    open_runs = [r for r in rt.runs.values() if r["owner"] == sid and r["status"] not in _AP_DONE]
+    if len(open_runs) >= AP_OPEN_PER_SESSION:
+        raise HTTPException(429, f"You have {len(open_runs)} invoices still in flight. Decide or wait for them first.")
+    run_id = await asyncio.to_thread(rt.submit, req.invoice, sid)
+    return JSONResponse({"run_id": run_id}, headers=_NO_STORE)
+
+
+@app.get("/api/ap/runs/{run_id}")
+def ap_run(run_id: str, request: Request):
+    sid = _require_session(request)
+    run = _ap().view(run_id, sid)
+    if run is None:
+        raise HTTPException(404, "No such run in this session.")
+    return JSONResponse(run, headers=_NO_STORE)
+
+
+@app.get("/api/ap/runs/{run_id}/hil")
+async def ap_hil_task(run_id: str, request: Request):
+    sid = _require_session(request)
+    rt = _ap()
+    if rt.view(run_id, sid) is None:
+        raise HTTPException(404, "No such run in this session.")
+    try:
+        task = await asyncio.to_thread(rt.hil_task, run_id, sid)
+    except RuntimeError as exc:                       # HIL API not configured here
+        raise HTTPException(503, str(exc))
+    except Exception as exc:
+        raise HTTPException(502, f"K9X HIL didn't answer: {type(exc).__name__}")
+    return JSONResponse({"task": {k: task.get(k) for k in _HIL_FIELDS} if task else None}, headers=_NO_STORE)
+
+
+@app.post("/api/ap/runs/{run_id}/hil")
+async def ap_hil_decide(run_id: str, req: APDecision, request: Request):
+    sid = _require_session(request)
+    rt = _ap()
+    _rate_limit("session:" + sid)
+    if rt.view(run_id, sid) is None:
+        raise HTTPException(404, "No such run in this session.")
+    try:
+        out = await asyncio.to_thread(rt.hil_decide, run_id, sid, req.action, req.comment.strip())
+    except LookupError as exc:
+        raise HTTPException(409, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    except Exception as exc:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        if status == 409:
+            raise HTTPException(409, "This task was already decided in K9X HIL.")
+        raise HTTPException(502, f"K9X HIL refused the decision: {type(exc).__name__} {status or ''}".strip())
+    return JSONResponse(out, headers=_NO_STORE)

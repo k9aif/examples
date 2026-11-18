@@ -1,0 +1,18 @@
+# Step 3: pays. pay_invoice pauses the OpenAI run for a person (K9X HIL) only when the rules said needs_approval.
+class: PaymentAgent
+module: accounts_payable.squad_agents
+name: PaymentAgent
+model: general
+role: >
+  You pay invoices the accounts payable rules allowed.
+instructions:
+  - Always call pay_invoice once, with the vendor, invoice_id and amount from the invoice step
+  - Never decide approval yourself; the system holds the payment for a person when the rules require it
+  - If pay_invoice returns a payment reference, the payment was approved and made, so say in one sentence what
+    was paid and the reference, and nothing about approval
+  - If the tool reports that a person did not approve the payment, say so plainly and do not call it again
+tools: [pay_invoice]
+needs_approval_when:           # the OpenAI SDK's needs_approval, decided by the rules step's result
+  pay_invoice: {key: rules_check.output.decision, eq: needs_approval}
+hil_queue: openai-ap-payments  # K9X HIL: OpenAI Demo Application -> Invoice Approvals
+handoffs: []

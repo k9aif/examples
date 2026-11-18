@@ -48,3 +48,41 @@ enable_zero_trust: true
 
 openai_agents:
   export_traces: false         # keep SDK traces out of OpenAI's backend
+
+# ── Accounts payable demo (use case 3) ────────────────────────────────────────────────────────────────────────────
+# The shared Redpanda, the same as das.k9x.ai (KAFKA_BOOTSTRAP_SERVERS in .env).
+messaging:
+  topic: openai.ap.status               # status events; the orchestrator's input is openai.ap.in (routing.table)
+  group_id: openai-demo
+
+routing:
+  table:
+    openai.ap.invoice: openai.ap.in          # Router -> the APOrchestrator's topic
+  hil:
+    prefix: "hil."                           # BaseHILOrchestrator publishes hil.requests.<queue>; replies on hil.replies.<queue>
+
+# Where pending HIL flows and paused OpenAI runs wait. PostgreSQL (database k9x, schema openai) when
+# AP_POSTGRES_ENABLED=true; otherwise SQLite under runtime/.
+postgres:
+  enabled: ${AP_POSTGRES_ENABLED:-false}
+  host: "${POSTGRES_HOST:-localhost}"
+  port: ${POSTGRES_PORT:-5432}
+  user: "${POSTGRES_USER:-postgres}"
+  database: "${AP_POSTGRES_DB:-k9x}"
+  schema: "${AP_POSTGRES_SCHEMA:-openai}"
+hil:
+  db_path: "./runtime/ap_state.db"
+  paused_runs_db: "./runtime/ap_state.db"
+
+# The K9X Rules Engine (currently GoRules): AP-01..AP-08 (k9x-ecosystem/k9x_rules_engine).
+rules_agent:
+  adapter: gorules
+  engine_url: "${K9X_RULES_ENGINE_URL:-http://localhost:8130}"
+  project: accounts-payable
+  ruleset: invoice-approval.json
+  facts: invoice_agent.output
+  timeout: 10
+
+# K9X HIL's REST API for the page's HIL pane (HIL_API_KEY in .env; the key stays on this server).
+hil_api:
+  url: "${HIL_API_URL:-https://hil.k9x.ai}"

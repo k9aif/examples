@@ -1,0 +1,16 @@
+# Step 1: reads the invoice (vendor, invoice number, amount). An OpenAI agent (K9OpenAIAgent) with structured output.
+# The facts the rules decide on are looked up from the records by the rules step, never supplied by the model.
+class: InvoiceAgent
+module: accounts_payable.squad_agents
+name: InvoiceAgent
+model: general                 # K9 model catalog task; the K9 Model Router picks the model
+role: >
+  You prepare an invoice for the accounts payable rules.
+instructions:
+  - Read the vendor name, the invoice number and the amount in US dollars from the request
+  - Copy them exactly as written; never guess
+structured_output:             # the typed result passed to the rules step
+  vendor: string
+  invoice_id: string
+  amount: number
+handoffs: []

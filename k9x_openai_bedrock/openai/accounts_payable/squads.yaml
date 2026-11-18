@@ -1,0 +1,11 @@
+# The squad decides the order, not the model. Synthesis isn't needed: three short steps.
+squads:
+  ap_invoice:
+    description: Accounts payable invoice, from reading it to payment (or a person's decision)
+    agents: [InvoiceAgent, APRulesAgent, PaymentAgent]
+    flow:
+      - {agent: InvoiceAgent, result_key: invoice_agent}
+      - {agent: APRulesAgent, result_key: rules_check}
+      - agent: PaymentAgent
+        result_key: payment
+        when: {key: rules_check.output.decision, ne: reject}     # a rejected invoice is never paid

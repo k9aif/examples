@@ -62,6 +62,28 @@ adapters: `k9_aif_abb/k9_adapters/openai_agents/` in
 1.27.0). This example configures it in `weather_zip/app.py` (`build_adapter()`, named
 `WeatherZipOrchestrator`) and supplies only the tools, the agent YAML and the policy.
 
+## Accounts payable with K9X HIL (use case 3)
+
+`accounts_payable/` is a K9-AIF application whose squad has two OpenAI agents and a rules step:
+
+```
+K9EventRouter -> Kafka openai.ap.in -> APOrchestrator -> squad ap_invoice
+  InvoiceAgent (K9OpenAIAgent)   reads vendor, invoice and amount (structured output)
+  APRulesAgent (K9RulesAgent)    facts from the records -> K9X Rules Engine (currently GoRules): AP-01..AP-08
+  PaymentAgent (K9OpenAIAgent)   pay_invoice (simulated); needs_approval_when the rules said needs_approval
+```
+
+When the rules require a person (over $15,000, a changed bank account, a new vendor, ...), the OpenAI SDK pauses
+the run. `OpenAIHILAdapter` saves it in `PausedRunStore` and raises `RequiresHIL`. The orchestrator publishes
+`hil.requests.openai-ap-payments` to K9X HIL (application *OpenAI Demo Application*, queue *Invoice Approvals*).
+The decision comes back on `hil.replies.openai-ap-payments`, and the Router resumes. The squad skips the steps
+already done, and PaymentAgent continues the same OpenAI run.
+
+The page's **Accounts payable + HIL** tab shows the run, the rule that fired, and a K9X HIL pane. The pane
+reads and decides the task through K9X HIL's REST API, using `HIL_API_KEY`, which stays on the server. The
+demo is on when `KAFKA_BOOTSTRAP_SERVERS` is set. The other keys are in `env-example`: the rules engine URL,
+the HIL URL and key, and PostgreSQL (schema `openai`; SQLite under `runtime/` otherwise).
+
 ## The page
 
 `/` is a public overview. **Try the demo** signs you in with the demo login (shown on the page; there is no
@@ -81,6 +103,7 @@ receives is stored or shown to anyone else, and answers are sent with `Cache-Con
 config/config.yaml              Model Router catalog, Shield checks, Zero Trust
 agents/yaml/weather_agent.yaml  the OpenAI agent, in K9-AIF agent YAML
 weather_zip/                    tools, wiring, request service, command line
+accounts_payable/               use case 3: agents + squad YAML, rules step, orchestrator, runtime
 webui/                          the page (local or container)
 ubuntu/                         setup.sh (Ubuntu machine), build-run.sh + Containerfile (container)
 diagrams/                       PlantUML sources and PNGs

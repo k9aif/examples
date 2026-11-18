@@ -28,6 +28,7 @@ COPY ${K9AIF_DIR}/k9_aif_abb ./k9_aif_abb
 COPY ${EXAMPLE_DIR}/config ./openai/config
 COPY ${EXAMPLE_DIR}/agents ./openai/agents
 COPY ${EXAMPLE_DIR}/weather_zip ./openai/weather_zip
+COPY ${EXAMPLE_DIR}/accounts_payable ./openai/accounts_payable
 COPY ${EXAMPLE_DIR}/webui ./openai/webui
 
 RUN mkdir -p /app/openai/runtime \

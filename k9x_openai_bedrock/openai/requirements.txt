@@ -16,6 +16,10 @@ aiosqlite>=0.19
 sqlalchemy>=2.0
 python-dotenv>=1.2.2
 typing_extensions>=4.0
+# Accounts payable (use case 3): Kafka (the shared Redpanda) and PostgreSQL (schema openai):
+aiokafka>=0.10
+kafka-python>=2.3.2
+psycopg2-binary>=2.9
 # The OpenAI Agents SDK (brings openai>=3):
 openai-agents>=0.24.0,<0.25
 # The page:

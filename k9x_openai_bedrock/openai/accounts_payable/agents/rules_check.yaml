@@ -1,0 +1,5 @@
+# Step 2: the K9X Rules Engine (currently GoRules) decides: AP-01..AP-08 in
+# k9x-ecosystem/k9x_rules_engine/rules/accounts-payable/invoice-approval.json. Settings: rules_agent in config.yaml.
+class: APRulesAgent
+module: accounts_payable.squad_agents
+name: APRulesAgent
