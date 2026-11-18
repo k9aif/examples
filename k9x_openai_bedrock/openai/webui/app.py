@@ -383,6 +383,14 @@ def ap_run(run_id: str, request: Request):
     return JSONResponse(run, headers=_NO_STORE)
 
 
+@app.get("/api/ap/hil-queue")
+async def ap_hil_queue(request: Request):
+    """This visitor's invoices sent to K9X HIL, with each task's status from K9X HIL (read only)."""
+    sid = _require_session(request)
+    rt = _ap()
+    return JSONResponse(await asyncio.to_thread(rt.hil_queue, sid), headers=_NO_STORE)
+
+
 @app.get("/api/ap/runs/{run_id}/hil")
 async def ap_hil_task(run_id: str, request: Request):
     sid = _require_session(request)

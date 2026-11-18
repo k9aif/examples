@@ -223,6 +223,7 @@ class APRuntime:
     def _record(self, run: Dict[str, Any], out: Dict[str, Any], payload: Dict[str, Any]) -> None:
         if out.get("status") == "pending_hil":
             run["status"], run["correlation_id"] = "pending_hil", out.get("correlation_id")
+            run["sent_to_hil"] = time.time()
             so_far = out.get("so_far") or {}
             run["invoice_fields"] = _json((so_far.get("invoice_agent") or {}).get("output"))
             run["decision"] = (so_far.get("rules_check") or {}).get("output")
@@ -279,6 +280,32 @@ class APRuntime:
             return None
         tasks = self._hil("GET", "/tasks", params={"correlation_id": run["correlation_id"]})
         return tasks[0] if tasks else None
+
+    def hil_queue(self, owner: str) -> List[Dict[str, Any]]:
+        """This visitor's invoices sent to K9X HIL, newest first, each with its task's status as K9X HIL reports it.
+        A decided task's status is kept, so HIL is asked only about tasks still open."""
+        out = []
+        for run in sorted((r for r in self.runs.values() if r["owner"] == owner and r.get("sent_to_hil")),
+                          key=lambda r: r["sent_to_hil"], reverse=True):
+            hil = run.get("hil_task_final")
+            if hil is None:
+                try:
+                    tasks = self._hil("GET", "/tasks", params={"correlation_id": run["correlation_id"]})
+                    task = tasks[0] if tasks else None
+                    run.pop("hil_error", None)
+                except Exception as exc:                       # shown on the page; the queue keeps the rest
+                    task, run["hil_error"] = None, f"{type(exc).__name__}"
+                hil = {"task_id": task.get("id"), "status": task.get("status"),
+                       "decided_at": task.get("completed_at")} if task else None
+                if hil and hil["status"] in ("completed", "rejected", "expired"):
+                    run["hil_task_final"] = hil
+            fields = run.get("invoice_fields") if isinstance(run.get("invoice_fields"), dict) else {}
+            out.append({"run_id": run["run_id"], "label": run.get("label"), "amount": fields.get("amount"),
+                        "vendor": fields.get("vendor"), "rule": (run.get("decision") or {}).get("rule"),
+                        "reason": (run.get("decision") or {}).get("reason"), "received": run["created"],
+                        "sent_to_hil": run["sent_to_hil"], "hil": hil, "run_status": run["status"],
+                        "hil_error": run.get("hil_error")})
+        return out
 
     @staticmethod
     def _event(who: str, what: str) -> Dict[str, Any]:

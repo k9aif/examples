@@ -85,6 +85,11 @@
   .cause dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-size: 13.5px; }
   .cause dt { color: var(--muted); } .cause dd { margin: 0; overflow-wrap: anywhere; }
   @media (max-width: 760px) { .badgrid { grid-template-columns: 1fr; } }
+  .qcount { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--gate); color: #1f1500; font-size: 11.5px; font-weight: 800; }
+  .qwrap { overflow-x: auto; }
+  .qtable { width: 100%; font-size: 13px; }
+  .qtable td { white-space: nowrap; } .qtable td:nth-child(3) { white-space: normal; min-width: 220px; color: var(--muted); }
+  .qtable tbody tr { cursor: pointer; } .qtable tbody tr:hover td { background: rgba(255,255,255,.03); }
 </style>
 </head>
 <body>
@@ -102,6 +107,7 @@
   <p class="lede">Accounts payable: OpenAI agents read and pay invoices, the K9X Rules Engine decides, and a person approves in K9X HIL.</p>
   <nav role="tablist">
     <button role="tab" aria-selected="true" data-tab="run">Run an invoice</button>
+    <button role="tab" aria-selected="false" data-tab="queue">Sent to HIL <span class="qcount" id="qcount" hidden></span></button>
     <button role="tab" aria-selected="false" data-tab="bad">Bad invoices</button>
     <button role="tab" aria-selected="false" data-tab="arch">Architecture</button>
   </nav>
@@ -173,6 +179,8 @@
 
       <div class="hil-pane" id="hil-pane" hidden>
         <h2>Waiting for a person in K9X HIL</h2>
+        <p style="margin:0 0 8px;font-size:13px">Sent to K9X HIL. It is listed with your other invoices waiting for a
+          person on the <a href="#queue" onclick="document.querySelector('nav button[data-tab=queue]').click();return false">Sent to HIL</a> tab.</p>
         <p class="muted" style="margin:0 0 10px;font-size:13.5px">PaymentAgent's run is parked: the task went to K9X HIL on
           Kafka (<code>hil.requests.openai-ap-payments</code>), under <b>Demo → OpenAI Demo Application → Invoice Approvals</b>,
           with the invoice PDF from object storage (S3/MinIO) attached. Nothing here waits on it: run other invoices
@@ -217,6 +225,23 @@
     <p class="muted" style="font-size:13px">The model only reads the vendor, invoice number and amount. The facts the rules decide on
       (vendor status, a changed bank account, a PO match, a duplicate) come from the records, never from the model.</p>
 
+  </section>
+
+  <section class="card" id="tab-queue" hidden>
+    <h2 style="margin-top:0">Invoices sent to K9X HIL</h2>
+    <p class="muted" style="margin:0 0 12px;font-size:13.5px">Every invoice of yours that PaymentAgent paused for a person.
+      Each one is a task in K9X HIL (<b>Demo → OpenAI Demo Application → Invoice Approvals</b>); its status here comes
+      from K9X HIL itself. Click a row to see that invoice's run; decide it in K9X HIL.</p>
+    <div class="qwrap">
+      <table class="qtable">
+        <thead><tr><th>Invoice</th><th>Amount</th><th>Why a person</th><th>Received</th><th>Sent to HIL</th><th>HIL task</th><th>HIL status</th><th>Run</th></tr></thead>
+        <tbody id="qbody"></tbody>
+      </table>
+    </div>
+    <div id="qempty" class="empty">Nothing sent to K9X HIL yet. Run INV-1042 or INV-2001, or a batch of 10, on the Run tab.</div>
+    <div class="batchrow"><a class="primary hil-open" id="qhil" href="https://hil.k9x.ai" target="_blank" rel="noopener noreferrer">Open K9X HIL ↗</a>
+      <span class="muted" style="font-size:13px">Sign in with HIL's demo login (shown on its sign-in page) and open
+        <b>Invoice Approvals</b>.</span></div>
   </section>
 
   <section class="card" id="tab-bad" hidden>
@@ -352,6 +377,8 @@ document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click
   $("tab-run").hidden = b.dataset.tab !== "run";
   $("tab-arch").hidden = b.dataset.tab !== "arch";
   $("tab-bad").hidden = b.dataset.tab !== "bad";
+  $("tab-queue").hidden = b.dataset.tab !== "queue";
+  if (b.dataset.tab === "queue") refreshQueue();
   history.replaceState(null, "", "#" + b.dataset.tab);
 }));
 { const start = document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`); if (start) start.click(); }
@@ -381,7 +408,7 @@ function apPick(disabled) { $("ap-batch").disabled = disabled; document.querySel
 fetch("/api/ap/status").then((r) => r.json()).then((s) => {
   if (!s.running) { $("ap-off").textContent = "The accounts payable demo isn't running on this server (it needs Kafka)."; $("ap-off").hidden = false; apPick(true); return; }
   AP.invoices = s.invoices || {};
-  if (s.hil_url) $("hil-link").href = s.hil_url;
+  if (s.hil_url) { $("hil-link").href = s.hil_url; $("qhil").href = s.hil_url; }
 }).catch(() => {});
 
 // short names for the 'Your runs' strip, from the buttons themselves
@@ -556,6 +583,34 @@ async function badPoll(name, key) {
   } catch (e) { $("cause-empty").textContent = String(e.message || e); }
   BAD.timer = setTimeout(() => badPoll(name, key), 1500);
 }
+// ── Sent to HIL: this visitor's invoices waiting for (or decided by) a person ─
+const HIL_STATUS = { pending: ["wait", "pending"], in_progress: ["wait", "in progress"], escalated: ["wait", "escalated"],
+  completed: ["ok", "approved"], rejected: ["bad", "rejected"], expired: ["bad", "expired"] };
+function hhmm(t) { return t ? new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : ""; }
+async function refreshQueue() {
+  try {
+    const rows = await apJson("/api/ap/hil-queue");
+    const open = rows.filter((r) => !r.hil || ["pending", "in_progress", "escalated"].includes(r.hil.status)).length;
+    $("qcount").hidden = !open; $("qcount").textContent = open;
+    $("qempty").hidden = rows.length > 0;
+    const body = $("qbody"); body.innerHTML = "";
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      const cells = [r.label || "", r.amount != null ? "$" + Number(r.amount).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "",
+        r.rule ? `${r.rule}: ${r.reason || ""}` : "", hhmm(r.received), hhmm(r.sent_to_hil), r.hil ? `#${r.hil.task_id}` : "…"];
+      cells.forEach((c) => { const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
+      const st = document.createElement("td");
+      if (r.hil) { const [k, t] = HIL_STATUS[r.hil.status] || ["info", r.hil.status]; pill(st, k, t); }
+      else st.textContent = r.hil_error ? "K9X HIL not reachable" : "arriving…";
+      tr.appendChild(st);
+      const rs = document.createElement("td"); rs.textContent = RUN_SHORT[r.run_status] || r.run_status; tr.appendChild(rs);
+      tr.addEventListener("click", () => { document.querySelector('nav button[data-tab="run"]').click(); showRun(r.run_id); });
+      body.appendChild(tr);
+    }
+  } catch (e) { /* shown on next refresh; the rest of the page keeps working */ }
+}
+setInterval(() => { if (!document.hidden) refreshQueue(); }, 6000);
+refreshQueue();
 </script>
 </body>
 </html>
