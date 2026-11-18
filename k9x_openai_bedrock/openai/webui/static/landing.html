@@ -27,12 +27,12 @@
   .topbar nav a:hover { color: var(--text); }
   .topbar nav a.signin { color: #04121c; background: var(--k9); border-radius: 8px; padding: 6px 14px; font-weight: 700; }
 
-  .hero { text-align: center; padding: 40px 0 18px; }
+  .hero { text-align: left; padding: 40px 0 18px; }
   .eyebrow { font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dawn); }
-  .hero h1 { font-size: clamp(26px, 3.4vw, 38px); line-height: 1.18; margin: 12px auto 14px; max-width: 860px; letter-spacing: -.5px; font-weight: 700; }
+  .hero h1 { font-size: clamp(26px, 3.4vw, 38px); line-height: 1.18; margin: 12px 0 14px; max-width: 860px; letter-spacing: -.5px; font-weight: 700; }
   .hero h1 .sdk { color: var(--sdk); } .hero h1 .k9 { color: var(--k9); }
-  .hero p { font-size: 16px; color: var(--muted); max-width: 700px; margin: 0 auto 22px; }
-  .heroLinks { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; font-size: 14px; color: #3b4a68; }
+  .hero p { font-size: 16px; color: var(--muted); max-width: 700px; margin: 0 0 18px; }
+  .heroLinks { display: flex; gap: 12px; justify-content: flex-start; align-items: center; flex-wrap: wrap; font-size: 14px; color: #3b4a68; }
   .heroLinks a { color: var(--muted); text-decoration: none; border-bottom: 1px solid transparent; padding-bottom: 1px; }
   .heroLinks a:hover { color: var(--k9); border-bottom-color: var(--k9); }
   .hero p strong { color: var(--gate); font-weight: 600; }
@@ -124,9 +124,9 @@
   .plus { display: grid; place-items: center; width: 54px; color: var(--gate); font-size: 30px; font-weight: 300; }
 
   section { padding: 40px 0 4px; }
-  .label { font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dawn); text-align: center; }
-  h2 { font-size: clamp(20px, 2.2vw, 25px); text-align: center; margin: 6px 0 6px; letter-spacing: -.3px; font-weight: 700; }
-  .sub { text-align: center; color: var(--muted); max-width: 720px; margin: 0 auto 20px; font-size: 15px; }
+  .label { font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dawn); text-align: left; }
+  h2 { font-size: clamp(20px, 2.2vw, 25px); text-align: left; margin: 6px 0 6px; letter-spacing: -.3px; font-weight: 700; }
+  .sub { text-align: left; color: var(--muted); max-width: 720px; margin: 0 0 20px; font-size: 15px; }
 
   .diagram { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
   svg.lego { width: 100%; height: auto; display: block; }
@@ -229,7 +229,7 @@
         </tbody>
       </table>
     </div>
-    <div class="demo" style="text-align:center">Every demo signs in as <code>demo</code> / <code>__DEMO_PASSWORD__</code> · each visitor gets a private session, so no one sees anyone else's runs</div>
+    <div class="demo" style="text-align:left">Every demo signs in as <code>demo</code> / <code>__DEMO_PASSWORD__</code> · each visitor gets a private session, so no one sees anyone else's runs</div>
   </section>
 
   <div class="pair">
