@@ -40,7 +40,8 @@ security:
   shield:
     enabled: true
     ingress:
-      checks: [InputSizeCheck, PromptInjectionCheck, PIIBoundaryCheck]
+      # PIIRequestCheck: asks for bank/personal data; PaymentDiversionCheck: pay elsewhere, skip review, keep quiet
+      checks: [InputSizeCheck, PromptInjectionCheck, PIIBoundaryCheck, PIIRequestCheck, PaymentDiversionCheck]
     egress:
       checks: [SemanticDriftCheck, ToolArgumentCheck, ExecutionGuardCheck, PIIBoundaryCheck]
 

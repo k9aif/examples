@@ -315,7 +315,7 @@ def agent(request: Request):
 
 # ── Accounts payable (use case 3) ─────────────────────────────────────────────
 AP_OPEN_PER_SESSION = int(os.environ.get("AP_OPEN_PER_SESSION", "3"))   # runs not yet finished, per visitor
-_AP_DONE = {"completed", "rejected", "error"}
+_AP_DONE = {"completed", "rejected", "error", "blocked"}
 _HIL_FIELDS = ("id", "title", "status", "priority", "queue_name", "application_name", "assigned_to",
                "correlation_id", "reply_to", "ttl_hours", "ttl_action", "created_at", "completed_at", "payload",
                "task_type", "required_role", "decision_authority", "artifact_list", "contract", "require_comment")
@@ -330,7 +330,7 @@ def _ap():
 
 
 class APSubmit(BaseModel):
-    invoice: str = Field(..., pattern="^(small|large|bank|blocked)$")
+    invoice: str = Field(..., pattern="^(small|large|bank|blocked|inject|disclose|divert|flood|guest)$")
 
 
 class APDecision(BaseModel):
@@ -344,8 +344,10 @@ def ap_status(request: Request):
     rt = STATE.get("ap")
     if rt is None:
         return {"running": False}
-    from accounts_payable.runtime import INVOICES
-    return {"running": True, "invoices": INVOICES, "hil_url": rt.hil_url, "hil_api": bool(rt.hil_url and rt.hil_key)}
+    from accounts_payable.runtime import ATTACKS, INVOICES
+    attacks = {k: (t if len(t) <= 400 else t[:300] + f" … ({len(t):,} characters in all)") for k, (t, _) in ATTACKS.items()}
+    return {"running": True, "invoices": {**INVOICES, **attacks}, "hil_url": rt.hil_url,
+            "hil_api": bool(rt.hil_url and rt.hil_key)}
 
 
 @app.post("/api/ap/runs")

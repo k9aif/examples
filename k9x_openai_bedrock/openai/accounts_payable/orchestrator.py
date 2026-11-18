@@ -36,6 +36,8 @@ class APOrchestrator(BaseOrchestrator):
         zt = self.apply_zero_trust(payload)
         if not zt["allowed"]:
             raise PermissionError(f"[{self.layer}] Zero Trust denied: {zt.get('reason')}")
+        # for the page's step list: what Zero Trust decided, before any agent ran
+        checked = {"decision": zt.get("decision"), "roles": list(payload.get("roles") or [])}
         squad = self.squads.load_one(SQUADS_YAML, SQUAD_ID)
         try:
             results = self.execute_squads([squad], payload)
@@ -44,9 +46,9 @@ class APOrchestrator(BaseOrchestrator):
             so_far = ((exc.resume_state.get("squad") or {}).get(SQUAD_ID) or {}).get("results") or {}
             self._describe_task(exc, so_far)
             out = self.handle_requires_hil(exc, payload)
-            out["so_far"] = so_far
+            out.update(so_far=so_far, zero_trust=checked, paused_calls=exc.context.get("tool_calls") or [])
             return out
-        return {"status": "completed", **results}
+        return {"status": "completed", "zero_trust": checked, **results}
 
     def _describe_task(self, exc: RequiresHIL, so_far: Dict[str, Any]) -> None:
         """The K9X HIL task (k9x.hil.task/v1) for a paused payment: who may decide (the rules' approver_role), the
