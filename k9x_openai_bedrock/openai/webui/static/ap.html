@@ -98,13 +98,13 @@
 <body>
 <header>
   <div class="bar">
-    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
+    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0"><a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
       <span class="build" id="build-top" title="The running build: commit ids of the examples and the K9-AIF framework"></span>
-      <span class="build" id="model-top" title="The model the K9 Model Router routes the agents to, and where it runs"></span>
-      <span class="gbadge" id="badge-shield" hidden title="k9x Shield checks every agent's input and output">🛡️ Shield: ON</span>
-      <span class="gbadge" id="badge-guardian" hidden title="Granite Guardian checks every agent's input and output by meaning, after k9x Shield (read-only: set in config)">🛡️ Guardian: ON</span>
+      <span class="build" id="model-top" title="The model the K9 Model Router picks for the agents, and where it runs"></span>
+
       <span class="build" title="Your private session (a fingerprint, not the session id)">__SESSION_REF__</span></span>
     <div class="links">
+      <span class="gbadge" id="badge-guardian" hidden title="Granite Guardian checks every agent's input and output by meaning, after k9x Shield (read-only: set in config)">🛡️ Guardian: ON</span>
       <a class="home" href="/">Home</a>
       <form method="post" action="/logout" style="margin:0"><button class="signout" type="submit">Sign out</button></form>
     </div>
@@ -396,8 +396,8 @@ document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click
 fetch("/api/health").then((r) => r.json()).then((h) => {
   $("version").textContent = h.version ? `Build: ${h.version}` : "";
   $("build-top").textContent = h.version ? `build ${h.version}` : "";
-  $("badge-shield").hidden = !h.shield; $("badge-guardian").hidden = !h.guardian;
-  $("model-top").textContent = h.agent_model ? `${h.agent_model}${h.model_host ? " @ " + h.model_host : ""} · K9 Model Router` : "";
+  $("badge-guardian").hidden = !h.guardian;
+  $("model-top").textContent = h.agent_model ? `${h.agent_model}${h.model_host ? " @ " + h.model_host : ""}` : "";
 }).catch(() => {});
 // ── Accounts payable (use case 3) ──────────────────────────────────────────
 const AP = { run: null, timer: null, invoices: {} };
