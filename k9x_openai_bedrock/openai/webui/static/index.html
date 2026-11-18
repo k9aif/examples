@@ -131,7 +131,7 @@
     </div>
   </div>
   <h1><span class="k9">K9-AIF Framework</span>, K9X Ecosystem and <span class="sdk">OpenAI Agents SDK</span> in Collaboration</h1>
-  <p class="lede">Weather by US zip code. An OpenAI agent does the work; K9-AIF governs every step.</p>
+  <p class="lede">Weather by US ZIP code. An OpenAI agent does the work; K9-AIF governs every step.</p>
   <nav role="tablist">
     <button role="tab" aria-selected="true" data-tab="weather">Weather</button>
     <button role="tab" aria-selected="false" data-tab="arch">Architecture</button>
@@ -142,7 +142,7 @@
 <main>
   <section class="card" id="tab-weather">
     <form id="ask" class="row" autocomplete="off">
-      <label>Zip code
+      <label>ZIP code
         <input type="text" id="zip" placeholder="e.g. 30301" maxlength="500" required>
       </label>
       <label>Caller role (Zero Trust)
@@ -156,13 +156,13 @@
       <button class="primary" id="go" type="submit">Get weather</button>
     </form>
     <div class="tries">Try:
-      <button type="button" data-try="clean">a normal zip</button>
+      <button type="button" data-try="clean">a normal ZIP code</button>
       <button type="button" data-try="guest">a guest caller</button>
       <button type="button" data-try="inject">a prompt injection</button>
       <button type="button" data-try="poison">a poisoned upstream</button>
     </div>
 
-    <div id="empty" class="empty">Enter a zip code. The answer appears here, with every check K9-AIF ran on the way.</div>
+    <div id="empty" class="empty">Enter a ZIP code. The answer appears here, with every check K9-AIF ran on the way.</div>
     <div id="loading" class="empty" hidden>Asking the WeatherAgent…</div>
     <div id="result" class="result" hidden>
       <div class="kind" id="kind"></div>
@@ -304,7 +304,7 @@ async def k9_tool_result_check(data):
       <div class="ma-box ma-sdk"><b>WeatherDeskIntelligenceSquad: runs its flow, step by step</b>
         <span>Each agent is a <code>K9OpenAIAgent</code>, configured by agent YAML. The squad's <code>flow:</code> sets the order; <code>synthesis: auto</code> condenses earlier results when they grow large.</span>
         <div class="ma-agents">
-          <div class="ma-agent entry"><b>1. FrontDeskAgent</b>States what the visitor needs: the zip code, and whether they asked about clothing.</div>
+          <div class="ma-agent entry"><b>1. FrontDeskAgent</b>States what the visitor needs: the ZIP code, and whether they asked about clothing.</div>
           <div class="ma-agent"><b>2. WeatherAgent</b>Calls the <code>current_weather</code> tool and reports it.</div>
           <div class="ma-agent"><b>3. AttireAdvisorAgent</b>Writes the final answer: the weather, then what to wear.</div>
         </div>

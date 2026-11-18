@@ -253,7 +253,7 @@
       <table>
         <thead><tr><th>#</th><th>Use case</th><th>SDK components it shows</th><th>K9-AIF / K9X</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td class="n">1</td><td><b>Weather</b><br>One agent finds the weather for a US zip code</td>
+          <tr><td class="n">1</td><td><b>Weather</b><br>One agent finds the weather for a US ZIP code</td>
             <td><code>Agent</code> · <code>Runner</code> · function tools · tool guardrails · <code>RunHooks</code> · model provider</td>
             <td>Shield on every step, Zero Trust, K9 Model Router</td><td><form method="post" action="/login" style="margin:0"><input type="hidden" name="username" value="demo"><input type="hidden" name="password" value="__DEMO_PASSWORD__"><input type="hidden" name="tab" value="weather"><button class="pillbtn live" type="submit">Live demo →</button></form></td></tr>
           <tr><td class="n">2</td><td><b>Weather desk (multi-agent)</b><br>Three OpenAI agents answer one question</td>
@@ -354,7 +354,7 @@
 <rect x="142" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#94a3b8" stroke-width="1.6"/>
 <rect x="40" y="46" width="170" height="70" rx="12" fill="#0e1729" stroke="#94a3b8" stroke-width="1.6"/>
 <text x="125" y="79" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">Visitor</text>
-<text x="125" y="99" fill="#94a3b8" font-size="12" text-anchor="middle">zip code · role</text>
+<text x="125" y="99" fill="#94a3b8" font-size="12" text-anchor="middle">ZIP code · role</text>
 <rect x="361" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
 <rect x="433" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
 <rect x="505" y="39" width="22" height="9" rx="3" fill="#0e1729" stroke="#34d399" stroke-width="1.6"/>
@@ -385,12 +385,12 @@
 <rect x="402" y="383" width="22" height="9" rx="3" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
 <rect x="300" y="390" width="170" height="66" rx="12" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
 <text x="385" y="421" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">lookup_zip</text>
-<text x="385" y="441" fill="#22d3ee" font-size="12" text-anchor="middle">zip → place</text>
+<text x="385" y="441" fill="#22d3ee" font-size="12" text-anchor="middle">ZIP code → place</text>
 <rect x="556" y="383" width="22" height="9" rx="3" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
 <rect x="622" y="383" width="22" height="9" rx="3" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
 <rect x="500" y="390" width="200" height="66" rx="12" fill="#0e1729" stroke="#22d3ee" stroke-width="1.6"/>
 <text x="600" y="421" fill="#f1f5f9" font-size="15" font-weight="700" text-anchor="middle">current_weather</text>
-<text x="600" y="441" fill="#22d3ee" font-size="12" text-anchor="middle">zip → conditions</text>
+<text x="600" y="441" fill="#22d3ee" font-size="12" text-anchor="middle">ZIP code → conditions</text>
 <rect x="839" y="383" width="22" height="9" rx="3" fill="#111b30" stroke="#c4b5fd" stroke-width="1.6"/>
 <rect x="899" y="383" width="22" height="9" rx="3" fill="#111b30" stroke="#c4b5fd" stroke-width="1.6"/>
 <rect x="959" y="383" width="22" height="9" rx="3" fill="#111b30" stroke="#c4b5fd" stroke-width="1.6"/>
@@ -467,7 +467,7 @@
       a receipt like this.</p>
     <div class="show">
       <div class="receipt">
-        <div class="h"><span>zip 30301 · role customer</span><span>recorded run</span></div>
+        <div class="h"><span>ZIP code 30301 · role customer</span><span>recorded run</span></div>
         <div class="r"><span class="ok">✓</span><span>Zero Trust</span><span class="d">weather.lookup allowed</span></div>
         <div class="r"><span class="ok">✓</span><span>Shield ingress</span><span class="d">request checks passed</span></div>
         <div class="r"><span class="ok">✓</span><span>Zero Trust</span><span class="d">openai_agent:WeatherAgent</span></div>
@@ -479,7 +479,7 @@
         <div class="a">Atlanta, GA: 40.9°F, clear sky, wind 4.2 mph, humidity 67%.</div>
       </div>
       <div class="tries">
-        <div class="try" style="border-left-color:var(--k9)"><b>A normal zip code</b><span>The weather, with every check that ran.</span></div>
+        <div class="try" style="border-left-color:var(--k9)"><b>A normal ZIP code</b><span>The weather, with every check that ran.</span></div>
         <div class="try" style="border-left-color:var(--gate)"><b>A guest caller</b><span>Zero Trust refuses before any agent runs.</span></div>
         <div class="try" style="border-left-color:#f87171"><b>A prompt injection</b><span>Shield refuses it before the SDK starts.</span></div>
         <div class="try" style="border-left-color:var(--tool)"><b>A poisoned upstream response</b><span>The tool result is withheld; the model never reads it.</span></div>
@@ -508,7 +508,7 @@
     <div class="label">Scope</div>
     <h2>What this demo is</h2>
     <div class="scope">
-      <div><b>US zip codes</b>Current weather from two free public services.</div>
+      <div><b>US ZIP codes</b>Current weather from two free public services.</div>
       <div><b>One local GPU</b>Requests are queued and limited per visitor.</div>
       <div><b>Role on the page</b>Shows Zero Trust; real deployments take it from sign-in.</div>
       <div><b>Private to you</b>Nothing you send or receive is stored or shared.</div>

@@ -1,6 +1,6 @@
 # K9-AIF Framework, K9X Ecosystem and OpenAI Agents SDK in Collaboration
 
-A small application you download and run on your own machine: give it a US zip code, get the current
+A small application you download and run on your own machine: give it a US ZIP code, get the current
 weather. An **OpenAI Agents SDK** agent does the work. **K9-AIF** governs every step: Zero Trust for the
 caller and the agent, k9x Shield on the request, every tool call, every tool result, every model reply and
 the final answer, and the **K9 Model Router** choosing the model for every call.
@@ -9,7 +9,7 @@ No OpenAI API key is needed: the SDK talks to your Ollama server through its Ope
 
 **Live demo: [openai.k9x.ai](https://openai.k9x.ai)** (demo login on the page).
 
-![Weather by zip code](diagrams/weather_zip_block.png)
+![Weather by ZIP code](diagrams/weather_zip_block.png)
 
 ## Run it
 
@@ -35,9 +35,9 @@ model server. On Ubuntu, see [ubuntu/README.md](ubuntu/README.md): `ubuntu/setup
 
 | Try | Result | K9-AIF at work |
 |---|---|---|
-| A normal zip, as `customer` | The weather, with every check listed | Zero Trust, Shield at six points, Model Router on every call |
-| The same zip, as `guest` | Refused before any agent runs | Zero Trust role policy |
-| A zip followed by "Ignore all previous instructions..." | Refused at ingress | Shield `PromptInjectionCheck`, before the SDK starts |
+| A normal ZIP code, as `customer` | The weather, with every check listed | Zero Trust, Shield at six points, Model Router on every call |
+| The same ZIP code, as `guest` | Refused before any agent runs | Zero Trust role policy |
+| A ZIP code followed by "Ignore all previous instructions..." | Refused at ingress | Shield `PromptInjectionCheck`, before the SDK starts |
 | "Poison the upstream response" | The tool result is withheld; the agent says so | Shield screens what tools return |
 
 The page's **Architecture** tab shows how the pieces fit, what is checked where, the agent's YAML and the
