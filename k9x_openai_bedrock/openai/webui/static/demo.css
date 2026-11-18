@@ -1,4 +1,4 @@
-/* Shared look of the openai.k9x.ai demo pages (/app weather, /ap accounts payable, ...). Each page keeps only its own styles. */
+/* Shared look of the openai.k9x.ai demo pages: one page per use case; each page keeps only its own styles. */
 :root {
   --bg: #08111f; --panel: #0e1729; --panel-2: #111b30; --line: #1f2c46; --ink: #e2e8f0; --muted: #a3b1c6;
   --ok: #34d399; --bad: #f87171; --accent: #34d399; --gate: #fbbf24; --dawn: #f59e0b;
