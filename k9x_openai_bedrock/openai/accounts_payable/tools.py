@@ -21,7 +21,9 @@ VENDORS: Dict[str, Dict[str, Any]] = {
     "umbrella corp": {"vendor": "Umbrella Corp", "vendor_status": "blocked", "bank_changed": False},
 }
 PAID_INVOICES = {"INV-0999"}                                   # already paid: a resubmission is a duplicate
-PO_MATCHED = {"INV-1042", "INV-1043", "INV-2001", "INV-3001", "INV-4001", "INV-0999"}
+PO_MATCHED = {"INV-1042", "INV-1043", "INV-2001", "INV-3001", "INV-4001", "INV-0999",
+              "INV-6001", "INV-6002", "INV-6003", "INV-6004", "INV-6005", "INV-6006", "INV-6007", "INV-6009",
+              "INV-6010"}                                     # the batch's invoices have purchase orders
 
 
 def _vendor(name: str) -> Dict[str, Any]:

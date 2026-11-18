@@ -9,8 +9,8 @@ topics), one Router, one Orchestrator, the K9X Rules Engine and K9X HIL.
 
 The Router and the Orchestrator share one RoutingStateStore (where pending HIL flows wait) and the agents share one
 PausedRunStore (where the paused OpenAI runs wait): PostgreSQL (database/schema from config.yaml postgres) when
-enabled, else SQLite under runtime/. The page talks to K9X HIL through its REST API with an API key that stays on
-this server (HIL_API_URL, HIL_API_KEY).
+enabled, else SQLite under runtime/. The page reads the K9X HIL task's status through HIL's REST API with an API key that
+stays on this server (HIL_API_URL, HIL_API_KEY); the decision itself is taken in K9X HIL.
 """
 
 from __future__ import annotations
@@ -55,6 +55,21 @@ INVOICES = {
     "large": "Invoice INV-1042 from Acme Supplies for $48,500.00, warehouse racking.",
     "bank": "Invoice INV-2001 from Globex Logistics for $6,200.00, freight for October.",
     "blocked": "Invoice INV-4001 from Umbrella Corp for $1,250.00, lab consumables.",
+}
+
+# A batch, the way a day's invoices arrive (fictional): most pay automatically, the rules reject two, three wait
+# for a person in K9X HIL while the rest move on.
+BATCH = {
+    "b01": "Invoice INV-6001 from Acme Supplies for $1,200.00, packing materials.",
+    "b02": "Invoice INV-6002 from Acme Supplies for $3,450.00, office chairs.",
+    "b03": "Invoice INV-6003 from Initech for $2,750.00, printer fleet service.",            # new vendor: AP-05, HIL
+    "b04": "Invoice INV-6004 from Acme Supplies for $22,000.00, mezzanine floor.",          # over $15,000: AP-07, HIL
+    "b05": "Invoice INV-6005 from Umbrella Corp for $780.00, safety gloves.",               # blocked vendor: AP-01
+    "b06": "Invoice INV-6006 from Acme Supplies for $640.00, labels and tape.",
+    "b07": "Invoice INV-6007 from Globex Logistics for $2,100.00, freight for November.",   # bank changed: AP-04, HIL
+    "b08": "Invoice INV-0999 from Acme Supplies for $1,500.00, toner.",                     # already paid: AP-02
+    "b09": "Invoice INV-6009 from Acme Supplies for $8,900.00, pallet jacks.",
+    "b10": "Invoice INV-6010 from Acme Supplies for $5,300.00, shelving units.",
 }
 
 # Bad invoices (fictional): what a document from outside can carry. K9-AIF stops each one before the OpenAI model
@@ -124,14 +139,18 @@ class APRuntime:
 
     # ── the flow ──────────────────────────────────────────────────────────
     def submit(self, which: str, owner: str) -> str:
-        if which not in INVOICES and which not in ATTACKS:
+        if which in ATTACKS:
+            text, roles = ATTACKS[which]
+        elif which in INVOICES or which in BATCH:
+            text, roles = INVOICES.get(which) or BATCH[which], ["customer"]
+        else:
             raise ValueError(f"unknown invoice {which!r}")
-        text, roles = ATTACKS[which] if which in ATTACKS else (INVOICES[which], ["customer"])
         now = time.time()
         for old in [k for k, r in self.runs.items() if now - r["created"] > RUN_TTL_S]:   # the page's view only
             self.runs.pop(old, None)
         run_id = "AP-" + uuid.uuid4().hex[:10].upper()
-        self.runs[run_id] = {"run_id": run_id, "owner": owner, "invoice": which, "status": "submitted",
+        label = (re.search(r"INV-\d+", text) or [which])[0]
+        self.runs[run_id] = {"run_id": run_id, "owner": owner, "invoice": which, "label": label, "status": "submitted",
                              "events": [self._event("Router", f"invoice routed (event_type {EVENT_TYPE}) to Kafka "
                                                      f"{IN_TOPIC}")],
                              "created": time.time()}
@@ -171,13 +190,13 @@ class APRuntime:
         agent), or a Shield check on the first agent's input (before the OpenAI model saw the invoice)."""
         run["status"], run["blocked"] = "blocked", reason
         if "Zero Trust" in reason:
-            run["blocked_by"] = {"layer": "Zero Trust", "where": "APOrchestrator, before any agent ran",
+            run["blocked_by"] = {"layer": "Zero Trust", "stage": "orchestrator", "where": "APOrchestrator, before any agent ran",
                                  "check": "RoleBasedAuthorizationGuard", "detail": reason.split("denied:", 1)[-1].strip()}
             run["events"].append(self._event("Zero Trust", f"denied: {run['blocked_by']['detail']}"))
         else:
             m = re.search(r"\[(\w+)\]:\s*(.*)", reason)
             check, detail = (m.group(1), m.group(2)) if m else ("Shield", reason)
-            run["blocked_by"] = {"layer": "K9X Shield (ingress)", "where": "InvoiceAgent's input, before the OpenAI "
+            run["blocked_by"] = {"layer": "K9X Shield (ingress)", "stage": "agent", "where": "InvoiceAgent's input, before the OpenAI "
                                  "model saw the invoice", "check": check, "detail": detail[:300]}
             run["events"].append(self._event("Zero Trust", "allowed (role customer)"))
             run["events"].append(self._event("Shield", f"{check} blocked InvoiceAgent's input: {detail[:200]}"))
@@ -260,15 +279,6 @@ class APRuntime:
             return None
         tasks = self._hil("GET", "/tasks", params={"correlation_id": run["correlation_id"]})
         return tasks[0] if tasks else None
-
-    def hil_decide(self, run_id: str, owner: str, action: str, comment: str) -> Dict[str, Any]:
-        if action not in ("complete", "reject"):
-            raise ValueError("action must be complete or reject")
-        task = self.hil_task(run_id, owner)
-        if not task:
-            raise LookupError("no K9X HIL task for this run yet")
-        out = self._hil("POST", f"/tasks/{task['id']}/action", json={"action": action, "comment": comment or None})
-        return out
 
     @staticmethod
     def _event(who: str, what: str) -> Dict[str, Any]:

@@ -23,8 +23,8 @@ answers are sent with Cache-Control: no-store.
     POST /api/ap/runs               {"invoice": "small|large|bank|blocked"} -> run_id (Router -> Kafka -> squad)
     GET  /api/ap/runs/{run_id}      the run: trace, the invoice read, the rule that fired, the payment
     GET  /api/ap/runs/{run_id}/hil  its K9X HIL task (through the HIL REST API; the key stays on this server)
-    POST /api/ap/runs/{run_id}/hil  {"action": "complete|reject", "comment": "..."}: decide in K9X HIL, which
-                                    replies on Kafka; the Router resumes the same run
+    POST /api/ap/batch              ten invoices at once; the few that need a person wait in K9X HIL
+    (decisions are taken in K9X HIL itself, hil.k9x.ai; its reply on Kafka resumes the same run)
 """
 
 from __future__ import annotations
@@ -314,7 +314,8 @@ def agent(request: Request):
 
 
 # ── Accounts payable (use case 3) ─────────────────────────────────────────────
-AP_OPEN_PER_SESSION = int(os.environ.get("AP_OPEN_PER_SESSION", "3"))   # runs not yet finished, per visitor
+AP_OPEN_PER_SESSION = int(os.environ.get("AP_OPEN_PER_SESSION", "3"))   # runs still working (model calls), per visitor
+AP_WAITING_PER_SESSION = int(os.environ.get("AP_WAITING_PER_SESSION", "10"))   # runs parked for a person, per visitor
 _AP_DONE = {"completed", "rejected", "error", "blocked"}
 _HIL_FIELDS = ("id", "title", "status", "priority", "queue_name", "application_name", "assigned_to",
                "correlation_id", "reply_to", "ttl_hours", "ttl_action", "created_at", "completed_at", "payload",
@@ -333,20 +334,15 @@ class APSubmit(BaseModel):
     invoice: str = Field(..., pattern="^(small|large|bank|blocked|inject|disclose|divert|flood|guest)$")
 
 
-class APDecision(BaseModel):
-    action: str = Field(..., pattern="^(complete|reject)$")
-    comment: str = Field("", max_length=300)
-
-
 @app.get("/api/ap/status")
 def ap_status(request: Request):
     _require_session(request)
     rt = STATE.get("ap")
     if rt is None:
         return {"running": False}
-    from accounts_payable.runtime import ATTACKS, INVOICES
+    from accounts_payable.runtime import ATTACKS, BATCH, INVOICES
     attacks = {k: (t if len(t) <= 400 else t[:300] + f" … ({len(t):,} characters in all)") for k, (t, _) in ATTACKS.items()}
-    return {"running": True, "invoices": {**INVOICES, **attacks}, "hil_url": rt.hil_url,
+    return {"running": True, "invoices": {**INVOICES, **BATCH, **attacks}, "hil_url": rt.hil_url,
             "hil_api": bool(rt.hil_url and rt.hil_key)}
 
 
@@ -356,11 +352,26 @@ async def ap_submit(req: APSubmit, request: Request):
     rt = _ap()
     _rate_limit(_client(request))
     _rate_limit("session:" + sid)
-    open_runs = [r for r in rt.runs.values() if r["owner"] == sid and r["status"] not in _AP_DONE]
-    if len(open_runs) >= AP_OPEN_PER_SESSION:
-        raise HTTPException(429, f"You have {len(open_runs)} invoices still in flight. Decide or wait for them first.")
+    mine = [r for r in rt.runs.values() if r["owner"] == sid and r["status"] not in _AP_DONE]
+    working = [r for r in mine if r["status"] != "pending_hil"]       # a run waiting for a person holds nothing
+    waiting = [r for r in mine if r["status"] == "pending_hil"]
+    if len(working) >= AP_OPEN_PER_SESSION:
+        raise HTTPException(429, f"You have {len(working)} invoices still running. Wait for one to finish.")
+    if len(waiting) >= AP_WAITING_PER_SESSION:
+        raise HTTPException(429, f"You have {len(waiting)} invoices waiting for a person. Decide some first.")
     run_id = await asyncio.to_thread(rt.submit, req.invoice, sid)
     return JSONResponse({"run_id": run_id}, headers=_NO_STORE)
+
+
+@app.get("/api/ap/runs")
+def ap_runs(request: Request):
+    """This visitor's runs, newest first (for the page's 'Your runs' strip)."""
+    sid = _require_session(request)
+    rt = _ap()
+    mine = sorted((r for r in rt.runs.values() if r["owner"] == sid), key=lambda r: r["created"], reverse=True)
+    return JSONResponse([{"run_id": r["run_id"], "invoice": r["invoice"], "label": r.get("label"), "status": r["status"]}
+                         for r in mine[:30]],
+                        headers=_NO_STORE)
 
 
 @app.get("/api/ap/runs/{run_id}")
@@ -387,32 +398,20 @@ async def ap_hil_task(run_id: str, request: Request):
     return JSONResponse({"task": {k: task.get(k) for k in _HIL_FIELDS} if task else None}, headers=_NO_STORE)
 
 
-@app.post("/api/ap/runs/{run_id}/hil")
-async def ap_hil_decide(run_id: str, req: APDecision, request: Request):
+@app.post("/api/ap/batch")
+async def ap_batch(request: Request):
+    """Ten invoices at once, the way a day's invoices arrive: they run one after another; the few that need a person
+    wait in K9X HIL while the rest finish."""
     sid = _require_session(request)
     rt = _ap()
+    _rate_limit(_client(request))
     _rate_limit("session:" + sid)
-    if rt.view(run_id, sid) is None:
-        raise HTTPException(404, "No such run in this session.")
-    try:
-        out = await asyncio.to_thread(rt.hil_decide, run_id, sid, req.action, req.comment.strip())
-    except LookupError as exc:
-        raise HTTPException(409, str(exc))
-    except RuntimeError as exc:
-        raise HTTPException(503, str(exc))
-    except Exception as exc:
-        # K9X HIL's own answer, passed through: its status (4xx) and its reason (e.g. a manager-level approval needs a
-        # written justification). Never a 502: Cloudflare replaces those with its own page and the reason is lost.
-        response = getattr(exc, "response", None)
-        status = getattr(response, "status_code", None)
-        try:
-            body = response.json() if response is not None else None
-            reason = body.get("detail") if isinstance(body, dict) else None
-        except Exception:                      # not JSON: no reason to pass on, the status still is
-            reason = None
-        if status == 409:
-            raise HTTPException(409, "This task was already decided in K9X HIL.")
-        if status and 400 <= status < 500:
-            raise HTTPException(status, f"K9X HIL: {reason or 'refused the decision'}")
-        raise HTTPException(503, f"K9X HIL could not take the decision now ({type(exc).__name__}). Try again.")
-    return JSONResponse(out, headers=_NO_STORE)
+    from accounts_payable.runtime import BATCH
+    busy = [r for r in rt.runs.values() if r["owner"] == sid and r["status"] not in _AP_DONE | {"pending_hil"}]
+    if busy:
+        raise HTTPException(429, f"{len(busy)} of your invoices are still running. Start the batch when they finish.")
+    waiting = [r for r in rt.runs.values() if r["owner"] == sid and r["status"] == "pending_hil"]
+    if len(waiting) + 3 > AP_WAITING_PER_SESSION:
+        raise HTTPException(429, f"You have {len(waiting)} invoices waiting for a person. Decide some in K9X HIL first.")
+    ids = [await asyncio.to_thread(rt.submit, key, sid) for key in BATCH]
+    return JSONResponse({"run_ids": ids}, headers=_NO_STORE)

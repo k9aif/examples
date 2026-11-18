@@ -20,7 +20,8 @@ from k9_aif_abb.k9_core.orchestration.hil_signal import RequiresHIL
 
 SQUADS_YAML = Path(__file__).resolve().parent / "squads.yaml"
 SQUAD_ID = "ap_invoice"
-INVOICE_FILES = {"INV-1042", "INV-1043", "INV-2001", "INV-4001"}      # invoices/*.pdf, uploaded by upload_invoices.py
+INVOICE_FILES = {"INV-1042", "INV-1043", "INV-2001", "INV-4001", "INV-0999", "INV-6001", "INV-6002", "INV-6003",
+                 "INV-6004", "INV-6005", "INV-6006", "INV-6007", "INV-6009", "INV-6010"}   # invoices/*.pdf (uploaded)
 RULES_PAGE = "https://openai.k9x.ai/ap"
 
 
