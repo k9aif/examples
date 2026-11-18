@@ -223,8 +223,10 @@
             <td><code>needs_approval</code> · <code>RunState</code> · <code>approve</code> / <code>reject</code> · structured output</td>
             <td>K9X HIL task (role, deadline, audit) over Kafka; the same run resumes after the decision</td><td><span class="pill new">Coming soon</span></td></tr>
           <tr class="up"><td class="n">4</td><td><b>Follow-up questions</b><br>The weather agent remembers the conversation</td>
-            <td>Sessions</td><td>Session data screened like any input</td><td><span class="pill plan">Upcoming</span></td></tr>
-          <tr class="up"><td class="n">5</td><td><b>Streaming answers</b><br>Replies appear as they're written</td>
+            <td>Sessions</td><td>K9-AIF session store (Redis); session data screened like any input</td><td><span class="pill plan">Upcoming</span></td></tr>
+          <tr class="up"><td class="n">5</td><td><b>Weather via the K9X MCP Server</b><br>The weather tool served over MCP</td>
+            <td>MCP tools</td><td>K9X MCP Server, called through K9-AIF's governed MCP connector</td><td><span class="pill plan">Upcoming</span></td></tr>
+          <tr class="up"><td class="n">6</td><td><b>Streaming answers</b><br>Replies appear as they're written</td>
             <td><code>Runner.run_streamed</code></td><td>Governed streaming</td><td><span class="pill plan">Upcoming</span></td></tr>
         </tbody>
       </table>
@@ -282,14 +284,14 @@
         <tr><td class="c"><b>Model provider · ModelSettings</b><code>RunConfig.model_provider</code></td><td><span class="pill used">In use</span></td><td>Every model call</td><td class="k9">The K9 Model Router chooses an eligible model per call</td></tr>
         <tr><td class="c"><b>Tracing</b><code>RunConfig.tracing_disabled</code></td><td><span class="pill used">In use · kept local</span></td><td>Off by default (the SDK sends traces to OpenAI otherwise)</td><td class="k9">K9-AIF trace events instead; export only when configured</td></tr>
         <tr><td class="c"><b>Handoffs</b><code>Agent.handoffs</code></td><td><span class="pill opt">Opt-in</span></td><td>Only when the design spec asks for model routing</td><td class="k9">Governed and capped; the default is a K9-AIF squad that runs agents in a known sequence</td></tr>
-        <tr><td class="c"><b>Human in the loop</b><code>needs_approval · RunState · approve · reject</code></td><td><span class="pill new">New · 1.29.0</span></td><td>The pause before a tool that needs a person (accounts payable demo coming)</td><td class="k9">Routed to K9X HIL: a task with sign-in, role, deadline and audit; the same run resumes after the decision</td></tr>
+        <tr><td class="c"><b>Human in the loop</b><code>needs_approval · RunState · approve · reject</code></td><td><span class="pill new">New · 1.29.0</span></td><td>The pause before a tool that needs a person (accounts payable demo coming)</td><td class="k9">Routed to K9X HIL: a task with sign-in, role, deadline and audit; the same run resumes after the decision. Through <code>BaseHILAdapter</code>, a new K9-AIF ABB (1.29.0), so other agent frameworks plug in the same way</td></tr>
         <tr class="grp"><td colspan="4">Next</td></tr>
         <tr><td class="c"><b>Structured output</b><code>Agent.output_type</code></td><td><span class="pill plan">Planned</span></td><td>The accounts payable check as a typed result</td><td class="k9">The reviewer sees clean fields, screened like any output</td></tr>
-        <tr><td class="c"><b>Sessions</b><code>SQLiteSession</code></td><td><span class="pill plan">Planned</span></td><td>Follow-up questions on the weather demo</td><td class="k9">Session data screened like any input</td></tr>
+        <tr><td class="c"><b>Sessions</b><code>SQLiteSession</code></td><td><span class="pill plan">Planned</span></td><td>Follow-up questions on the weather demo</td><td class="k9">Backed by K9-AIF's session store (Redis, already running); session data screened like any input</td></tr>
+        <tr><td class="c"><b>MCP tools</b><code>MCP</code></td><td><span class="pill plan">Planned</span></td><td>Tools served by the K9X MCP Server (e.g. <code>current_weather</code>)</td><td class="k9">Called through K9-AIF's governed MCP connector, so every call is still checked</td></tr>
         <tr class="grp"><td colspan="4">Left out, and why</td></tr>
         <tr><td class="c"><b>Agent input/output guardrails</b><code>Agent.input_guardrails</code></td><td><span class="pill no">Not used, on purpose</span></td><td>They cover only the first agent's input and the last agent's output</td><td class="k9">K9-AIF checks every agent's every step instead</td></tr>
         <tr><td class="c"><b>Hosted tools</b><code>web search · file search · code interpreter</code></td><td><span class="pill no">Not used, on purpose</span></td><td>They run on OpenAI's servers</td><td class="k9">Nothing on our side could check them, so the sole broker refuses them</td></tr>
-        <tr><td class="c"><b>MCP servers</b><code>Agent.mcp_servers</code></td><td><span class="pill no">Not used, on purpose</span></td><td>Not needed here</td><td class="k9">K9-AIF reaches tools through its own governed MCP connectors</td></tr>
         <tr><td class="c"><b>Streaming</b><code>Runner.run_streamed</code></td><td><span class="pill plan">Not yet</span></td><td>Not wrapped yet</td><td class="k9">Replies are screened as a whole before they're shown</td></tr>
         </tbody>
       </table>
