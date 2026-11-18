@@ -86,7 +86,7 @@ for the reviewer. The rules' approver role decides who may approve: a manager, w
 AP-03 and AP-04, and otherwise anyone in the queue. The task's deadline is 24 hours, after which the payment is
 rejected.
 
-The page's **Accounts payable + HIL** tab shows the run, the rule that fired, and a K9X HIL pane. The pane
+Use case 3 has its own page, `/ap` (the weather demo is `/app`): **Run an invoice** shows the run, the rule that fired and a K9X HIL pane; **Architecture** shows the flow. The pane
 reads and decides the task through K9X HIL's REST API, using `HIL_API_KEY`, which stays on the server. The
 demo is on when `KAFKA_BOOTSTRAP_SERVERS` is set. The other keys are in `env-example`: the rules engine URL,
 the HIL URL and key, and PostgreSQL (schema `openai`; SQLite under `runtime/` otherwise).

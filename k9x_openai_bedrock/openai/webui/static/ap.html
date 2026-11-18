@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accounts payable with K9X HIL</title>
+<link rel="stylesheet" href="/static/demo.css?v=__DEMO_CSS_V__">
+<style>
+  /* Accounts payable tab */
+  .ap-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+  .ap-pick button { text-align: left; font: inherit; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink); cursor: pointer; }
+  .ap-pick button:hover { border-color: var(--ok); }
+  .ap-pick button:disabled { opacity: .55; cursor: wait; }
+  .ap-pick b { display: block; } .ap-pick span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .ap-pick .exp { font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--gate); margin-top: 6px; }
+  .ap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+  .ap-box { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); padding: 14px 16px; min-width: 0; }
+  .ap-box h3 { margin: 0 0 8px; font-size: 13px; color: var(--gate); font-weight: 600; }
+  .ap-box dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 13.5px; }
+  .ap-box dt { color: var(--muted); } .ap-box dd { margin: 0; overflow-wrap: anywhere; }
+  .pill { display: inline-block; font: 700 11.5px var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid; }
+  .pill.ok { color: var(--ok); border-color: var(--ok); } .pill.bad { color: var(--bad); border-color: var(--bad); }
+  .pill.wait { color: var(--gate); border-color: var(--gate); } .pill.info { color: var(--muted); border-color: #475569; }
+  .hil-pane { margin-top: 18px; border: 2px solid var(--gate); border-radius: 14px; padding: 16px 18px;
+    background: linear-gradient(180deg, rgba(251,191,36,.07), transparent 50%); }
+  .hil-pane h2 { margin: 0 0 4px; color: var(--gate); }
+  .hil-pane textarea { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px;
+    background: #0b1322; color: var(--ink); resize: vertical; min-height: 42px; margin: 10px 0; }
+  .hil-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button.reject { font: inherit; font-weight: 700; padding: 10px 20px; border: 1px solid var(--bad); border-radius: 9px;
+    background: transparent; color: var(--bad); cursor: pointer; }
+  button.reject:disabled, button.primary:disabled { opacity: .55; cursor: not-allowed; }
+  tr.fired td { background: rgba(251,191,36,.12); } tr.fired td:first-child { box-shadow: inset 4px 0 0 var(--gate); }
+  .flow { display: grid; gap: 6px; margin-top: 10px; }
+  .fl { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: start; border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 12px; background: var(--panel-2); font-size: 13.5px; }
+  .fl b { color: var(--ink); } .fl.k9 { border-left: 4px solid var(--ok); } .fl.sdk { border-left: 4px solid #60a5fa; }
+  .fl.bus { border-left: 4px solid #a78bfa; } .fl.hil { border-left: 4px solid var(--gate); } .fl.rules { border-left: 4px solid #22d3ee; }
+  .fl .who { font: 700 11.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
+  @media (max-width: 760px) { nav { flex-wrap: wrap; } nav button { border-radius: 10px; padding: 7px 12px; }
+    .ap-pick, .ap-grid > *, .hil-pane, .flow { min-width: 0; } .ap-pick button { min-width: 0; overflow-wrap: anywhere; }
+    .ap-pick { grid-template-columns: 1fr 1fr; }
+    #hil-task dl { grid-template-columns: 1fr !important; } #hil-task dt { margin-top: 6px; } .ap-grid { grid-template-columns: 1fr; }
+    .fl { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="https://k9x.ai" title="K9X: k9x.ai"><img src="/static/k9x-logo.png" alt="">K9X</a>
+    <div class="links">
+      <span class="build" id="build-top" title="The running build: commit ids of the examples and the K9-AIF framework"></span>
+      <a class="home" href="/">Home</a>
+      <form method="post" action="/logout" style="margin:0"><button class="signout" type="submit">Sign out</button></form>
+    </div>
+  </div>
+  <h1><span class="k9">K9-AIF Framework</span>, K9X Ecosystem and <span class="sdk">OpenAI Agents SDK</span> in Collaboration</h1>
+  <p class="lede">Accounts payable: OpenAI agents read and pay invoices, the K9X Rules Engine decides, and a person approves in K9X HIL.</p>
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-tab="run">Run an invoice</button>
+    <button role="tab" aria-selected="false" data-tab="arch">Architecture</button>
+  </nav>
+</header>
+
+<main>
+  <section class="card" id="tab-run">
+    <h2 style="margin-top:0">Accounts payable: an OpenAI agent pays, the rules decide, a person approves</h2>
+    <p class="muted" style="margin:0">Pick an invoice. An OpenAI agent reads it, the <b>K9X Rules Engine</b> (currently GoRules)
+      decides, and a second OpenAI agent pays. When the rules say a person must approve, the OpenAI SDK's own
+      <code>needs_approval</code> pause becomes a task in <b>K9X HIL</b> (hil.k9x.ai) over Kafka. Approve or reject it below:
+      the decision comes back on Kafka, the Router resumes, and the same OpenAI run carries on. Payments are simulated.</p>
+    <div class="ap-pick" id="ap-pick">
+      <button type="button" data-inv="small"><b>INV-1043 · $900</b><span>Acme Supplies, office supplies</span><span class="exp">AP-08 · pays automatically</span></button>
+      <button type="button" data-inv="large"><b>INV-1042 · $48,500</b><span>Acme Supplies, warehouse racking</span><span class="exp">AP-07 · over $15,000: HIL</span></button>
+      <button type="button" data-inv="bank"><b>INV-2001 · $6,200</b><span>Globex Logistics, freight</span><span class="exp">AP-04 · bank changed: HIL</span></button>
+      <button type="button" data-inv="blocked"><b>INV-4001 · $1,250</b><span>Umbrella Corp, lab consumables</span><span class="exp">AP-01 · blocked vendor</span></button>
+    </div>
+    <div id="ap-off" class="empty" hidden></div>
+    <div id="ap-empty" class="empty">Pick an invoice. Its run appears here: every step, the rule that fired, and the payment.</div>
+
+    <div id="ap-run" hidden>
+      <div class="ap-grid">
+        <div class="ap-box">
+          <h3>Run <span id="ap-runid" class="muted"></span></h3>
+          <dl>
+            <dt>Status</dt><dd id="ap-status"></dd>
+            <dt>Invoice</dt><dd id="ap-text"></dd>
+            <dt>Read by</dt><dd>InvoiceAgent (OpenAI): <span id="ap-fields" class="muted">…</span></dd>
+          </dl>
+        </div>
+        <div class="ap-box">
+          <h3>K9X Rules Engine (currently GoRules)</h3>
+          <dl>
+            <dt>Rule</dt><dd id="ap-rule">…</dd>
+            <dt>Decision</dt><dd id="ap-decision">…</dd>
+            <dt>Why</dt><dd id="ap-reason" class="muted">…</dd>
+            <dt>Facts</dt><dd id="ap-facts" class="muted">…</dd>
+          </dl>
+        </div>
+      </div>
+      <div class="ap-box" style="margin-top:14px">
+        <h3>Payment (PaymentAgent, OpenAI)</h3>
+        <div id="ap-payment" class="muted">Not paid yet.</div>
+      </div>
+
+      <div class="hil-pane" id="hil-pane" hidden>
+        <h2>K9X HIL (hil.k9x.ai) view for the OpenAI demo</h2>
+        <p class="muted" style="margin:0 0 10px;font-size:13.5px">This task came in to K9X HIL on Kafka
+          (<code>hil.requests.openai-ap-payments</code>), under <b>OpenAI Demo Application → Invoice Approvals</b>. This pane
+          reads and decides it through K9X HIL's REST API (the API key stays on this server). The invoice itself is a PDF in
+          object storage (S3/MinIO): the task carries its <code>s3://</code> link, and K9X HIL fetches it for the reviewer. The decision itself goes
+          back on Kafka (<code>hil.replies.openai-ap-payments</code>). You can also decide it at
+          <a id="hil-link" href="https://hil.k9x.ai" target="_blank" rel="noopener noreferrer">hil.k9x.ai</a> with the demo login.</p>
+        <div id="hil-wait" class="muted">Waiting for K9X HIL to take the task…</div>
+        <div id="hil-task" hidden>
+          <dl class="ap-box" style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0">
+            <dt class="muted">Task</dt><dd id="hil-id" style="margin:0"></dd>
+            <dt class="muted">Title</dt><dd id="hil-title" style="margin:0"></dd>
+            <dt class="muted">Wants to run</dt><dd id="hil-call" style="margin:0;font-family:var(--mono);font-size:12.5px"></dd>
+            <dt class="muted">Decided by</dt><dd id="hil-role" style="margin:0"></dd>
+            <dt class="muted">Documents</dt><dd id="hil-docs" style="margin:0;font-size:13px"></dd>
+            <dt class="muted">Status</dt><dd id="hil-status" style="margin:0"></dd>
+            <dt class="muted">If nobody decides</dt><dd id="hil-ttl" style="margin:0" class="muted"></dd>
+          </dl>
+          <textarea id="hil-comment" maxlength="300" placeholder="Comment (optional), recorded in K9X HIL with the decision"></textarea>
+          <div class="hil-actions">
+            <button class="primary" id="hil-approve" type="button">Approve payment</button>
+            <button class="reject" id="hil-reject" type="button">Reject</button>
+            <span id="hil-msg" class="muted" style="font-size:13px"></span>
+          </div>
+        </div>
+      </div>
+
+      <h2>What happened, in order</h2>
+      <ol class="trace" id="ap-trace"></ol>
+    </div>
+
+    <h2>The rules (K9X Rules Engine, first match wins)</h2>
+    <table id="ap-rules">
+      <tr><th>Rule</th><th>When</th><th>Decision</th></tr>
+      <tr data-rule="AP-01"><td><code>AP-01</code></td><td>Vendor is blocked</td><td>reject</td></tr>
+      <tr data-rule="AP-02"><td><code>AP-02</code></td><td>Invoice already paid or submitted (duplicate)</td><td>reject</td></tr>
+      <tr data-rule="AP-03"><td><code>AP-03</code></td><td>Amount over $100,000</td><td>needs approval (manager)</td></tr>
+      <tr data-rule="AP-04"><td><code>AP-04</code></td><td>Vendor's bank account changed recently</td><td>needs approval (manager)</td></tr>
+      <tr data-rule="AP-05"><td><code>AP-05</code></td><td>First invoice from a new vendor</td><td>needs approval</td></tr>
+      <tr data-rule="AP-06"><td><code>AP-06</code></td><td>No matching purchase order</td><td>needs approval</td></tr>
+      <tr data-rule="AP-07"><td><code>AP-07</code></td><td>Amount over $15,000</td><td>needs approval</td></tr>
+      <tr data-rule="AP-08"><td><code>AP-08</code></td><td>Everything else</td><td>pay automatically</td></tr>
+    </table>
+    <p class="muted" style="font-size:13px">The model only reads the vendor, invoice number and amount. The facts the rules decide on
+      (vendor status, a changed bank account, a PO match, a duplicate) come from the records, never from the model.</p>
+
+  </section>
+
+  <section class="card" id="tab-arch" hidden>
+    <h2 style="margin-top:0">Architecture: how the pieces talk</h2>
+    <div class="flow">
+      <div class="fl k9"><span class="who">K9-AIF Router</span><span><b>K9EventRouter</b> routes <code>event_type: openai.ap.invoice</code> to Kafka <code>openai.ap.in</code> (routing table in <code>config.yaml</code>).</span></div>
+      <div class="fl k9"><span class="who">Orchestrator</span><span><b>APOrchestrator</b> applies Zero Trust and runs the <code>ap_invoice</code> squad. It knows only the squad (K9-DEC-002).</span></div>
+      <div class="fl sdk"><span class="who">Step 1 · OpenAI</span><span><b>InvoiceAgent</b> (<code>K9OpenAIAgent</code>): reads vendor, invoice and amount as structured output. Governed by Shield like every agent.</span></div>
+      <div class="fl rules"><span class="who">Step 2 · Rules</span><span><b>APRulesAgent</b> (<code>K9RulesAgent</code> + <code>GoRulesAdapter</code>): looks up the facts in the records and asks the <b>K9X Rules Engine</b>. Decision: auto pay, needs approval, or reject.</span></div>
+      <div class="fl sdk"><span class="who">Step 3 · OpenAI</span><span><b>PaymentAgent</b> (<code>K9OpenAIAgent</code>) calls <code>pay_invoice</code>. Its <code>needs_approval_when</code> reads the rules step's decision, so the OpenAI SDK pauses the run only when the rules said so. Skipped on reject.</span></div>
+      <div class="fl k9"><span class="who">Pause</span><span><b>OpenAIHILAdapter</b> (<code>BaseHILAdapter</code>) saves the SDK's run state in <code>PausedRunStore</code> (PostgreSQL schema <code>openai</code>) and raises <code>RequiresHIL</code>. The orchestrator hands it to <b>BaseHILOrchestrator</b>.</span></div>
+      <div class="fl bus"><span class="who">Kafka (Redpanda)</span><span><code>hil.requests.openai-ap-payments</code>, on the same Redpanda as das.k9x.ai.</span></div>
+      <div class="fl hil"><span class="who">K9X HIL</span><span>A task in <b>OpenAI Demo Application → Invoice Approvals</b>. A person approves or rejects (here, or at hil.k9x.ai).</span></div>
+      <div class="fl bus"><span class="who">Kafka (Redpanda)</span><span><code>hil.replies.openai-ap-payments</code> carries the decision, keyed by <code>correlation_id</code>.</span></div>
+      <div class="fl k9"><span class="who">Resume</span><span>The Router's <code>listen_for_hil_replies</code> claims the pending flow once and re-routes it. The squad skips steps 1 and 2; PaymentAgent restores the same OpenAI run, approves or rejects the waiting call, and finishes.</span></div>
+    </div>
+    <p class="muted" style="font-size:13px">Source: <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai/accounts_payable" target="_blank" rel="noopener noreferrer">accounts_payable/</a>
+      (agents and squad YAML, the rules step, the orchestrator, the runtime).</p>
+  </section>
+
+</main>
+<footer>
+  Source: <a href="https://github.com/k9aif/examples/tree/main/k9x_openai_bedrock/openai/accounts_payable">github.com/k9aif/examples</a>
+  (download it and run <code>./run.sh</code>) · Framework: <a href="https://github.com/k9aif/k9-aif-framework">K9-AIF</a> · <a href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">Video (4 min)</a>
+  · <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a>
+  · Runs on one GPU: requests are queued and limited per visitor · <span id="version"></span>
+</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", x === b));
+  $("tab-run").hidden = b.dataset.tab !== "run";
+  $("tab-arch").hidden = b.dataset.tab !== "arch";
+  history.replaceState(null, "", "#" + b.dataset.tab);
+}));
+{ const start = document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`); if (start) start.click(); }
+fetch("/api/health").then((r) => r.json()).then((h) => {
+  $("version").textContent = h.version ? `Build: ${h.version}` : "";
+  $("build-top").textContent = h.version ? `Build: ${h.version}` : "";
+}).catch(() => {});
+// ── Accounts payable (use case 3) ──────────────────────────────────────────
+const AP = { run: null, timer: null, invoices: {} };
+const AP_DONE = new Set(["completed", "rejected", "error"]);
+const AP_PILL = { submitted: ["info", "submitted"], running: ["info", "running the squad"], pending_hil: ["wait", "waiting for a person in K9X HIL"],
+  resuming: ["info", "resuming after the decision"], completed: ["ok", "completed"], rejected: ["bad", "rejected: not paid"], error: ["bad", "error"] };
+function pill(el, kind, text) { el.innerHTML = ""; const s = document.createElement("span"); s.className = "pill " + kind; s.textContent = text; el.appendChild(s); }
+async function apJson(url, opts) {
+  const resp = await fetch(url, opts);
+  if (resp.status === 401) { window.location.href = "/login"; throw new Error("signed out"); }
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(typeof body.detail === "string" ? body.detail : resp.statusText);
+  return body;
+}
+function apPick(disabled) { document.querySelectorAll("#ap-pick button").forEach((b) => { b.disabled = disabled; }); }
+
+fetch("/api/ap/status").then((r) => r.json()).then((s) => {
+  if (!s.running) { $("ap-off").textContent = "The accounts payable demo isn't running on this server (it needs Kafka)."; $("ap-off").hidden = false; apPick(true); return; }
+  AP.invoices = s.invoices || {};
+  if (s.hil_url) $("hil-link").href = s.hil_url;
+}).catch(() => {});
+
+document.querySelectorAll("#ap-pick button").forEach((b) => b.addEventListener("click", async () => {
+  apPick(true);
+  try {
+    const r = await apJson("/api/ap/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invoice: b.dataset.inv }) });
+    AP.run = r.run_id; AP.task = null;
+    $("ap-empty").hidden = true; $("ap-run").hidden = false; $("hil-pane").hidden = true;
+    $("hil-task").hidden = true; $("hil-wait").hidden = false; $("hil-msg").textContent = ""; $("hil-comment").value = "";
+    ["ap-fields", "ap-rule", "ap-decision", "ap-reason", "ap-facts"].forEach((id) => { $(id).textContent = "…"; });
+    $("ap-payment").textContent = "Not paid yet.";
+    document.querySelectorAll("#ap-rules tr").forEach((tr) => tr.classList.remove("fired"));
+    apPoll();
+  } catch (e) { $("ap-empty").hidden = false; $("ap-empty").textContent = String(e.message || e); apPick(false); }
+}));
+
+function apRender(run) {
+  $("ap-runid").textContent = run.run_id;
+  const [k, t] = AP_PILL[run.status] || ["info", run.status]; pill($("ap-status"), k, t);
+  $("ap-text").textContent = AP.invoices[run.invoice] || run.invoice;
+  const f = run.invoice_fields;
+  if (f && typeof f === "object") $("ap-fields").textContent = `${f.vendor} · ${f.invoice_id} · $${Number(f.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+  const d = run.decision;
+  if (d) {
+    $("ap-rule").textContent = d.rule || "";
+    pill($("ap-decision"), d.decision === "auto_pay" ? "ok" : d.decision === "reject" ? "bad" : "wait",
+      { auto_pay: "pay automatically", needs_approval: "needs a person's approval", reject: "reject" }[d.decision] || d.decision);
+    $("ap-reason").textContent = d.reason || "";
+    const x = d.facts || {};
+    $("ap-facts").textContent = `vendor ${x.vendor_status} · bank changed ${x.bank_changed ? "yes" : "no"} · PO matched ${x.po_matched ? "yes" : "no"} · duplicate ${x.duplicate ? "yes" : "no"}`;
+    document.querySelectorAll("#ap-rules tr").forEach((tr) => tr.classList.toggle("fired", tr.dataset.rule === d.rule));
+  }
+  if (run.payment) $("ap-payment").textContent = run.payment;
+  else if (run.status === "rejected") $("ap-payment").textContent = "Not paid: the rules rejected the invoice.";
+  if (run.status === "rejected" && run.hil_decision) $("ap-payment").textContent = "Not paid: rejected in K9X HIL. " + (run.payment || "");
+  if (run.error) $("ap-payment").textContent = run.error;
+  if (run.hil_decision) $("hil-msg").textContent = `Decided by ${run.hil_decision.actor}: ${run.hil_decision.action === "complete" ? "approved" : "rejected"}.`;
+  const ol = $("ap-trace"); ol.innerHTML = "";
+  for (const e of run.events || []) {
+    const li = document.createElement("li");
+    li.innerHTML = '<span><span class="dot s-info"></span></span><span class="step"></span><span class="detail"></span>';
+    li.querySelector(".step").textContent = `${e.t} ${e.who}`; li.querySelector(".detail").textContent = e.what;
+    ol.appendChild(li);
+  }
+  $("hil-pane").hidden = !(run.correlation_id);
+}
+
+async function apPoll() {
+  clearTimeout(AP.timer);
+  const id = AP.run; if (!id) return;
+  try {
+    const run = await apJson(`/api/ap/runs/${encodeURIComponent(id)}`);
+    if (id !== AP.run) return;
+    apRender(run);
+    if (run.correlation_id) await hilRefresh(id, run);
+    if (AP_DONE.has(run.status)) { apPick(false); return; }
+  } catch (e) { $("hil-msg").textContent = String(e.message || e); }
+  AP.timer = setTimeout(apPoll, 2000);
+}
+
+async function hilRefresh(id, run) {
+  try {
+    const { task } = await apJson(`/api/ap/runs/${encodeURIComponent(id)}/hil`);
+    if (!task) { $("hil-wait").hidden = false; $("hil-task").hidden = true; return; }
+    AP.task = task;
+    $("hil-wait").hidden = true; $("hil-task").hidden = false;
+    $("hil-id").textContent = `#${task.id} · ${task.application_name || ""} → ${task.queue_name || ""}`;
+    $("hil-title").textContent = task.title || "";
+    const calls = ((task.payload || {}).tool_calls || []).map((c) => `${c.tool}(${JSON.stringify(c.arguments)})`);
+    $("hil-call").textContent = calls.join("; ") || "pay_invoice";
+    const open = task.status !== "completed" && task.status !== "rejected" && task.status !== "expired";
+    pill($("hil-status"), open ? "wait" : task.status === "completed" ? "ok" : "bad", open ? task.status : (task.status === "completed" ? "approved" : task.status));
+    $("hil-ttl").textContent = task.ttl_hours ? `${task.ttl_action || "reject"} after ${task.ttl_hours} hours` : "";
+    $("hil-role").textContent = task.required_role
+      ? `${task.decision_authority ? task.decision_authority + ", " : ""}role ${task.required_role} or above` : "any role";
+    const docs = (task.artifact_list || []).map((a) => `${a.title || a.uri} (${a.uri})`);
+    $("hil-docs").textContent = docs.length ? docs.join(" · ") + ". K9X HIL opens each one for the reviewer." : "none";
+    const canDecide = open && run.status === "pending_hil";
+    $("hil-approve").disabled = !canDecide; $("hil-reject").disabled = !canDecide;
+  } catch (e) { $("hil-wait").hidden = false; $("hil-wait").textContent = String(e.message || e); }
+}
+
+async function hilDecide(action) {
+  $("hil-approve").disabled = true; $("hil-reject").disabled = true;
+  $("hil-msg").textContent = "Sending the decision to K9X HIL…";
+  try {
+    await apJson(`/api/ap/runs/${encodeURIComponent(AP.run)}/hil`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, comment: $("hil-comment").value }) });
+    $("hil-msg").textContent = "Decided in K9X HIL. The reply is on Kafka; the Router resumes the run.";
+    apPoll();
+  } catch (e) { $("hil-msg").textContent = String(e.message || e); $("hil-approve").disabled = false; $("hil-reject").disabled = false; }
+}
+$("hil-approve").addEventListener("click", () => hilDecide("complete"));
+$("hil-reject").addEventListener("click", () => hilDecide("reject"));
+</script>
+</body>
+</html>

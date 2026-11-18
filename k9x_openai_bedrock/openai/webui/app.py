@@ -10,7 +10,8 @@ answers are sent with Cache-Control: no-store.
 
     GET  /                  public landing page
     GET  /login, POST /login, POST /logout
-    GET  /app               the demo (Weather and Architecture tabs); needs a session
+    GET  /app               the weather demo (Weather, Architecture, Multi-agent tabs); needs a session
+    GET  /ap                the accounts payable demo with K9X HIL (use case 3); needs a session
     POST /api/weather       {"zip": "30301", "role": "customer", "poison": false}; needs a session
     GET  /health            public: 200 {"status": "ok"} when the demo can answer, 503 when its model server
                             is unreachable (for the K9X Dashboard; no model names)
@@ -100,8 +101,9 @@ def _require_session(request: Request) -> str:
 
 def _page(name: str) -> str:
     import html
+    css_v = hashlib.sha256((STATIC / "demo.css").read_bytes()).hexdigest()[:10]   # new content, new URL (CDN cache)
     return ((STATIC / name).read_text(encoding="utf-8").replace("__DEMO_PASSWORD__", DEMO_PASSWORD)
-            .replace("__BUILD__", html.escape(os.environ.get("APP_VERSION", "local"))))
+            .replace("__BUILD__", html.escape(os.environ.get("APP_VERSION", "local"))).replace("__DEMO_CSS_V__", css_v))
 
 
 def _rate_limit(client: str) -> None:
@@ -152,7 +154,7 @@ def login_page(error: int = 0):
     return page
 
 
-_TABS = {"weather", "arch", "multi", "ap"}      # tabs a landing-page row may open after sign-in
+_TABS = {"weather", "arch", "multi", "ap"}      # "ap" opens /ap      # tabs a landing-page row may open after sign-in
 
 
 @app.post("/login")
@@ -166,7 +168,8 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         _SESSIONS.pop(old, None)
     sid = secrets.token_urlsafe(24)
     _SESSIONS[sid] = now
-    resp = RedirectResponse("/app" + (f"#{tab}" if tab in _TABS else ""), status_code=303)
+    target = "/ap" if tab == "ap" else "/app" + (f"#{tab}" if tab in _TABS else "")   # use case 3 is its own page
+    resp = RedirectResponse(target, status_code=303)
     secure = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
     resp.set_cookie(_COOKIE, _sign(sid), httponly=True, samesite="lax", secure=secure, max_age=_SESSION_TTL_S)
     return resp
@@ -186,7 +189,15 @@ def logout(request: Request):
 def demo_app(request: Request):
     if _session(request) is None:
         return RedirectResponse("/login", status_code=303)
-    return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store, private"})
+    return HTMLResponse(_page("index.html"), headers={"Cache-Control": "no-store, private"})
+
+
+@app.get("/ap")
+def ap_demo(request: Request):
+    """Use case 3, accounts payable with K9X HIL: its own page (the weather demo is /app)."""
+    if _session(request) is None:
+        return RedirectResponse("/login", status_code=303)
+    return HTMLResponse(_page("ap.html"), headers={"Cache-Control": "no-store, private"})
 
 
 @app.post("/api/weather")

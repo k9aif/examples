@@ -21,7 +21,7 @@ from k9_aif_abb.k9_core.orchestration.hil_signal import RequiresHIL
 SQUADS_YAML = Path(__file__).resolve().parent / "squads.yaml"
 SQUAD_ID = "ap_invoice"
 INVOICE_FILES = {"INV-1042", "INV-1043", "INV-2001", "INV-4001"}      # invoices/*.pdf, uploaded by upload_invoices.py
-RULES_PAGE = "https://openai.k9x.ai/app#ap"
+RULES_PAGE = "https://openai.k9x.ai/ap"
 
 
 def invoice_bucket(config: Dict[str, Any]) -> str:
