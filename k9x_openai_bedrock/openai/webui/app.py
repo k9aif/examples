@@ -318,7 +318,7 @@ AP_OPEN_PER_SESSION = int(os.environ.get("AP_OPEN_PER_SESSION", "3"))   # runs n
 _AP_DONE = {"completed", "rejected", "error"}
 _HIL_FIELDS = ("id", "title", "status", "priority", "queue_name", "application_name", "assigned_to",
                "correlation_id", "reply_to", "ttl_hours", "ttl_action", "created_at", "completed_at", "payload",
-               "task_type", "required_role", "decision_authority", "artifact_list", "contract")
+               "task_type", "required_role", "decision_authority", "artifact_list", "contract", "require_comment")
 _NO_STORE = {"Cache-Control": "no-store, private"}
 
 
@@ -399,8 +399,18 @@ async def ap_hil_decide(run_id: str, req: APDecision, request: Request):
     except RuntimeError as exc:
         raise HTTPException(503, str(exc))
     except Exception as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
+        # K9X HIL's own answer, passed through: its status (4xx) and its reason (e.g. a manager-level approval needs a
+        # written justification). Never a 502: Cloudflare replaces those with its own page and the reason is lost.
+        response = getattr(exc, "response", None)
+        status = getattr(response, "status_code", None)
+        try:
+            body = response.json() if response is not None else None
+            reason = body.get("detail") if isinstance(body, dict) else None
+        except Exception:                      # not JSON: no reason to pass on, the status still is
+            reason = None
         if status == 409:
             raise HTTPException(409, "This task was already decided in K9X HIL.")
-        raise HTTPException(502, f"K9X HIL refused the decision: {type(exc).__name__} {status or ''}".strip())
+        if status and 400 <= status < 500:
+            raise HTTPException(status, f"K9X HIL: {reason or 'refused the decision'}")
+        raise HTTPException(503, f"K9X HIL could not take the decision now ({type(exc).__name__}). Try again.")
     return JSONResponse(out, headers=_NO_STORE)
