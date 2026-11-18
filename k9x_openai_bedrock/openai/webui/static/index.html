@@ -531,7 +531,12 @@ document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click
   $("tab-weather").hidden = b.dataset.tab !== "weather";
   $("tab-arch").hidden = b.dataset.tab !== "arch";
   $("tab-multi").hidden = b.dataset.tab !== "multi";
+  history.replaceState(null, "", "#" + b.dataset.tab);
 }));
+{ // a landing-page row opens its own tab (#weather, #arch, #multi)
+  const start = document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`);
+  if (start) start.click();
+}
 
 document.querySelectorAll("[data-try]").forEach((b) => b.addEventListener("click", () => {
   const t = TRIES[b.dataset.try];

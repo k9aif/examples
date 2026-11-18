@@ -130,8 +130,11 @@ def login_page(error: int = 0):
     return page
 
 
+_TABS = {"weather", "arch", "multi"}      # tabs a landing-page row may open after sign-in
+
+
 @app.post("/login")
-def login(request: Request, username: str = Form(...), password: str = Form(...)):
+def login(request: Request, username: str = Form(...), password: str = Form(...), tab: str = Form("")):
     _rate_limit("login:" + _client(request))
     ok = hmac.compare_digest(username, DEMO_USER) & hmac.compare_digest(password, DEMO_PASSWORD)
     if not ok:
@@ -141,7 +144,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         _SESSIONS.pop(old, None)
     sid = secrets.token_urlsafe(24)
     _SESSIONS[sid] = now
-    resp = RedirectResponse("/app", status_code=303)
+    resp = RedirectResponse("/app" + (f"#{tab}" if tab in _TABS else ""), status_code=303)
     secure = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
     resp.set_cookie(_COOKIE, _sign(sid), httponly=True, samesite="lax", secure=secure, max_age=_SESSION_TTL_S)
     return resp
