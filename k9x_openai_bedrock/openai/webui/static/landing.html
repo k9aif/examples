@@ -68,6 +68,12 @@
     .usecases td.go { text-align: left; padding-bottom: 10px; }
   }
 
+  .pillbtn { font: 700 12px var(--mono); letter-spacing: .03em; border-radius: 999px; padding: 6px 13px; border: 0; cursor: pointer; white-space: nowrap; }
+  .pillbtn.live { color: #04121c; background: var(--k9); box-shadow: 0 0 0 3px rgba(52,211,153,.18); }
+  .pillbtn.live:hover { background: #6ee7b7; }
+  .pillbtn.ex { color: #04121c; background: var(--tool); }
+  .pillbtn.ex:hover { background: #67e8f9; }
+
   /* SDK component map */
   .sdkmap { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
   .sdkmap table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
@@ -189,11 +195,9 @@
     <p>An OpenAI agent finds the weather for a US zip code. K9-AIF governs <strong>every step it takes</strong>: who may
       ask, what reaches the model, each tool call and result, every reply, and which model does the thinking.</p>
     <div class="cta">
-      <a class="btn primary" href="#use-cases">Choose a demo ↓</a>
       <a class="btn ghost" href="#path">See how it fits</a>
       <a class="btn ghost" href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">&#9654; Watch the 4-minute video</a>
     </div>
-    <div class="demo">Demo login <code>demo</code> / <code>__DEMO_PASSWORD__</code> · your session is private to you</div>
   </div>
 
   <section id="use-cases">
@@ -203,24 +207,25 @@
       every component is covered.</p>
     <div class="usecases">
       <table>
-        <thead><tr><th>#</th><th>Use case</th><th>SDK components it shows</th><th>K9-AIF / K9X</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Use case</th><th>SDK components it shows</th><th>K9-AIF / K9X</th><th>Status</th></tr></thead>
         <tbody>
           <tr><td class="n">1</td><td><b>Weather</b><br>One agent finds the weather for a US zip code</td>
             <td><code>Agent</code> · <code>Runner</code> · function tools · tool guardrails · <code>RunHooks</code> · model provider</td>
-            <td>Shield on every step, Zero Trust, K9 Model Router</td><td><span class="pill used">Live</span></td><td class="go"><form method="post" action="/login" style="margin:0"><input type="hidden" name="username" value="demo"><input type="hidden" name="password" value="__DEMO_PASSWORD__"><input type="hidden" name="tab" value="weather"><button class="btn rowbtn" type="submit">Try it →</button></form></td></tr>
+            <td>Shield on every step, Zero Trust, K9 Model Router</td><td><form method="post" action="/login" style="margin:0"><input type="hidden" name="username" value="demo"><input type="hidden" name="password" value="__DEMO_PASSWORD__"><input type="hidden" name="tab" value="weather"><button class="pillbtn live" type="submit">Live demo →</button></form></td></tr>
           <tr><td class="n">2</td><td><b>Weather desk (multi-agent)</b><br>Three OpenAI agents answer one question</td>
             <td><code>Agent</code> per step · <code>Runner</code> per step · handoffs (opt-in, for comparison)</td>
-            <td>A K9-AIF squad runs the agents in a known sequence; built in K9X Studio</td><td><span class="pill opt">Exercise</span></td><td class="go"><form method="post" action="/login" style="margin:0"><input type="hidden" name="username" value="demo"><input type="hidden" name="password" value="__DEMO_PASSWORD__"><input type="hidden" name="tab" value="multi"><button class="btn rowbtn" type="submit">Open the exercise →</button></form></td></tr>
+            <td>A K9-AIF squad runs the agents in a known sequence; built in K9X Studio</td><td><form method="post" action="/login" style="margin:0"><input type="hidden" name="username" value="demo"><input type="hidden" name="password" value="__DEMO_PASSWORD__"><input type="hidden" name="tab" value="multi"><button class="pillbtn ex" type="submit">Exercise →</button></form></td></tr>
           <tr><td class="n">3</td><td><b>Accounts payable, with a person's approval</b><br>An agent proposes a payment; a person approves it in K9X HIL</td>
             <td><code>needs_approval</code> · <code>RunState</code> · <code>approve</code> / <code>reject</code> · structured output</td>
-            <td>K9X HIL task (role, deadline, audit) over Kafka; the same run resumes after the decision</td><td><span class="pill new">Coming</span></td><td class="go"><button class="btn rowbtn" type="button" disabled>Coming soon</button></td></tr>
+            <td>K9X HIL task (role, deadline, audit) over Kafka; the same run resumes after the decision</td><td><span class="pill new">Coming soon</span></td></tr>
           <tr class="up"><td class="n">4</td><td><b>Follow-up questions</b><br>The weather agent remembers the conversation</td>
-            <td>Sessions</td><td>Session data screened like any input</td><td><span class="pill plan">Upcoming</span></td><td class="go"></td></tr>
+            <td>Sessions</td><td>Session data screened like any input</td><td><span class="pill plan">Upcoming</span></td></tr>
           <tr class="up"><td class="n">5</td><td><b>Streaming answers</b><br>Replies appear as they're written</td>
-            <td><code>Runner.run_streamed</code></td><td>Governed streaming</td><td><span class="pill plan">Upcoming</span></td><td class="go"></td></tr>
+            <td><code>Runner.run_streamed</code></td><td>Governed streaming</td><td><span class="pill plan">Upcoming</span></td></tr>
         </tbody>
       </table>
     </div>
+    <div class="demo" style="text-align:center">Every demo signs in as <code>demo</code> / <code>__DEMO_PASSWORD__</code> · each visitor gets a private session, so no one sees anyone else's runs</div>
   </section>
 
   <div class="pair">
