@@ -1,0 +1,68 @@
+@startuml ap_hil_sequence
+title Accounts payable: an OpenAI run pauses for a person in K9X HIL and resumes
+
+actor "Visitor" as V
+participant "K9EventRouter" as R
+queue "Redpanda\n(Kafka API)" as K
+participant "APOrchestrator" as O
+participant "ap_invoice squad\n(BaseSquad)" as S
+participant "InvoiceAgent\n(K9OpenAIAgent)" as IA
+participant "APRulesAgent\n(K9RulesAgent)" as RA
+participant "K9X Rules Engine\n(GoRules)" as GR
+participant "PaymentAgent\n(K9OpenAIAgent)" as PA
+database "PausedRunStore\n(PostgreSQL)" as PS
+participant "BaseHILOrchestrator" as H
+participant "K9X HIL" as X
+actor "Reviewer" as P
+
+== Run ==
+V -> R : invoice (event_type openai.ap.invoice)
+R -> K : openai.ap.in
+K -> O : deliver
+O -> O : Zero Trust
+O -> S : run ap_invoice
+S -> IA : step 1
+IA -> IA : Runner.run, structured output
+IA --> S : vendor, invoice_id, amount
+S -> RA : step 2
+RA -> RA : facts from the records\n(vendor status, bank change, PO, duplicate)
+RA -> GR : evaluate invoice-approval
+GR --> RA : AP-07 needs_approval, approver_role
+RA --> S : decision
+S -> PA : step 3
+PA -> PA : Runner.run: model calls pay_invoice;\nneeds_approval_when holds, the SDK pauses
+PA -> PS : save RunState
+PS --> PA : run key
+PA --> S : raise RequiresHIL (run key in resume_state)
+S --> O : RequiresHIL (steps 1 and 2 kept)
+
+== Pause: K9X HIL task ==
+O -> O : set_task_fields: task_type, invoice PDF\n(s3:// artifact), required_role, 24 h deadline
+O -> H : handle_requires_hil
+H -> H : record hil_pending (correlation_id)
+H -> K : hil.requests.openai-ap-payments\n(k9x.hil.task/v1)
+O --> V : pending_hil
+K -> X : task in Invoice Approvals
+X -> X : fetch the invoice PDF from S3/MinIO
+P -> X : approve (or reject), with a comment
+X -> K : hil.replies.openai-ap-payments\n(correlation_id, decision)
+
+== Resume: the same OpenAI run ==
+K -> R : listen_for_hil_replies
+R -> R : claim the pending flow once
+R -> K : resume payload on openai.ap.in
+K -> O : deliver (hil_decision)
+O -> S : run ap_invoice (resume)
+S -> S : skip steps 1 and 2
+S -> PA : step 3, resume
+PA -> PS : load RunState
+PA -> PA : approve() or reject() the waiting call;\nRunner.run continues the same run
+alt approved
+  PA -> PA : pay_invoice runs (simulated)
+  PA --> S : paid, payment reference
+else rejected
+  PA --> S : not paid
+end
+S --> O : results
+O --> V : completed or rejected
+@enduml

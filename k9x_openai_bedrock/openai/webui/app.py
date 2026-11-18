@@ -101,9 +101,16 @@ def _require_session(request: Request) -> str:
 
 def _page(name: str) -> str:
     import html
-    css_v = hashlib.sha256((STATIC / "demo.css").read_bytes()).hexdigest()[:10]   # new content, new URL (CDN cache)
-    return ((STATIC / name).read_text(encoding="utf-8").replace("__DEMO_PASSWORD__", DEMO_PASSWORD)
-            .replace("__BUILD__", html.escape(os.environ.get("APP_VERSION", "local"))).replace("__DEMO_CSS_V__", css_v))
+    import re
+    text = ((STATIC / name).read_text(encoding="utf-8").replace("__DEMO_PASSWORD__", DEMO_PASSWORD)
+            .replace("__BUILD__", html.escape(os.environ.get("APP_VERSION", "local")))
+            .replace("__DEMO_CSS_V__", "__V:demo.css__"))
+    # __V:<static file>__ -> its content hash: a changed file gets a new URL, so a CDN never serves a stale copy
+    return re.sub(r"__V:([\w.-]+)__", lambda m: _content_hash(m.group(1)), text)
+
+
+def _content_hash(name: str) -> str:
+    return hashlib.sha256((STATIC / name).read_bytes()).hexdigest()[:10]
 
 
 def _rate_limit(client: str) -> None:

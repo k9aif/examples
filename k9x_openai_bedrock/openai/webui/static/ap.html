@@ -155,6 +155,12 @@
 
   <section class="card" id="tab-arch" hidden>
     <h2 style="margin-top:0">Architecture: how the pieces talk</h2>
+    <p class="muted" style="font-size:13.5px;margin:0 0 10px">The sequence: the run, the pause as a K9X HIL task, and the
+      resume of the same OpenAI run. Click to open it full size.</p>
+    <a href="/static/ap-hil-sequence.png?v=__V:ap-hil-sequence.png__" target="_blank" rel="noopener">
+      <img class="diagram" src="/static/ap-hil-sequence.png?v=__V:ap-hil-sequence.png__"
+           alt="Sequence diagram: Visitor, K9EventRouter, Redpanda, APOrchestrator, the ap_invoice squad with InvoiceAgent, APRulesAgent and PaymentAgent, the K9X Rules Engine, PausedRunStore, BaseHILOrchestrator, K9X HIL and the reviewer; the run pauses for a person and the same OpenAI run resumes after the decision"></a>
+    <h3 style="font-size:14px;margin:22px 0 8px">Step by step</h3>
     <div class="flow">
       <div class="fl k9"><span class="who">K9-AIF Router</span><span><b>K9EventRouter</b> routes <code>event_type: openai.ap.invoice</code> to Kafka <code>openai.ap.in</code> (routing table in <code>config.yaml</code>).</span></div>
       <div class="fl k9"><span class="who">Orchestrator</span><span><b>APOrchestrator</b> applies Zero Trust and runs the <code>ap_invoice</code> squad. It knows only the squad (K9-DEC-002).</span></div>

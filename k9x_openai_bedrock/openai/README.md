@@ -113,7 +113,7 @@ weather_zip/                    tools, wiring, request service, command line
 accounts_payable/               use case 3: agents + squad YAML, rules step, orchestrator, runtime
 webui/                          the page (local or container)
 ubuntu/                         setup.sh (Ubuntu machine), build-run.sh + Containerfile (container)
-diagrams/                       PlantUML sources and PNGs
+diagrams/                       PlantUML sources and PNGs (ap_hil_sequence: the AP run, pause and resume)
 run.sh                          set up and start
 ```
 
