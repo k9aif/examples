@@ -131,8 +131,14 @@ call is checked), but the order of work is invisible until afterwards.
   tool gate, or a `PermissionError`, is still recognisable to the orchestrator that publishes reviews.
 - With `security.tool_gate.enabled`, the run executes inside a gate session: a handler that calls an MCP tool
   through a `BaseConnector` is proposed to the dispatcher, and a review the SDK swallowed is raised again.
-- Not built yet: resuming the OpenAI run after a reviewer approves. Today the orchestrator runs the stored
-  call; the agent loop does not continue where it stopped.
+- Resuming after a person decides depends on the path:
+  - **A squad of OpenAI agents (`K9OpenAIAgent`, k9-aif 1.29.0): the same OpenAI run resumes.** A tool
+    marked `needs_approval` pauses the run; `OpenAIHILAdapter` saves its `RunState` in `PausedRunStore` and
+    raises `RequiresHIL`, and the orchestrator publishes the review to K9X HIL. When the decision comes
+    back, the adapter restores the state, records `approve()` or `reject()`, and `Runner.run` continues
+    where it stopped. The accounts payable use case runs this way.
+  - **This adapter (a handoff group) with the tool gate:** a review raised by the gate is resumed by the
+    orchestrator running the stored tool call; the agent loop does not continue where it stopped.
 
 ## 9. Tracing
 
