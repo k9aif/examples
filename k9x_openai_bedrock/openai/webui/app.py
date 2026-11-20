@@ -333,6 +333,16 @@ def agent(request: Request):
 # ── Accounts payable (use case 3) ─────────────────────────────────────────────
 AP_OPEN_PER_SESSION = int(os.environ.get("AP_OPEN_PER_SESSION", "3"))   # runs still working (model calls), per visitor
 AP_WAITING_PER_SESSION = int(os.environ.get("AP_WAITING_PER_SESSION", "10"))   # runs parked for a person, per visitor
+AP_QUEUE_MAX = int(os.environ.get("AP_QUEUE_MAX", "30"))   # invoices running or waiting to run, all visitors together
+_AP_QUEUED = {"submitted", "running", "resuming"}
+
+
+def _ap_queue_full(rt, adding: int) -> None:
+    """One GPU runs the invoices one at a time: the queue holds at most AP_QUEUE_MAX, for everyone together."""
+    queued = sum(1 for r in rt.runs.values() if r["status"] in _AP_QUEUED)
+    if queued + adding > AP_QUEUE_MAX:
+        raise HTTPException(429, f"The queue is full ({queued} of {AP_QUEUE_MAX} invoices, from all visitors). "
+                                 "They run one at a time; try again in a few minutes.")
 _AP_DONE = {"completed", "rejected", "error", "blocked"}
 _HIL_FIELDS = ("id", "title", "status", "priority", "queue_name", "application_name", "assigned_to",
                "correlation_id", "reply_to", "ttl_hours", "ttl_action", "created_at", "completed_at", "payload",
@@ -377,6 +387,7 @@ async def ap_submit(req: APSubmit, request: Request):
         raise HTTPException(429, f"You have {len(working)} invoices still running. Wait for one to finish.")
     if len(waiting) >= AP_WAITING_PER_SESSION:
         raise HTTPException(429, f"You have {len(waiting)} invoices waiting for a person. Decide some first.")
+    _ap_queue_full(rt, 1)
     run_id = await asyncio.to_thread(rt.submit, req.invoice, sid, req.guardian)
     return JSONResponse({"run_id": run_id}, headers=_NO_STORE)
 
@@ -390,6 +401,21 @@ def ap_runs(request: Request):
     return JSONResponse([{"run_id": r["run_id"], "invoice": r["invoice"], "label": r.get("label"), "status": r["status"]}
                          for r in mine[:30]],
                         headers=_NO_STORE)
+
+
+@app.get("/api/ap/queue")
+def ap_queue(request: Request):
+    """Every visitor's invoices in the order the orchestrator takes them, one at a time: the one working now, then
+    the ones waiting. Only this visitor's own entries carry a name; the others say only that they are someone
+    else's. Runs parked for a person are not in the queue (they hold nothing)."""
+    sid = _require_session(request)
+    rt = _ap()
+    order = {"running": 0, "resuming": 0, "submitted": 1}
+    live = sorted((r for r in rt.runs.values() if r["status"] in order),
+                  key=lambda r: (order[r["status"]], r["created"]))
+    items = [{"mine": r["owner"] == sid, "status": r["status"],
+              "label": (r.get("label") or r["invoice"]) if r["owner"] == sid else None} for r in live]
+    return JSONResponse({"total": len(items), "max": AP_QUEUE_MAX, "items": items[:12]}, headers=_NO_STORE)
 
 
 @app.get("/api/ap/runs/{run_id}")
@@ -439,5 +465,6 @@ async def ap_batch(request: Request):
     waiting = [r for r in rt.runs.values() if r["owner"] == sid and r["status"] == "pending_hil"]
     if len(waiting) + 3 > AP_WAITING_PER_SESSION:
         raise HTTPException(429, f"You have {len(waiting)} invoices waiting for a person. Decide some in K9X HIL first.")
+    _ap_queue_full(rt, len(BATCH))
     ids = [await asyncio.to_thread(rt.submit, key, sid) for key in BATCH]
     return JSONResponse({"run_ids": ids}, headers=_NO_STORE)

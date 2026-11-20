@@ -56,3 +56,6 @@ DEMO_PASSWORD=demo
 # AP_INVOICE_BUCKET=openai-ap-invoices
 # Invoices still in flight per visitor.
 # AP_OPEN_PER_SESSION=3
+
+# Accounts payable queue: invoices running or waiting to run, all visitors together (one at a time on one GPU)
+# AP_QUEUE_MAX=30

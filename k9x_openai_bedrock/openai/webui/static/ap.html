@@ -23,6 +23,11 @@
             border-radius: 9px; font-size: 14px; color: var(--ink); }
   .nowbox[hidden] { display: none; }
   .nowbox b { font-family: var(--mono); color: var(--ink); }
+  .queue { margin-top: 10px; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .queue[hidden] { display: none; }
+  .queue .q { font: 12px var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); }
+  .queue .q.mine { color: var(--ink); border-color: var(--muted); }
+  .queue .q.now { color: #93c5fd; border-color: rgba(96,165,250,.6); }
   .spin { width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
          display: inline-block; vertical-align: -1px; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -164,6 +169,7 @@
       <span class="muted" id="ap-batch-note" style="font-size:13px">The way a day's invoices arrive: most pay automatically, the rules reject
         two, and three wait for a person in K9X HIL while the rest move on.</span>
     </div>
+    <div class="queue" id="ap-queue" hidden><span id="ap-queue-h">Queue, one invoice at a time:</span><span id="ap-queue-list" style="display:contents"></span></div>
     <div id="ap-off" class="empty" hidden></div>
     <div class="runs" id="ap-runs" hidden><span class="runs-h">Your runs</span><span id="ap-runs-list"></span></div>
     <div id="ap-empty" class="empty">Pick an invoice. Its run appears here: every step, the rule that fired, and the payment.</div>
@@ -480,6 +486,30 @@ document.querySelectorAll("#ap-pick button").forEach((b) => b.addEventListener("
 // every run of this session, newest first: a run waiting for a person stays here to be decided later
 const RUN_SHORT = { submitted: "starting", running: "running", pending_hil: "waiting for a person", resuming: "resuming",
   completed: "paid", rejected: "not paid", blocked: "stopped by K9-AIF", error: "error" };
+// the box beside the batch button and the queue line: every visitor's invoices, in the order they run
+async function refreshQueueBox() {
+  let q;
+  try { q = await apJson("/api/ap/queue"); } catch (e) { return; }
+  const items = q.items || [];
+  const name = (it) => it.mine ? `${it.label} (yours)` : "another visitor";
+  const cur = items.find((x) => x.status === "running" || x.status === "resuming");
+  if (cur) {
+    const mineAhead = items.findIndex((x) => x.mine);
+    const extra = cur.mine ? "" : (mineAhead > 0 ? ` · ${mineAhead} ahead of yours` : "");
+    $("ap-now-t").textContent = name(cur) + (cur.status === "resuming" ? " (resuming)" : "") + extra;
+    $("ap-now").hidden = false; $("ap-live").hidden = true; $("ap-batch-note").hidden = true;
+  } else { $("ap-now").hidden = true; if (!$("ap-live-t").textContent) $("ap-batch-note").hidden = false; }
+  const box = $("ap-queue-list"); box.innerHTML = "";
+  items.forEach((it, i) => {
+    const s = document.createElement("span");
+    s.className = "q" + (it.mine ? " mine" : "") + (it === cur ? " now" : "");
+    s.textContent = `${i + 1}. ${name(it)}`;
+    box.appendChild(s);
+  });
+  if (q.total > items.length) { const s = document.createElement("span"); s.textContent = `+${q.total - items.length} more`; box.appendChild(s); }
+  $("ap-queue-h").textContent = `Queue (${q.total} of ${q.max}), one invoice at a time:`;
+  $("ap-queue").hidden = items.length === 0;
+}
 async function refreshRuns() {
   try {
     const runs = await apJson("/api/ap/runs");
@@ -492,15 +522,7 @@ async function refreshRuns() {
       b.title = r.run_id; b.addEventListener("click", () => { AP.follow = false; showRun(r.run_id); });
       box.appendChild(b);
     }
-    // the box beside the batch button: what is working right now, from the runs themselves
-    const work = runs.filter((x) => !BAD_KEYS.has(x.invoice));
-    const cur = work.find((x) => x.status === "running" || x.status === "resuming");
-    const queued = work.filter((x) => x.status === "submitted").length;
-    if (cur) {
-      $("ap-now-t").textContent = `${cur.label || AP_LABEL[cur.invoice] || cur.invoice}${cur.status === "resuming" ? " (resuming)" : ""}`
-        + (queued ? ` · ${queued} waiting` : "");
-      $("ap-now").hidden = false; $("ap-live").hidden = true; $("ap-batch-note").hidden = true;
-    } else { $("ap-now").hidden = true; if (!$("ap-live-t").textContent) $("ap-batch-note").hidden = false; }
+    await refreshQueueBox();
     if (AP.follow) {                 // a batch: show the run that is working now, oldest waiting one if none yet
       const visible = runs.filter((x) => !BAD_KEYS.has(x.invoice));
       const now = visible.find((x) => x.status === "running" || x.status === "resuming")
