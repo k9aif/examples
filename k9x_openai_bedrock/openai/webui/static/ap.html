@@ -19,6 +19,10 @@
   .pickhint { margin: 14px 0 0; font-size: 14px; font-weight: 600; }
   .live { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ok); }
   .live[hidden] { display: none; }
+  .nowbox { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border: 1px solid var(--muted);
+            border-radius: 9px; font-size: 14px; color: var(--ink); }
+  .nowbox[hidden] { display: none; }
+  .nowbox b { font-family: var(--mono); color: var(--ink); }
   .spin { width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
          display: inline-block; vertical-align: -1px; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -155,6 +159,7 @@
     </div>
     <div class="batchrow">
       <button type="button" class="primary" id="ap-batch">Run a batch of 10 invoices</button>
+      <span class="nowbox" id="ap-now" role="status" aria-live="polite" hidden><span class="spin" aria-hidden="true"></span>Currently running: <b id="ap-now-t"></b></span>
       <span class="live" id="ap-live" role="status" aria-live="polite" hidden><span class="spin" aria-hidden="true"></span><span id="ap-live-t"></span></span>
       <span class="muted" id="ap-batch-note" style="font-size:13px">The way a day's invoices arrive: most pay automatically, the rules reject
         two, and three wait for a person in K9X HIL while the rest move on.</span>
@@ -438,7 +443,7 @@ function apPick(disabled) {
   });
   if (!disabled) apLive("");
 }
-function apLive(text) { $("ap-live-t").textContent = text; $("ap-live").hidden = !text; $("ap-batch-note").hidden = !!text; }
+function apLive(text) { $("ap-live-t").textContent = text; $("ap-live").hidden = !text || !$("ap-now").hidden; $("ap-batch-note").hidden = !!text || !$("ap-now").hidden; }
 document.querySelectorAll("#ap-pick button").forEach((b) => {   // every card says it runs on a click
   const go = document.createElement("span"); go.className = "go"; go.textContent = "Run ▶"; b.appendChild(go); });
 
@@ -487,6 +492,15 @@ async function refreshRuns() {
       b.title = r.run_id; b.addEventListener("click", () => { AP.follow = false; showRun(r.run_id); });
       box.appendChild(b);
     }
+    // the box beside the batch button: what is working right now, from the runs themselves
+    const work = runs.filter((x) => !BAD_KEYS.has(x.invoice));
+    const cur = work.find((x) => x.status === "running" || x.status === "resuming");
+    const queued = work.filter((x) => x.status === "submitted").length;
+    if (cur) {
+      $("ap-now-t").textContent = `${cur.label || AP_LABEL[cur.invoice] || cur.invoice}${cur.status === "resuming" ? " (resuming)" : ""}`
+        + (queued ? ` · ${queued} waiting` : "");
+      $("ap-now").hidden = false; $("ap-live").hidden = true; $("ap-batch-note").hidden = true;
+    } else { $("ap-now").hidden = true; if (!$("ap-live-t").textContent) $("ap-batch-note").hidden = false; }
     if (AP.follow) {                 // a batch: show the run that is working now, oldest waiting one if none yet
       const visible = runs.filter((x) => !BAD_KEYS.has(x.invoice));
       const now = visible.find((x) => x.status === "running" || x.status === "resuming")
