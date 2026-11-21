@@ -37,6 +37,8 @@
   .toc a:hover { color: var(--text); }
   .toc a.on { color: var(--text); background: rgba(52,211,153,.08); }
   .toc a.on::before { opacity: 1; box-shadow: 0 0 0 3px rgba(52,211,153,.25); }
+  .toc .label.grp { margin: 20px 0 10px; }
+  .toc .label { margin-bottom: 10px; }
   .toc .ext { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
   .toc .ext a::before { display: none; }
   .label { font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dawn); }
@@ -134,6 +136,7 @@
     <a class="logo" href="/" title="Back to the demo home"><img src="/static/k9x-logo.png" alt="">K9X</a>
     <nav>
       <a href="/">Home</a>
+      <a href="/guardrails">Guardrails</a>
       <a href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank" rel="noopener noreferrer">SDK multi-agent docs ↗</a>
       <!--AUTH-->
     </nav>
@@ -141,7 +144,7 @@
 
   <div class="layout">
   <aside class="toc" aria-label="On this page">
-    <div class="label">Patterns</div>
+    <div class="label">On this page</div>
     <ul>
       <li><a href="#single">Single agent</a></li>
       <li><a href="#manager">Manager</a></li>
@@ -149,6 +152,11 @@
       <li><a href="#code">Via code</a></li>
       <li><a href="#compare">Compare</a></li>
       <li><a href="#split">When to split</a></li>
+    </ul>
+    <div class="label grp">OpenAI Agents SDK</div>
+    <ul class="sdkpages">
+      <li><a href="/patterns" class="on" aria-current="page">Patterns</a></li>
+      <li><a href="/guardrails">Guardrails</a></li>
     </ul>
     <ul class="ext">
       <li><a href="/">← Home</a></li>

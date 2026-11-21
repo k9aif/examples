@@ -187,6 +187,12 @@ def patterns(request: Request):
     return HTMLResponse(_page("openai_patterns.html", _session(request)), headers={"Cache-Control": "no-store, private"})
 
 
+@app.get("/guardrails", response_class=HTMLResponse)
+def guardrails(request: Request):
+    """OpenAI's guardrails guidance next to what K9-AIF adds (Zero Trust, Shield, Guardian, HIL): public, no sign-in."""
+    return HTMLResponse(_page("guardrails.html", _session(request)), headers={"Cache-Control": "no-store, private"})
+
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(error: int = 0):
     page = _page("login.html")

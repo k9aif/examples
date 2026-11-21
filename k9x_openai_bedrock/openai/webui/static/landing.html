@@ -29,6 +29,7 @@
   .toc a:hover { color: var(--text); }
   .toc a.on { color: var(--text); background: rgba(52,211,153,.08); }
   .toc a.on::before { opacity: 1; box-shadow: 0 0 0 3px rgba(52,211,153,.25); }
+  .toc .label.grp { margin: 20px 0 10px; }
   .toc .ext { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
   .toc .ext a::before { display: none; }
   @media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } .toc { display: none; } }
@@ -223,7 +224,11 @@
       <li><a href="#show">See a run</a></li>
       <li><a href="#ecosystem">Ecosystem</a></li>
       <li><a href="#scope">Scope</a></li>
-      <li><a href="/patterns">OpenAI Agents SDK Patterns</a></li>
+    </ul>
+    <div class="label grp">OpenAI Agents SDK</div>
+    <ul class="sdkpages">
+      <li><a href="/patterns">Patterns</a></li>
+      <li><a href="/guardrails">Guardrails</a></li>
     </ul>
     <ul class="ext">
       <li><a href="https://www.youtube.com/watch?v=75HKTX9BdmI" target="_blank" rel="noopener noreferrer">Intro video ↗</a></li>
