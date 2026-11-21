@@ -325,19 +325,24 @@ async def k9_tool_result_check(data):
     </table>
 
     <h2>Who decides which agent runs next?</h2>
-    <p>The OpenAI Agents SDK offers two ways. With <b>handoffs</b>, the model decides: each handoff is offered to the
+    <p>The OpenAI Agents SDK offers three ways. With <b>handoffs</b>, the model decides: each handoff is offered to the
       model as a tool (<code>transfer_to_weather_agent</code>), described by that agent's YAML <code>description</code>,
-      and the model picks one. With <b>orchestrating via code</b>, as the SDK's
+      and the model picks one; that agent then takes over the conversation. With <b>agents as tools</b>
+      (<code>Agent.as_tool</code>), a manager agent calls the specialists like tools, gets each result back, and writes
+      the one answer itself. With <b>orchestrating via code</b>, as the SDK's
       <a href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank" rel="noopener noreferrer">multi-agent guide</a>
       calls it, your code sets the order; in the guide's words, this "makes tasks more deterministic and predictable,
-      in terms of speed, cost and performance." K9-AIF supports both, and governs both.</p>
+      in terms of speed, cost and performance." OpenAI's practical guide to building agents calls the first two the
+      <b>Decentralized</b> and <b>Manager</b> patterns. K9-AIF supports and governs orchestrating via code and handoffs
+      today; agents as tools is next.</p>
     <table>
-      <tr><th></th><th>K9-AIF squad (default)</th><th>Handoffs (opt-in)</th></tr>
-      <tr><td>Who picks the next agent</td><td>The squad's flow</td><td>The model, from the agents' descriptions</td></tr>
-      <tr><td>Same input, same path?</td><td>Yes</td><td>Not guaranteed</td></tr>
-      <tr><td>Fits</td><td>Known steps: records, rules, approvals</td><td>Open-ended, conversation-style requests</td></tr>
-      <tr><td>In the design spec</td><td><code>Agent Routing: sequence</code> (or nothing)</td><td><code>Agent Routing: handoffs</code></td></tr>
-      <tr><td>Studio generates</td><td>A squad of <code>K9OpenAIAgent</code> steps</td><td>A handoff group (<code>K9OpenAIAgentsAdapter</code>), capped per run, with Zero Trust on every agent turn</td></tr>
+      <tr><th></th><th>K9-AIF squad (default)<br><small>OpenAI: orchestrating via code</small></th><th>Handoffs (opt-in)<br><small>OpenAI: Decentralized pattern</small></th><th>Agents as tools (upcoming)<br><small>OpenAI: Manager pattern</small></th></tr>
+      <tr><td>Who picks the next agent</td><td>The squad's flow</td><td>The model, from the agents' descriptions</td><td>The manager's model, from the specialists' tool descriptions</td></tr>
+      <tr><td>Who answers the visitor</td><td>The squad, after its last step</td><td>The last agent handed to</td><td>The manager, always; specialists never talk to the visitor</td></tr>
+      <tr><td>Same input, same path?</td><td>Yes</td><td>Not guaranteed</td><td>Not guaranteed</td></tr>
+      <tr><td>Fits</td><td>Known steps: records, rules, approvals</td><td>Open-ended, conversation-style requests</td><td>One agent in charge that combines specialists' results, e.g. one request translated into three languages</td></tr>
+      <tr><td>In the design spec</td><td><code>Agent Routing: sequence</code> (or nothing)</td><td><code>Agent Routing: handoffs</code></td><td>Not yet</td></tr>
+      <tr><td>Studio generates</td><td>A squad of <code>K9OpenAIAgent</code> steps</td><td>A handoff group (<code>K9OpenAIAgentsAdapter</code>), capped per run, with Zero Trust on every agent turn</td><td>Upcoming: each call to a specialist governed like any tool call</td></tr>
     </table>
 
     <h2>The two approaches, as class diagrams</h2>

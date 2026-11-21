@@ -79,6 +79,7 @@ table { width: 100%; border-collapse: collapse; background: var(--panel-2); bord
   overflow: hidden; font-size: 13.5px; }
 th, td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top; }
 th { background: #0b1322; border-top: 0; color: var(--gate); font-weight: 600; }
+th small { display: block; margin-top: 3px; font-weight: 400; color: var(--muted, #94a3b8); font-size: 12px; }
 code, pre { font-family: var(--mono); font-size: 12.5px; }
 code { color: #a7f3d0; }
 pre { background: #0b1322; color: #e2e8f0; border: 1px solid var(--line); padding: 14px; border-radius: 12px; overflow: auto; margin: 0; }
