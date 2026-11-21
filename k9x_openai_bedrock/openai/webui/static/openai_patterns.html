@@ -164,7 +164,8 @@
       a diagram of how control moves, a few lines of SDK code, and the demo on this site that shows it.</p>
     <p class="src">Sources: OpenAI, <i>A practical guide to building agents</i> (single agent, Manager, Decentralized),
       and the SDK's <a href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank" rel="noopener noreferrer">multi-agent documentation</a>
-      (orchestrating via code).</p>
+      (orchestrating via code). The translation and customer-service examples are the guide's own, so you can
+      compare them with the original.</p>
     <div class="glance">
       <a href="#single"><span class="kind">One agent</span><b>Single agent</b><span>One model with tools, in a loop.</span></a>
       <a href="#manager"><span class="kind">Model decides</span><b>Manager</b><span>One agent calls the others as tools.</span></a>
@@ -304,33 +305,31 @@ result = <span class="k">await</span> Runner.run(manager_agent, <span class="s">
     <div class="pattern">
       <div>
         <div class="diagram">
-          <svg viewBox="0 0 760 270" role="img" aria-label="Decentralized: the question goes to the triage agent; its model hands off to one of Issues and Repairs, Sales or Orders; here Orders takes over and answers the user. Triage does not see the answer.">
+          <svg viewBox="0 0 760 290" role="img" aria-label="Decentralized: the question goes to the triage agent; its model hands off to one of Issues and Repairs, Sales or Orders; here Orders takes over and answers the person who asked. Triage does not see the answer.">
             <defs>
               <marker id="d1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/></marker>
               <marker id="d2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/></marker>
               <marker id="d3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#34d399"/></marker>
             </defs>
-            <rect class="user" x="10" y="108" width="140" height="54" rx="10"/>
-            <text x="80" y="140" text-anchor="middle" class="m">"Where is my order?"</text>
-            <path class="flow" d="M150 135 H196" marker-end="url(#d1)"/>
-            <rect class="agent" x="200" y="95" width="130" height="80" rx="14"/>
-            <text class="t" x="265" y="132" text-anchor="middle">Triage</text>
-            <text class="m" x="265" y="152" text-anchor="middle">picks a handoff</text>
+            <rect class="user" x="10" y="108" width="150" height="54" rx="10"/>
+            <text x="85" y="140" text-anchor="middle" class="m">"Where is my order?"</text>
+            <path class="flow" d="M160 135 H226" marker-end="url(#d1)"/>
+            <rect class="agent" x="230" y="95" width="130" height="80" rx="14"/>
+            <text class="t" x="295" y="132" text-anchor="middle">Triage</text>
+            <text class="m" x="295" y="152" text-anchor="middle">picks a handoff</text>
             <g class="dim">
-              <rect class="agent" x="470" y="18" width="150" height="50" rx="10"/><text x="545" y="48" text-anchor="middle">Issues and Repairs</text>
-              <rect class="agent" x="470" y="110" width="150" height="50" rx="10"/><text x="545" y="140" text-anchor="middle">Sales</text>
-              <path class="hand" d="M330 120 C390 110, 400 43, 466 43" marker-end="url(#d2)"/>
-              <path class="hand" d="M330 135 H466" marker-end="url(#d2)"/>
+              <rect class="agent" x="520" y="18" width="170" height="50" rx="10"/><text x="605" y="48" text-anchor="middle">Issues and Repairs</text>
+              <rect class="agent" x="520" y="110" width="170" height="50" rx="10"/><text x="605" y="140" text-anchor="middle">Sales</text>
+              <path class="hand" d="M360 120 H420 V43 H516" marker-end="url(#d2)"/>
+              <path class="hand" d="M360 135 H516" marker-end="url(#d2)"/>
             </g>
-            <rect class="lead" x="470" y="202" width="150" height="50" rx="10"/><text x="545" y="232" text-anchor="middle">Orders</text>
-            <path class="hand" d="M330 150 C390 160, 400 227, 466 227" marker-end="url(#d2)"/>
-            <text class="mono" x="400" y="252" text-anchor="middle" style="fill:var(--model)">transfer_to_orders</text>
-            <path class="back" d="M620 227 H646" marker-end="url(#d3)"/>
-            <rect class="user" x="650" y="200" width="100" height="54" rx="10"/>
-            <text x="700" y="223" text-anchor="middle" class="m">Orders</text>
-            <text x="700" y="241" text-anchor="middle" class="m">answers</text>
+            <rect class="lead" x="520" y="202" width="170" height="50" rx="10"/><text x="605" y="232" text-anchor="middle">Orders</text>
+            <path class="hand" d="M360 150 H440 V227 H516" marker-end="url(#d2)"/>
+            <text class="mono" x="432" y="204" text-anchor="end" style="fill:var(--model)">transfer_to_orders</text>
+            <path class="back" d="M605 252 V272 H85 V166" marker-end="url(#d3)"/>
+            <text class="m" x="330" y="265" text-anchor="middle" style="fill:var(--k9)">Orders answers the person who asked</text>
           </svg>
-          <div class="legend"><span><i style="border-color:var(--model);border-top-style:dashed"></i>handoff: control moves, one way</span><span><i style="border-color:var(--k9)"></i>the new agent answers the user</span></div>
+          <div class="legend"><span><i style="border-color:var(--model);border-top-style:dashed"></i>handoff: control moves, one way</span><span><i style="border-color:var(--k9)"></i>the agent holding the conversation answers</span></div>
         </div>
         <pre class="code"><span class="c"># from the guide (p. 21), shortened</span>
 triage_agent = Agent(
