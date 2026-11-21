@@ -181,6 +181,12 @@ def landing(request: Request):
     return HTMLResponse(_page("landing.html", _session(request)), headers={"Cache-Control": "no-store, private"})
 
 
+@app.get("/patterns", response_class=HTMLResponse)
+def patterns(request: Request):
+    """OpenAI Agents SDK orchestration patterns: a public reference page, no sign-in."""
+    return HTMLResponse(_page("openai_patterns.html", _session(request)), headers={"Cache-Control": "no-store, private"})
+
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(error: int = 0):
     page = _page("login.html")
