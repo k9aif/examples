@@ -170,7 +170,11 @@
     </div>
     <div id="trace-wrap" hidden>
       <h2>What K9-AIF checked</h2>
-      <ol class="trace" id="trace"></ol>
+      <div class="flow" id="flow" aria-label="The run, stage by stage, with every check and model call made in each"></div>
+      <div class="flow-totals muted" id="flow-totals"></div>
+      <details class="flow-detail"><summary>Step-by-step detail</summary>
+        <ol class="trace" id="trace"></ol>
+      </details>
     </div>
     <div class="status" id="status">Checking the model server…</div>
   </section>
@@ -466,6 +470,24 @@ document.querySelectorAll("[data-try]").forEach((b) => b.addEventListener("click
 }));
 
 
+function renderFlow(el, totalsEl, trace) {
+  // One box per stage of the run; under each, every check or model call made in it.
+  el.innerHTML = ""; totalsEl.textContent = "";
+  const stages = trace.filter((s) => s.box !== "Totals");
+  const totals = trace.find((s) => s.box === "Totals");
+  stages.forEach((s, i) => {
+    if (i) { const a = document.createElement("span"); a.className = "farrow"; a.textContent = "→"; el.appendChild(a); }
+    const box = document.createElement("div");
+    box.className = `fbox f-${s.status}`;
+    const title = document.createElement("b"); title.textContent = s.box; box.appendChild(title);
+    const ul = document.createElement("ul");
+    for (const c of s.calls || []) { const li = document.createElement("li"); li.textContent = c; ul.appendChild(li); }
+    box.appendChild(ul);
+    el.appendChild(box);
+  });
+  if (totals) totalsEl.textContent = totals.detail;
+}
+
 function renderTrace(el, trace) {
   el.innerHTML = "";
   if (!trace.length) {
@@ -497,6 +519,7 @@ $("ask").addEventListener("submit", async (ev) => {
     $("kind").textContent = { answer: "Answer", refused: "Refused by K9-AIF", error: "Error" }[r.outcome];
     $("text").textContent = r.text;
     $("result").hidden = false;
+    renderFlow($("flow"), $("flow-totals"), r.trace);
     renderTrace($("trace"), r.trace); renderTrace($("trace-arch"), r.trace);
     $("trace-wrap").hidden = false;
     setSky(r.sky || "default");     // from the weather service's own codes, not the model's words

@@ -54,6 +54,10 @@ governance:
     model: "${GUARDIAN_MODEL:-granite4.1-guardian:8b}"
     on_unavailable: fail_closed
     temperature: 0
+    # Where Guardian's model check is spent (k9-aif 1.34.0): where outside text comes in (the request,
+    # tool results), where one agent's words reach another (handoff), and what leaves (egress). The
+    # model's own tool-call turns and tool arguments get k9x Shield only, which runs at every point.
+    points: [ingress, tool_result, handoff, egress]
 
 enable_zero_trust: true
 

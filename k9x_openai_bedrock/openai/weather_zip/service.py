@@ -32,40 +32,131 @@ def _collect(event: Dict[str, Any]) -> None:
 register_trace_callback(_collect)
 
 
-def describe(e: Dict[str, Any]) -> Dict[str, str] | None:
-    """One trace event as {"step", "status", "detail"}; None for events not shown."""
-    t = e.get("type")
-    if t == "ZeroTrust":
-        ok = e.get("allowed")
-        return {"step": "Zero Trust", "status": "allowed" if ok else "blocked",
-                "detail": f"{e.get('decision')}: {e.get('reason') or ''}".strip()}
-    if t == "OpenAIRunCheck":
-        return {"step": f"Shield {e.get('gate')}", "status": "allowed",
-                "detail": f"request {e.get('gate')} checks passed" if e.get("gate") == "ingress"
-                else "final answer checks passed"}
-    if t == "ShieldChain" and e.get("blocked_by"):
-        return {"step": "Shield", "status": "blocked", "detail": f"{e.get('gate')} blocked by {e.get('blocked_by')}"}
-    if t == "OpenAIAgentStart":
-        return {"step": "Agent turn", "status": "info", "detail": f"{e.get('agent')} (Zero Trust {e.get('zero_trust')})"}
-    if t == "LLMRoute":
-        return {"step": "Model Router", "status": "info",
-                "detail": f"task '{e.get('task_type')}' -> {e.get('model_alias')} ({e.get('model')})"}
-    if t == "LLMCall":
-        return {"step": "Model call", "status": "info",
-                "detail": f"{e.get('model')}, {e.get('latency_ms')} ms, tokens {e.get('tokens_in')}/{e.get('tokens_out')}"}
-    if t == "ToolCallScreen":
-        return {"step": "Shield tool call", "status": "allowed" if e.get("allowed") else "blocked",
-                "detail": f"{e.get('tool')}" + ("" if e.get("allowed") else f": {e.get('reason')}")}
-    if t == "ToolResultScreen":
-        return {"step": "Shield tool result", "status": "allowed" if e.get("allowed") else "blocked",
-                "detail": f"{e.get('tool')}" + ("" if e.get("allowed") else f" withheld: {e.get('reason')}")}
-    if t == "OpenAIModelReply":
-        return {"step": "Shield reply", "status": "allowed" if e.get("screened") else "info",
-                "detail": f"{e.get('agent')}: " + ("reply text checked" if e.get("screened")
-                                                  else "tool call only, no text to check")}
-    if t == "OpenAIHandoff":
-        return {"step": "Handoff", "status": "info", "detail": f"{e.get('agent')} -> {e.get('to_agent')}"}
-    return None
+def _secs(ms: Any) -> str:
+    try:
+        return f"{int(ms) / 1000:.1f} s"
+    except (TypeError, ValueError):
+        return "? s"
+
+
+def _is_guardian(e: Dict[str, Any]) -> bool:
+    return e.get("type") == "LLMCall" and str(e.get("task_type", "")).startswith("guardian")
+
+
+def checks_from_events(events: List[Dict[str, Any]], question: str = "") -> List[Dict[str, Any]]:
+    """The run as its stages, in order, each with every call made inside it.
+
+    A stage is {"box", "status", "step", "detail", "calls": [str]}: ``box`` is its short name in the
+    flow, ``calls`` accounts for each check and model call under it, ``step``/``detail`` are the one-line
+    form (CLI). Raw events arrive in the order the code emits them: Granite Guardian's calls (chained
+    after Shield) before the event that names the check, a Zero Trust decision before the agent turn it
+    allows, the Model Router's choice before the model call. So Guardian calls are held and attached to
+    the next check, and so on. Nothing is dropped: a Guardian call that ends the run is its own stage."""
+    stages: List[Dict[str, Any]] = []
+    guardian: List[Dict[str, Any]] = []
+    skipped: List[Dict[str, Any]] = []
+    route: Dict[str, Any] = {}
+    zero_trust: List[Dict[str, Any]] = []
+    totals = {"g_calls": 0, "g_ms": 0, "m_calls": 0, "m_ms": 0, "points": 0}
+
+    def add(box: str, status: str, what: str, calls: List[str]) -> None:
+        stages.append({"box": box, "status": status, "calls": calls,
+                       "step": box, "detail": f"{what}: " + " · ".join(calls) if calls else what})
+
+    def checked(shield_ok: bool = True) -> tuple:
+        calls = ["Shield ✓" if shield_ok else "Shield ✗ blocked"]
+        status = "allowed" if shield_ok else "blocked"
+        if guardian:
+            ms = sum(int(g.get("latency_ms") or 0) for g in guardian)
+            verdicts = {g.get("verdict") for g in guardian}
+            n = f", {len(guardian)} calls" if len(guardian) > 1 else ""
+            if "UNSAFE" in verdicts:
+                calls.append(f"Guardian ✗ blocked ({_secs(ms)}{n})"); status = "blocked"
+            elif "UNAVAILABLE" in verdicts:
+                calls.append(f"Guardian unavailable ({_secs(ms)}{n})"); status = "blocked"
+            else:
+                calls.append(f"Guardian ✓ ({_secs(ms)}{n})")
+        elif skipped:
+            calls.append("Guardian not used here (by policy)")
+        else:
+            calls.append("Guardian ✓ (already checked, same text)")
+        guardian.clear(); skipped.clear()
+        totals["points"] += 1
+        return calls, status
+
+    if question:
+        stages.append({"box": "Input", "status": "info", "calls": [question], "step": "Input", "detail": question})
+    for e in events:
+        t = e.get("type")
+        if _is_guardian(e):
+            guardian.append(e)
+            totals["g_calls"] += 1
+            totals["g_ms"] += int(e.get("latency_ms") or 0)
+        elif t == "GuardianSkipped":
+            skipped.append(e)
+        elif t == "ZeroTrust":
+            if not any(st["box"] == "Zero Trust" for st in stages) and not zero_trust:
+                ok = e.get("allowed")
+                add("Zero Trust", "allowed" if ok else "blocked", "may this caller ask",
+                    [f"Zero Trust {'ALLOW' if ok else 'DENY'}" + ("" if ok else f": {e.get('reason') or ''}")])
+            else:
+                zero_trust.append(e)
+        elif t == "OpenAIRunCheck" and e.get("gate") == "ingress":
+            calls, status = checked()
+            add("Request check", status, "the request text", calls)
+        elif t == "OpenAIAgentStart":
+            zero_trust.clear()
+            add(str(e.get("agent")), "allowed", f"may this caller reach {e.get('agent')}",
+                [f"Zero Trust {e.get('zero_trust')}"])
+        elif t == "LLMRoute":
+            route = e
+        elif t == "LLMCall":
+            totals["m_calls"] += 1
+            totals["m_ms"] += int(e.get("latency_ms") or 0)
+            calls = []
+            if route:
+                calls.append(f"Model Router: '{route.get('task_type')}' → {route.get('model_alias')}")
+            tokens = f", {e.get('tokens_in')} → {e.get('tokens_out')} tokens" if e.get("tokens_in") is not None else ""
+            calls.append(f"{e.get('model')} ({_secs(e.get('latency_ms'))}{tokens})")
+            add("Model", "info", "the model thinks", calls)
+            route = {}
+        elif t == "OpenAIModelReply":
+            if e.get("screened"):
+                calls, status = checked()
+                add("Reply check", status, f"what {e.get('agent')}'s model wrote", calls)
+            else:
+                guardian.clear(); skipped.clear()
+                add("Reply check", "info", "a tool call only", ["no text to check (arguments checked next)"])
+        elif t == "ToolCallScreen":
+            calls, status = checked(bool(e.get("allowed")))
+            if not e.get("allowed"):
+                calls.append(f"refused: {e.get('reason')}")
+            add(f"Tool call: {e.get('tool')}", status, "the arguments, before the tool runs", calls)
+        elif t == "ToolResultScreen":
+            calls, status = checked(bool(e.get("allowed")))
+            if not e.get("allowed"):
+                calls.append(f"withheld: {e.get('reason')}")
+            add(f"Tool result: {e.get('tool')}", status, "what it returned, before the model reads it", calls)
+        elif t == "OpenAIRunCheck" and e.get("gate") == "egress":
+            calls, status = checked()
+            add("Final answer", status, "what the caller receives", calls)
+        elif t == "ShieldChain" and e.get("blocked_by"):
+            guardian.clear(); skipped.clear()
+            add("Blocked", "blocked", f"k9x Shield, {e.get('gate')}", [f"Shield ✗ {e.get('blocked_by')}"])
+        elif t == "OpenAIHandoff":
+            add("Handoff", "info", f"{e.get('agent')} → {e.get('to_agent')}", [f"→ {e.get('to_agent')}"])
+
+    for z in zero_trust:                             # a decision with no agent turn after it: it refused
+        if not z.get("allowed"):
+            add("Blocked", "blocked", "Zero Trust", [f"Zero Trust DENY: {z.get('reason') or ''}"])
+    if guardian:                                     # Guardian ended the run before a check was named
+        calls, _ = checked()
+        add("Blocked", "blocked", "Granite Guardian", calls[1:])
+    if totals["points"]:
+        stages.append({"box": "Totals", "status": "info", "calls": [], "step": "Totals",
+                       "detail": f"{totals['points']} points checked · Guardian {totals['g_calls']} calls, "
+                                 f"{_secs(totals['g_ms'])} · model {totals['m_calls']} calls, {_secs(totals['m_ms'])}"})
+    return stages
 
 
 async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dict[str, Any]:
@@ -91,7 +182,7 @@ async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dic
         tools.OBSERVED.reset(seen_token)
         with _LOCK:
             events = _EVENTS.pop(tid, [])
-    trace = [d for d in (describe(e) for e in events) if d]
+    trace = checks_from_events(events, question)
     return {"question": question, "role": role, "poisoned": poison, "outcome": outcome, "text": text,
             "trace": trace, "sky": _sky(observed) if outcome == "answer" else "default"}
 
