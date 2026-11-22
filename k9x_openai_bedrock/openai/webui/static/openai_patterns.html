@@ -296,8 +296,8 @@ result = <span class="k">await</span> Runner.run(manager_agent, <span class="s">
         <div class="fact"><b>What a specialist sees</b>Only the input the manager writes for it, not the conversation.
           Its answer comes back to the manager as the tool's result.</div>
         <div class="fact"><b>Who answers the user</b>Always the manager. Control never leaves it.</div>
-        <div class="fact"><b>On this site</b>Use case 8: a manager and three translators, as in the guide.<br>
-          <span class="go up">Manager demo · Upcoming</span></div>
+        <div class="fact"><b>In K9-AIF</b>Supported by the OpenAI Agents adapter: list the specialists under <code>agent_tools:</code>
+          in the manager's agent YAML. Each delegation is a governed tool call. No separate demo here.</div>
       </div>
     </div>
   </section>
@@ -354,8 +354,8 @@ result = <span class="k">await</span> Runner.run(triage_agent, <span class="s">"
         <div class="fact"><b>What the new agent sees</b>The whole conversation. It takes over from there, and may hand off again.</div>
         <div class="fact"><b>Who answers the user</b>The agent the conversation ends with. Triage never sees the answer.
           The guide: "optimal when you don't need a single agent maintaining central control or synthesis."</div>
-        <div class="fact"><b>On this site</b>Use case 9: a triage agent and three specialists, as in the guide.<br>
-          <span class="go up">Decentralized demo · Upcoming</span></div>
+        <div class="fact"><b>In K9-AIF</b>Supported by the OpenAI Agents adapter: list the agents under <code>handoffs:</code>
+          in agent YAML; handoffs are governed and capped. Use case 2 can switch handoffs on, to compare.</div>
       </div>
     </div>
   </section>
@@ -427,7 +427,7 @@ decision = check_rules(facts.final_output)                     <span class="c">#
           <tr><td>What a specialist sees</td><td data-p="Single">(one agent)</td><td data-p="Manager">The input the manager writes</td><td data-p="Decentralized">The whole conversation</td><td data-p="Via code">What your code passes it</td></tr>
           <tr><td>Who answers the user</td><td data-p="Single">The agent</td><td data-p="Manager">Always the manager</td><td data-p="Decentralized">The last agent handed to</td><td data-p="Via code">Your code</td></tr>
           <tr><td>Same input, same path?</td><td data-p="Single">Not guaranteed</td><td data-p="Manager">Not guaranteed</td><td data-p="Decentralized">Not guaranteed</td><td data-p="Via code">Yes</td></tr>
-          <tr><td>Demo here</td><td data-p="Single">Weather (live)</td><td data-p="Manager">Translation (upcoming)</td><td data-p="Decentralized">Customer service (upcoming)</td><td data-p="Via code">Accounts payable (live)</td></tr>
+          <tr><td>Demo here</td><td data-p="Single">Weather (live)</td><td data-p="Manager">Supported, no demo</td><td data-p="Decentralized">Weather desk (handoffs opt-in)</td><td data-p="Via code">Accounts payable (live)</td></tr>
         </tbody>
       </table>
     </div>
