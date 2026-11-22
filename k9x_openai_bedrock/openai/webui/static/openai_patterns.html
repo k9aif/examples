@@ -94,7 +94,11 @@
   svg .hand { stroke: var(--model); stroke-width: 1.8; fill: none; stroke-dasharray: 7 5; }
   svg .flow { stroke: var(--sdk); stroke-width: 1.8; fill: none; }
   svg .step { stroke: var(--gate); stroke-width: 2; fill: none; }
+  svg .provider { fill: rgba(196,181,253,.08); stroke: var(--model); stroke-width: 1.4; }
+  svg .tie { stroke: var(--model); stroke-width: 2; fill: none; stroke-dasharray: 1 5; stroke-linecap: round; }
+  svg text.pm { fill: var(--model); font-family: var(--mono); font-size: 12px; }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); padding: 8px 2px 2px; }
+  .legend i.tie { border-top-style: dotted; border-color: var(--model); }
   .legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
 
   .compare { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
@@ -244,7 +248,7 @@ result = <span class="k">await</span> Runner.run(agent, <span class="s">"Weather
     <div class="pattern">
       <div>
         <div class="diagram">
-          <svg viewBox="0 0 760 270" role="img" aria-label="Manager: the request goes to the manager agent; its model calls the Spanish, French and Italian agents as tools; each answer comes back to the manager, which writes one reply.">
+          <svg viewBox="0 0 790 330" role="img" aria-label="Manager: the request goes to the manager agent; its model calls the Spanish, French and Italian agents as tools; each answer comes back to the manager, which writes one reply. The manager and every specialist call their own model through the model provider.">
             <defs>
               <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/></marker>
               <marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/></marker>
@@ -273,8 +277,13 @@ result = <span class="k">await</span> Runner.run(agent, <span class="s">"Weather
             <text class="mono" x="505" y="75" text-anchor="middle">translate_to_spanish</text>
             <text class="mono" x="505" y="161" text-anchor="middle">translate_to_french</text>
             <text class="mono" x="505" y="247" text-anchor="middle">translate_to_italian</text>
+            <!-- every agent calls its own model -->
+            <path class="tie" d="M325 230 V280"/>
+            <path class="tie" d="M750 47 H770 V280 M750 135 H770 M750 223 H770"/>
+            <rect class="provider" x="250" y="280" width="530" height="32" rx="8"/>
+            <text class="pm" x="515" y="301" text-anchor="middle">model provider</text>
           </svg>
-          <div class="legend"><span><i style="border-color:var(--tool)"></i>tool call to a specialist</span><span><i style="border-color:var(--k9)"></i>its answer, back to the manager</span></div>
+          <div class="legend"><span><i style="border-color:var(--tool)"></i>tool call to a specialist</span><span><i style="border-color:var(--k9)"></i>its answer, back to the manager</span><span><i class="tie"></i>the agent's LLM calls, through the model provider</span></div>
         </div>
         <pre class="code"><span class="c"># from the guide (p. 18), shortened</span>
 manager_agent = Agent(
@@ -313,7 +322,7 @@ result = <span class="k">await</span> Runner.run(manager_agent, <span class="s">
     <div class="pattern">
       <div>
         <div class="diagram">
-          <svg viewBox="0 0 760 290" role="img" aria-label="Decentralized: the question goes to the triage agent; its model hands off to one of Issues and Repairs, Sales or Orders; here Orders takes over and answers the person who asked. Triage does not see the answer.">
+          <svg viewBox="0 0 760 340" role="img" aria-label="Decentralized: the question goes to the triage agent; its model hands off to one of Issues and Repairs, Sales or Orders; here Orders takes over and answers the person who asked. Triage does not see the answer. Triage and every specialist call their own model through the model provider.">
             <defs>
               <marker id="d1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/></marker>
               <marker id="d2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/></marker>
@@ -334,10 +343,15 @@ result = <span class="k">await</span> Runner.run(manager_agent, <span class="s">
             <rect class="lead" x="520" y="202" width="170" height="50" rx="10"/><text x="605" y="232" text-anchor="middle">Orders</text>
             <path class="hand" d="M360 150 H440 V227 H516" marker-end="url(#d2)"/>
             <text class="mono" x="432" y="204" text-anchor="end" style="fill:var(--model)">transfer_to_orders</text>
+            <!-- every agent calls its own model -->
+            <path class="tie" d="M295 175 V296"/>
+            <path class="tie" d="M690 43 H715 V296 M690 135 H715 M690 227 H715"/>
+            <rect class="provider" x="230" y="296" width="510" height="32" rx="8"/>
+            <text class="pm" x="485" y="317" text-anchor="middle">model provider</text>
             <path class="back" d="M605 252 V272 H85 V166" marker-end="url(#d3)"/>
-            <text class="m" x="330" y="265" text-anchor="middle" style="fill:var(--k9)">Orders answers the person who asked</text>
+            <text class="m" x="470" y="265" text-anchor="middle" style="fill:var(--k9)">Orders answers the person who asked</text>
           </svg>
-          <div class="legend"><span><i style="border-color:var(--model);border-top-style:dashed"></i>handoff: control moves, one way</span><span><i style="border-color:var(--k9)"></i>the agent holding the conversation answers</span></div>
+          <div class="legend"><span><i style="border-color:var(--model);border-top-style:dashed"></i>handoff: control moves, one way</span><span><i style="border-color:var(--k9)"></i>the agent holding the conversation answers</span><span><i class="tie"></i>the agent's LLM calls, through the model provider</span></div>
         </div>
         <pre class="code"><span class="c"># from the guide (p. 21), shortened</span>
 triage_agent = Agent(
@@ -370,7 +384,7 @@ result = <span class="k">await</span> Runner.run(triage_agent, <span class="s">"
     <div class="pattern">
       <div>
         <div class="diagram">
-          <svg viewBox="0 0 760 230" role="img" aria-label="Orchestrating via code: your code runs step 1, an invoice agent; step 2, a rules check in plain code; step 3, a payment agent; always in that order.">
+          <svg viewBox="0 0 760 290" role="img" aria-label="Orchestrating via code: your code runs step 1, an invoice agent; step 2, a rules check in plain code; step 3, a payment agent; always in that order. The two agents call their model through the model provider; the rules check does not.">
             <defs>
               <marker id="c1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/></marker>
               <marker id="c2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/></marker>
@@ -390,9 +404,13 @@ result = <span class="k">await</span> Runner.run(triage_agent, <span class="s">"
             <rect class="agent" x="560" y="114" width="170" height="70" rx="12"/>
             <text class="g" x="645" y="104" text-anchor="middle">3</text>
             <text x="645" y="144" text-anchor="middle">Payment agent</text><text class="m" x="645" y="164" text-anchor="middle">pays, if allowed</text>
-            <text class="m" x="440" y="215" text-anchor="middle">No model picks the next step. The same input takes the same path.</text>
+            <!-- the agents call a model; the rules check does not -->
+            <path class="tie" d="M225 184 V212 M645 184 V212"/>
+            <rect class="provider" x="130" y="212" width="620" height="32" rx="8"/>
+            <text class="pm" x="440" y="233" text-anchor="middle">model provider</text>
+            <text class="m" x="440" y="274" text-anchor="middle">No model picks the next step. The same input takes the same path.</text>
           </svg>
-          <div class="legend"><span><i style="border-color:var(--gate)"></i>order set by your code</span></div>
+          <div class="legend"><span><i style="border-color:var(--gate)"></i>order set by your code</span><span><i class="tie"></i>the agent's LLM calls, through the model provider</span></div>
         </div>
         <pre class="code"><span class="c"># each agent runs on its own; plain code chains them</span>
 facts = <span class="k">await</span> Runner.run(invoice_agent, invoice_text)          <span class="c"># step 1</span>
