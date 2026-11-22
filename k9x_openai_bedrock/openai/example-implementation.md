@@ -56,9 +56,10 @@ raises and ends the run: K9-AIF failures propagate.
 
 `config/config.yaml`:
 
-- **Model Router.** Two local models can serve the `weather` task. Only `local_tools` (qwen2.5:7b) is
-  marked `tool_calling`, and the agent has tools, so the router's eligibility rule picks it every time.
-  `local_tiny` (llama3.2:1b) is never eligible.
+- **Model Router.** One model per job, by capability: the `weather` task goes to `local_tools`
+  (qwen2.5:7b, fast tool calls), the accounts payable agents' `general` task to `local_reasoning`
+  (qwen3.8:27b, accuracy for amounts and payments). Both are marked `tool_calling`, so an agent with tools
+  is never routed to a model that can't call them.
 - **Shield.** Ingress: `InputSizeCheck`, `PromptInjectionCheck`, `PIIBoundaryCheck`. Egress:
   `SemanticDriftCheck`, `ToolArgumentCheck`, `ExecutionGuardCheck`, `PIIBoundaryCheck`.
   `PIIBoundaryCheck` matches US zip codes; it flags rather than blocks by default, which is what this

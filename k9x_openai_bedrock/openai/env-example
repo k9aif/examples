@@ -6,7 +6,10 @@ OLLAMA_BASE_URL=http://localhost:11434
 
 # The tool-calling model the K9 Model Router uses for every agent here: weather, multi-agent and accounts payable
 # (pull it first: ollama pull qwen2.5:7b).
-WEATHER_MODEL=qwen2.5:7b
+# Models (optional; defaults in config/config.yaml): weather qwen2.5:7b, accounts payable qwen3.8:27b.
+# Comment a line out to use the default.
+# WEATHER_MODEL=qwen2.5:7b
+# AP_MODEL=qwen3.8:27b
 
 # development keeps the Zero Trust identity warning soft; build-run.sh sets production in the container.
 K9_ENV=development

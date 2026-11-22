@@ -6,7 +6,7 @@ app_name: weather_zip_openai
 inference:
   router:
     type: k9_model_router
-    default_model: local_tools
+    default_model: local_reasoning
     persistence:
       enabled: true
       provider: sqlite
@@ -19,22 +19,24 @@ inference:
     backend: ollama
     base_url: "${OLLAMA_BASE_URL:-http://localhost:11434}"
     models:
-      qwen_tools: "${WEATHER_MODEL:-qwen2.5:7b}"
-      tiny_chat: "llama3.2:1b"
+      qwen_tools: "${WEATHER_MODEL:-qwen2.5:7b}"      # weather: quick tool calls
+      reasoning: "${AP_MODEL:-qwen3.8:27b}"           # accounts payable: amounts and payments
 
-  # Two local models can serve the "weather" task. Only one is marked tool_calling,
-  # and the agent has tools, so the router's eligibility rule picks it every time.
+  # One model per job, by capability, not by score. Measured 2026-11-22 on the PowerAI GPU (same code, same
+  # checks): weather on qwen2.5:7b answered every demo case correctly at 0.2-1.3 s per model call; qwen3.8:27b
+  # took 5-9 s for the same answers. Accounts payable keeps the larger model: invoice fields and payments need
+  # accuracy more than speed. No 1B model: too small for reliable tool calls.
   model_catalog:
-    default_model: local_tools
+    default_model: local_reasoning
     models:
       local_tools:
         provider: ollama
         llm_ref: qwen_tools
-        capabilities: [weather, general, tool_calling, on_prem, confidential]
-      local_tiny:
+        capabilities: [weather, tool_calling, on_prem, confidential]
+      local_reasoning:
         provider: ollama
-        llm_ref: tiny_chat
-        capabilities: [weather, general, chat]
+        llm_ref: reasoning
+        capabilities: [general, tool_calling, on_prem, confidential]
 
 security:
   shield:
