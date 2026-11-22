@@ -124,8 +124,9 @@ def checks_from_events(events: List[Dict[str, Any]], question: str = "", running
             add("Request check", status, "the request text", calls)
         elif t == "OpenAIAgentStart":
             zero_trust.clear()
-            add(str(e.get("agent")), "allowed", f"may this caller reach {e.get('agent')}",
-                [f"Zero Trust {e.get('zero_trust')}"])
+            add(str(e.get("agent")), "allowed", f"OpenAI agent; may this caller reach {e.get('agent')}",
+                ["OpenAI agent", f"Zero Trust {e.get('zero_trust')}"])
+            stages[-1]["kind"] = "agent"
         elif t == "LLMRoute":
             route = e
         elif t == "LLMCall":

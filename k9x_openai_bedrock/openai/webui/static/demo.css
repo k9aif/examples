@@ -108,6 +108,9 @@ b { color: #f1f5f9; }
 .fbox.f-running { border-color: var(--gate); box-shadow: 0 0 0 3px rgba(251,191,36,.18); animation: fpulse 1.2s ease-in-out infinite; }
 .fbox.f-running .fnum { background: var(--gate); color: #1f1503; }
 .fbox.f-pending { opacity: .45; border-style: dashed; }
+.fbox.f-agent { border-color: #60a5fa; background: rgba(96,165,250,.08); }
+.fbox.f-agent .fnum { background: #60a5fa; color: #04121c; }
+.fbox.f-agent li:first-child { color: #93c5fd; font-weight: 700; }
 @keyframes fpulse { 50% { box-shadow: 0 0 0 6px rgba(251,191,36,.08); } }
 @media (prefers-reduced-motion: reduce) { .fbox.f-running { animation: none; } }
 @media (max-width: 760px) { .flow { grid-template-columns: 1fr; gap: 22px; } .fbox + .fbox::before { content: "⬇"; left: 50%; top: -19px; transform: translateX(-50%); } }

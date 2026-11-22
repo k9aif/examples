@@ -169,7 +169,7 @@
       <div class="text" id="text"></div>
     </div>
     <div id="trace-wrap" hidden>
-      <h2>What K9-AIF checked</h2>
+      <h2>The flow</h2>
       <div class="flow" id="flow" aria-label="The run, stage by stage, with every check and model call made in each"></div>
       <div class="flow-totals muted" id="flow-totals"></div>
       <details class="flow-detail"><summary>Step-by-step detail</summary>
@@ -471,7 +471,7 @@ document.querySelectorAll("[data-try]").forEach((b) => b.addEventListener("click
 
 
 // The path a weather request normally takes. Drawn first, grey; each box lights up as its stage happens.
-const FLOW_PATH = ["Input", "Zero Trust", "Request check", "Agent", "Model", "Reply check", "Tool call",
+const FLOW_PATH = ["Input", "Zero Trust", "Request check", "OpenAI agent", "Model", "Reply check", "Tool call",
                    "Tool result", "Model", "Reply check", "Final answer"];
 const NAMED = new Set(["Input", "Zero Trust", "Request check", "Model", "Reply check", "Final answer", "Blocked",
                        "Handoff", "Checking", "Working", "Totals"]);
@@ -483,19 +483,21 @@ function renderFlow(el, totalsEl, trace, state) {
   const totals = (trace || []).find((s) => s.box === "Totals");
   const done = stages.filter((s) => s.status !== "running");
   const running = stages.find((s) => s.status === "running");
-  const boxes = done.map((s) => ({ title: s.box, calls: s.box === "Input" ? [] : (s.calls || []), cls: s.status }));
+  const boxes = done.map((s) => ({ title: s.box, calls: s.box === "Input" ? [] : (s.calls || []), cls: s.status,
+                                   agent: s.kind === "agent" }));
   if (running) {
     const next = FLOW_PATH[done.length];                       // name the box by the step it is filling
     const title = NAMED.has(running.box) && !["Checking", "Working"].includes(running.box) ? running.box
-      : (next === "Agent" ? "Agent" : next || running.box);
-    boxes.push({ title, calls: running.calls || [], cls: "running" });
+      : (next || running.box);
+    boxes.push({ title, calls: running.calls || [], cls: "running", agent: next === "OpenAI agent" });
   }
   const left = FLOW_PATH.slice(boxes.length);
-  if (state === "running") left.forEach((t) => boxes.push({ title: t, calls: ["waiting"], cls: "pending" }));
+  if (state === "running") left.forEach((t) => boxes.push({ title: t, calls: ["waiting"], cls: "pending",
+                                                            agent: t === "OpenAI agent" }));
   else if (state !== "answer") left.forEach((t) => boxes.push({ title: t, calls: ["not reached"], cls: "pending" }));
   boxes.forEach((b, i) => {
     const box = document.createElement("div");
-    box.className = `fbox f-${b.cls}`;
+    box.className = `fbox f-${b.cls}` + (b.agent ? " f-agent" : "");
     const head = document.createElement("div"); head.className = "fhead";
     const n = document.createElement("span"); n.className = "fnum"; n.textContent = i + 1;
     const title = document.createElement("b"); title.textContent = b.title;
