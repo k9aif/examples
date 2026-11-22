@@ -470,22 +470,72 @@ document.querySelectorAll("[data-try]").forEach((b) => b.addEventListener("click
 }));
 
 
-function renderFlow(el, totalsEl, trace) {
-  // One box per stage of the run; under each, every check or model call made in it.
+// The path a weather request normally takes. Drawn first, grey; each box lights up as its stage happens.
+const FLOW_PATH = ["Input", "Zero Trust", "Request check", "Agent", "Model", "Reply check", "Tool call",
+                   "Tool result", "Model", "Reply check", "Final answer"];
+const NAMED = new Set(["Input", "Zero Trust", "Request check", "Model", "Reply check", "Final answer", "Blocked",
+                       "Handoff", "Checking", "Working", "Totals"]);
+
+function renderFlow(el, totalsEl, trace, state) {
+  // state: "running" (streaming) | "answer" | "refused" | "error"
   el.innerHTML = ""; totalsEl.textContent = "";
-  const stages = trace.filter((s) => s.box !== "Totals");
-  const totals = trace.find((s) => s.box === "Totals");
-  stages.forEach((s, i) => {
-    if (i) { const a = document.createElement("span"); a.className = "farrow"; a.textContent = "→"; el.appendChild(a); }
+  const stages = (trace || []).filter((s) => s.box !== "Totals");
+  const totals = (trace || []).find((s) => s.box === "Totals");
+  const done = stages.filter((s) => s.status !== "running");
+  const running = stages.find((s) => s.status === "running");
+  const boxes = done.map((s) => ({ title: s.box, calls: s.box === "Input" ? [] : (s.calls || []), cls: s.status }));
+  if (running) {
+    const next = FLOW_PATH[done.length];                       // name the box by the step it is filling
+    const title = NAMED.has(running.box) && !["Checking", "Working"].includes(running.box) ? running.box
+      : (next === "Agent" ? "Agent" : next || running.box);
+    boxes.push({ title, calls: running.calls || [], cls: "running" });
+  }
+  const left = FLOW_PATH.slice(boxes.length);
+  if (state === "running") left.forEach((t) => boxes.push({ title: t, calls: ["waiting"], cls: "pending" }));
+  else if (state !== "answer") left.forEach((t) => boxes.push({ title: t, calls: ["not reached"], cls: "pending" }));
+  boxes.forEach((b, i) => {
     const box = document.createElement("div");
-    box.className = `fbox f-${s.status}`;
-    const title = document.createElement("b"); title.textContent = s.box; box.appendChild(title);
-    const ul = document.createElement("ul");
-    for (const c of s.calls || []) { const li = document.createElement("li"); li.textContent = c; ul.appendChild(li); }
-    box.appendChild(ul);
+    box.className = `fbox f-${b.cls}`;
+    const head = document.createElement("div"); head.className = "fhead";
+    const n = document.createElement("span"); n.className = "fnum"; n.textContent = i + 1;
+    const title = document.createElement("b"); title.textContent = b.title;
+    head.append(n, title); box.appendChild(head);
+    if (b.calls.length) {
+      const ul = document.createElement("ul");
+      for (const c of b.calls) { const li = document.createElement("li"); li.textContent = c; ul.appendChild(li); }
+      box.appendChild(ul);
+    }
     el.appendChild(box);
   });
-  if (totals) totalsEl.textContent = totals.detail;
+  if (totals && state !== "running") totalsEl.textContent = totals.detail;
+}
+
+async function askStream(body, onStages) {
+  // The request streamed as newline-delimited JSON; null when the server has no stream endpoint.
+  const resp = await fetch("/api/weather/stream", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body) });
+  if (resp.status === 404 || resp.status === 405) return null;
+  if (resp.status === 401) { window.location.href = "/login"; return { redirected: true }; }
+  if (!resp.ok) {
+    const r = await resp.json().catch(() => ({}));
+    throw new Error(typeof r.detail === "string" ? r.detail : resp.statusText);
+  }
+  const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = "", result = null;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+      if (!line) continue;
+      const msg = JSON.parse(line);
+      if (msg.type === "stages") onStages(msg.stages);
+      else if (msg.type === "result") result = msg;
+    }
+  }
+  if (!result) throw new Error("The stream ended without a result.");
+  return result;
 }
 
 function renderTrace(el, trace) {
@@ -510,16 +560,25 @@ $("ask").addEventListener("submit", async (ev) => {
   $("go").disabled = true; $("empty").hidden = true; $("result").hidden = true;
   $("trace-wrap").hidden = true; $("loading").hidden = false;
   try {
-    const resp = await fetch("/api/weather", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ zip: $("zip").value, role: $("role").value, poison: $("poison").checked }) });
-    if (resp.status === 401) { window.location.href = "/login"; return; }
-    const r = await resp.json();
-    if (!resp.ok) throw new Error(typeof r.detail === "string" ? r.detail : (r.detail ? JSON.stringify(r.detail) : resp.statusText));
+    const body = { zip: $("zip").value, role: $("role").value, poison: $("poison").checked };
+    $("loading").hidden = true;
+    $("trace-wrap").hidden = false;
+    renderFlow($("flow"), $("flow-totals"), [], "running");
+    let r = await askStream(body, (stages) => renderFlow($("flow"), $("flow-totals"), stages, "running"));
+    if (r && r.redirected) return;
+    if (!r) {                                                  // no stream endpoint: the plain request
+      $("loading").hidden = false;
+      const resp = await fetch("/api/weather", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body) });
+      if (resp.status === 401) { window.location.href = "/login"; return; }
+      r = await resp.json();
+      if (!resp.ok) throw new Error(typeof r.detail === "string" ? r.detail : (r.detail ? JSON.stringify(r.detail) : resp.statusText));
+    }
     $("result").className = "result " + r.outcome;
     $("kind").textContent = { answer: "Answer", refused: "Refused by K9-AIF", error: "Error" }[r.outcome];
     $("text").textContent = r.text;
     $("result").hidden = false;
-    renderFlow($("flow"), $("flow-totals"), r.trace);
+    renderFlow($("flow"), $("flow-totals"), r.trace, r.outcome);
     renderTrace($("trace"), r.trace); renderTrace($("trace-arch"), r.trace);
     $("trace-wrap").hidden = false;
     setSky(r.sky || "default");     // from the weather service's own codes, not the model's words

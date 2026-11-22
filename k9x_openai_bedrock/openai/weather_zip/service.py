@@ -11,9 +11,10 @@ request content between calls (the router is asked with an empty prompt).
 
 from __future__ import annotations
 
+import asyncio
 import threading
 import uuid
-from typing import Any, Dict, List
+from typing import Any, AsyncIterator, Dict, List
 
 from k9_aif_abb.k9_utils.trace_events import register_trace_callback
 
@@ -21,12 +22,21 @@ from . import tools
 
 _LOCK = threading.Lock()
 _EVENTS: Dict[str, List[Dict[str, Any]]] = {}
+_LISTENERS: Dict[str, tuple] = {}            # trace id -> (event loop, asyncio.Queue): live streaming
 
 
 def _collect(event: Dict[str, Any]) -> None:
+    """Keep the event under its request's trace id; wake that request's stream, if any. Events can come
+    from other threads (Guardian's call pool, tool threads), so the wake-up goes through the loop."""
     tid = event.get("trace_id")
-    if tid in _EVENTS:
+    with _LOCK:
+        if tid not in _EVENTS:
+            return
         _EVENTS[tid].append(event)
+        listener = _LISTENERS.get(tid)
+    if listener:
+        loop, queue = listener
+        loop.call_soon_threadsafe(queue.put_nowait, None)
 
 
 register_trace_callback(_collect)
@@ -39,11 +49,15 @@ def _secs(ms: Any) -> str:
         return "? s"
 
 
+def _n(count: int, word: str) -> str:
+    return f"{count} {word}{'' if count == 1 else 's'}"
+
+
 def _is_guardian(e: Dict[str, Any]) -> bool:
     return e.get("type") == "LLMCall" and str(e.get("task_type", "")).startswith("guardian")
 
 
-def checks_from_events(events: List[Dict[str, Any]], question: str = "") -> List[Dict[str, Any]]:
+def checks_from_events(events: List[Dict[str, Any]], question: str = "", running: bool = False) -> List[Dict[str, Any]]:
     """The run as its stages, in order, each with every call made inside it.
 
     A stage is {"box", "status", "step", "detail", "calls": [str]}: ``box`` is its short name in the
@@ -58,6 +72,8 @@ def checks_from_events(events: List[Dict[str, Any]], question: str = "") -> List
     route: Dict[str, Any] = {}
     zero_trust: List[Dict[str, Any]] = []
     totals = {"g_calls": 0, "g_ms": 0, "m_calls": 0, "m_ms": 0, "points": 0}
+    g_models: List[str] = []
+    m_models: List[str] = []
 
     def add(box: str, status: str, what: str, calls: List[str]) -> None:
         stages.append({"box": box, "status": status, "calls": calls,
@@ -90,6 +106,8 @@ def checks_from_events(events: List[Dict[str, Any]], question: str = "") -> List
         t = e.get("type")
         if _is_guardian(e):
             guardian.append(e)
+            if e.get("model") and e.get("model") not in g_models:
+                g_models.append(e.get("model"))
             totals["g_calls"] += 1
             totals["g_ms"] += int(e.get("latency_ms") or 0)
         elif t == "GuardianSkipped":
@@ -113,11 +131,13 @@ def checks_from_events(events: List[Dict[str, Any]], question: str = "") -> List
         elif t == "LLMCall":
             totals["m_calls"] += 1
             totals["m_ms"] += int(e.get("latency_ms") or 0)
-            calls = []
+            if e.get("model") and e.get("model") not in m_models:
+                m_models.append(e.get("model"))
+            calls = [str(e.get("model"))]
             if route:
-                calls.append(f"Model Router: '{route.get('task_type')}' → {route.get('model_alias')}")
-            tokens = f", {e.get('tokens_in')} → {e.get('tokens_out')} tokens" if e.get("tokens_in") is not None else ""
-            calls.append(f"{e.get('model')} ({_secs(e.get('latency_ms'))}{tokens})")
+                calls.append(f"via Model Router ({route.get('model_alias')})")
+            tokens = f" · {e.get('tokens_in')} → {e.get('tokens_out')} tokens" if e.get("tokens_in") is not None else ""
+            calls.append(f"{_secs(e.get('latency_ms'))}{tokens}")
             add("Model", "info", "the model thinks", calls)
             route = {}
         elif t == "OpenAIModelReply":
@@ -146,6 +166,19 @@ def checks_from_events(events: List[Dict[str, Any]], question: str = "") -> List
         elif t == "OpenAIHandoff":
             add("Handoff", "info", f"{e.get('agent')} → {e.get('to_agent')}", [f"→ {e.get('to_agent')}"])
 
+    if running:                                      # the step in progress, while the run streams
+        if route:
+            stages.append({"box": "Model", "status": "running", "step": "Model", "detail": "thinking",
+                           "calls": [str(route.get("model")), f"via Model Router ({route.get('model_alias')})",
+                                     "thinking…"]})
+        elif guardian:
+            ms = sum(int(g.get("latency_ms") or 0) for g in guardian)
+            stages.append({"box": "Checking", "status": "running", "step": "Checking", "detail": "checking",
+                           "calls": ["Shield ✓", f"Guardian checking… ({len(guardian)} done, {_secs(ms)})"]})
+        else:
+            stages.append({"box": "Working", "status": "running", "step": "Working", "detail": "next step",
+                           "calls": ["working…"]})
+        return stages
     for z in zero_trust:                             # a decision with no agent turn after it: it refused
         if not z.get("allowed"):
             add("Blocked", "blocked", "Zero Trust", [f"Zero Trust DENY: {z.get('reason') or ''}"])
@@ -154,19 +187,23 @@ def checks_from_events(events: List[Dict[str, Any]], question: str = "") -> List
         add("Blocked", "blocked", "Granite Guardian", calls[1:])
     if totals["points"]:
         stages.append({"box": "Totals", "status": "info", "calls": [], "step": "Totals",
-                       "detail": f"{totals['points']} points checked · Guardian {totals['g_calls']} calls, "
-                                 f"{_secs(totals['g_ms'])} · model {totals['m_calls']} calls, {_secs(totals['m_ms'])}"})
+                       "detail": f"{_n(totals['points'], 'point')} checked · Guardian ({', '.join(g_models) or 'not used'}) "
+                                 f"{_n(totals['g_calls'], 'call')}, {_secs(totals['g_ms'])} · model ({', '.join(m_models) or 'none'}) "
+                                 f"{_n(totals['m_calls'], 'call')}, {_secs(totals['m_ms'])}"})
     return stages
 
 
-async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dict[str, Any]:
-    """Run one request. Returns question, outcome ("answer" | "refused" | "error"), text, trace."""
+def _start(zip_or_text: str, role: str) -> tuple:
     tid = f"weather-{uuid.uuid4().hex[:12]}"
     question = f"What is the weather in zip code {zip_or_text}?"
     payload = {"message": question, "principal_id": f"demo-{role}", "roles": [role],
                "action_type": "weather.lookup", "trace_id": tid}
     with _LOCK:
         _EVENTS[tid] = []
+    return tid, question, payload
+
+
+async def _run(adapter, tid: str, question: str, payload: Dict[str, Any], role: str, poison: bool) -> Dict[str, Any]:
     token = tools.POISON_NEXT_LOOKUP.set({"armed": poison})   # this request only
     observed: Dict[str, Any] = {}
     seen_token = tools.OBSERVED.set(observed)
@@ -182,9 +219,38 @@ async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dic
         tools.OBSERVED.reset(seen_token)
         with _LOCK:
             events = _EVENTS.pop(tid, [])
-    trace = checks_from_events(events, question)
+            _LISTENERS.pop(tid, None)
     return {"question": question, "role": role, "poisoned": poison, "outcome": outcome, "text": text,
-            "trace": trace, "sky": _sky(observed) if outcome == "answer" else "default"}
+            "trace": checks_from_events(events, question),
+            "sky": _sky(observed) if outcome == "answer" else "default"}
+
+
+async def ask(adapter, zip_or_text: str, role: str, poison: bool = False) -> Dict[str, Any]:
+    """Run one request. Returns question, outcome ("answer" | "refused" | "error"), text, trace."""
+    tid, question, payload = _start(zip_or_text, role)
+    return await _run(adapter, tid, question, payload, role, poison)
+
+
+async def ask_stream(adapter, zip_or_text: str, role: str, poison: bool = False) -> AsyncIterator[Dict[str, Any]]:
+    """The same request, streamed: {"type": "stages", "stages": [...]} each time a check or model call
+    happens (the last stage is the one in progress), then {"type": "result", ...} once."""
+    tid, question, payload = _start(zip_or_text, role)
+    queue: asyncio.Queue = asyncio.Queue()
+    with _LOCK:
+        _LISTENERS[tid] = (asyncio.get_running_loop(), queue)
+    task = asyncio.create_task(_run(adapter, tid, question, payload, role, poison))
+    yield {"type": "stages", "stages": checks_from_events([], question, running=True)}
+    while not task.done():
+        waiter = asyncio.create_task(queue.get())
+        await asyncio.wait({task, waiter}, return_when=asyncio.FIRST_COMPLETED)
+        waiter.cancel()
+        while not queue.empty():                  # several events at once: one update
+            queue.get_nowait()
+        with _LOCK:
+            events = list(_EVENTS.get(tid, []))
+        if not task.done():
+            yield {"type": "stages", "stages": checks_from_events(events, question, running=True)}
+    yield {"type": "result", **task.result()}
 
 
 def _sky(observed: Dict[str, Any]) -> str:

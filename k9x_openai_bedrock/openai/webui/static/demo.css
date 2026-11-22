@@ -90,16 +90,27 @@ b { color: #f1f5f9; }
   ol.trace li { grid-template-columns: 22px 1fr; } ol.trace .detail { grid-column: 2; } }
 @media (prefers-reduced-motion: reduce) { body { transition: none; } }
 [hidden] { display: none !important; }
-/* the run as a flow of stages, each with the checks and model calls made in it */
-.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px 4px; }
-.fbox { background: var(--panel-2); border: 1px solid var(--line); border-top: 3px solid #64748b; border-radius: 10px;
-  padding: 8px 10px; min-width: 128px; max-width: 210px; font-size: 12px; }
-.fbox b { display: block; font-size: 13px; margin-bottom: 4px; color: var(--ink); }
-.fbox ul { list-style: none; margin: 0; padding: 0; color: var(--muted); font-family: var(--mono); font-size: 11.5px; line-height: 1.5; }
-.fbox.f-allowed { border-top-color: var(--ok); }
-.fbox.f-blocked { border-top-color: var(--bad); background: rgba(248,113,113,.08); }
-.fbox.f-blocked ul { color: #fecaca; }
-.farrow { align-self: center; color: #3b4a68; font-size: 16px; }
+/* the run as a flow of stages: the usual path drawn first, each box lit as its stage happens */
+.flow { display: grid; grid-template-columns: repeat(auto-fill, 172px); gap: 16px 34px; padding-left: 4px; }
+.fbox { position: relative; background: var(--panel-2); border: 1.5px solid #3b4a68; border-radius: 10px;
+  padding: 9px 11px 10px; font-size: 12px; min-height: 74px; transition: border-color .25s, background .25s, opacity .25s; }
+.fbox + .fbox::before { content: "➜"; position: absolute; left: -28px; top: 50%; transform: translateY(-50%);
+  color: #7c8aa5; font-size: 17px; line-height: 1; }
+.fhead { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.fnum { flex: none; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 10.5px var(--mono); background: #1f2c46; color: var(--muted); }
+.fbox b { font-size: 13px; color: var(--ink); }
+.fbox ul { list-style: none; margin: 0; padding: 0; color: var(--muted); font-family: var(--mono); font-size: 11.3px; line-height: 1.5; }
+.fbox.f-allowed { border-color: var(--ok); } .fbox.f-allowed .fnum { background: var(--ok); color: #04121c; }
+.fbox.f-info { border-color: #64748b; }
+.fbox.f-blocked { border-color: var(--bad); background: rgba(248,113,113,.08); }
+.fbox.f-blocked .fnum { background: var(--bad); color: #1f0505; } .fbox.f-blocked ul { color: #fecaca; }
+.fbox.f-running { border-color: var(--gate); box-shadow: 0 0 0 3px rgba(251,191,36,.18); animation: fpulse 1.2s ease-in-out infinite; }
+.fbox.f-running .fnum { background: var(--gate); color: #1f1503; }
+.fbox.f-pending { opacity: .45; border-style: dashed; }
+@keyframes fpulse { 50% { box-shadow: 0 0 0 6px rgba(251,191,36,.08); } }
+@media (prefers-reduced-motion: reduce) { .fbox.f-running { animation: none; } }
+@media (max-width: 760px) { .flow { grid-template-columns: 1fr; gap: 22px; } .fbox + .fbox::before { content: "⬇"; left: 50%; top: -19px; transform: translateX(-50%); } }
 .flow-totals { margin: 10px 0 6px; font-size: 12.5px; }
 .flow-detail summary { cursor: pointer; color: var(--muted); font-size: 12.5px; margin: 6px 0; }
 

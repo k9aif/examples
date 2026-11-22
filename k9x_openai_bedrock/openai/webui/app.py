@@ -33,6 +33,7 @@ import asyncio
 import hashlib
 import logging
 import hmac
+import json
 import os
 import secrets
 import time
@@ -42,13 +43,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from k9_aif_abb.k9_utils.config_loader import load_yaml
 from weather_zip.app import AGENTS_DIR, CONFIG_PATH, ROLE_POLICY, build_adapter
-from weather_zip.service import ask
+from weather_zip.service import ask, ask_stream
 
 STATIC = Path(__file__).resolve().parent / "static"
 STATE: dict = {}
@@ -267,6 +268,29 @@ async def weather(req: WeatherRequest, request: Request):
         _ONE_AT_A_TIME.release()
     # One visitor's answer must never be served to another from a browser or CDN cache.
     return JSONResponse(result, headers={"Cache-Control": "no-store, private"})
+
+
+@app.post("/api/weather/stream")
+async def weather_stream(req: WeatherRequest, request: Request):
+    """The same request as /api/weather, streamed as newline-delimited JSON: the stages so far after each check
+    or model call, then the result. Same session, limits and one-request-at-a-time slot."""
+    sid = _require_session(request)
+    _rate_limit(_client(request))
+    _rate_limit("session:" + sid)
+    try:
+        await asyncio.wait_for(_ONE_AT_A_TIME.acquire(), timeout=90)
+    except asyncio.TimeoutError:
+        raise HTTPException(503, "The model server is busy. Please try again in a minute.")
+
+    async def lines():
+        try:
+            async for update in ask_stream(STATE["adapter"], req.zip.strip(), req.role, req.poison):
+                yield json.dumps(update) + "\n"
+        finally:
+            _ONE_AT_A_TIME.release()
+
+    return StreamingResponse(lines(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-store, private", "X-Accel-Buffering": "no"})
 
 
 def _model_server_reachable(timeout: float = 4) -> bool:
