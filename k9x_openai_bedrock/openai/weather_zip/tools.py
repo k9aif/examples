@@ -3,10 +3,10 @@
 The two tools the WeatherAgent may call. Both are deterministic HTTP lookups against free
 public services that need no API key:
 
-- lookup_zip:      api.zippopotam.us   US zip code -> place, state, latitude, longitude
-- current_weather: api.open-meteo.com  US zip code -> place and current conditions
+- lookup_zip:      api.zippopotam.us   US ZIP code -> place, state, latitude, longitude
+- current_weather: api.open-meteo.com  US ZIP code -> place and current conditions
 
-current_weather takes the zip code, not coordinates, and looks the coordinates up itself.
+current_weather takes the ZIP code, not coordinates, and looks the coordinates up itself.
 A tool never runs on a value the model supplies when the system of record has it: if a
 lookup result is withheld, the model can't fill the gap with coordinates from memory.
 
@@ -65,12 +65,12 @@ def _get_json(url: str) -> Dict[str, Any]:
 async def _resolve_zip(zip_code: str) -> Dict[str, Any]:
     """The zip record from the system of record, or {"error": ...} for a bad or unknown zip."""
     if not _ZIP.match(zip_code):
-        return {"error": f"'{zip_code}' is not a 5-digit US zip code"}
+        return {"error": f"'{zip_code}' is not a 5-digit US ZIP code"}
     try:
         data = await asyncio.to_thread(_get_json, f"https://api.zippopotam.us/us/{zip_code}")
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            return {"error": f"zip code {zip_code} was not found"}
+            return {"error": f"ZIP code {zip_code} was not found"}
         raise
     place = data["places"][0]
     return {"zip_code": zip_code, "place": place["place name"], "state": place["state abbreviation"],
@@ -103,13 +103,13 @@ async def current_weather(args: Dict[str, Any]) -> Dict[str, Any]:
 CAPABILITIES = [
     ToolCapability(
         name="lookup_zip",
-        description="Look up a 5-digit US zip code. Returns place, state, latitude and longitude.",
+        description="Look up a 5-digit US ZIP code. Returns place, state, latitude and longitude.",
         input_schema={"type": "object", "properties": {"zip_code": {"type": "string"}},
                       "required": ["zip_code"], "additionalProperties": False},
         handler=lookup_zip),
     ToolCapability(
         name="current_weather",
-        description="Current weather (Fahrenheit, mph) for a 5-digit US zip code, with its place name.",
+        description="Current weather (Fahrenheit, mph) for a 5-digit US ZIP code, with its place name.",
         input_schema={"type": "object", "properties": {"zip_code": {"type": "string"}},
                       "required": ["zip_code"], "additionalProperties": False},
         handler=current_weather),

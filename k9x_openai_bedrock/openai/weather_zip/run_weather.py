@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Ask for the weather at a US zip code and show what K9-AIF checked along the way.
+Ask for the weather at a US ZIP code and show what K9-AIF checked along the way.
 
     python -m weather_zip.run_weather 30301
     python -m weather_zip.run_weather 30301 --role guest              # Zero Trust denies
@@ -48,7 +48,7 @@ async def _main(args) -> None:
 
 def main(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("zip", nargs="?", help="a US zip code (or any text, to try Shield)")
+    parser.add_argument("zip", nargs="?", help="a US ZIP code (or any text, to try Shield)")
     parser.add_argument("--role", default="customer", choices=["customer", "staff", "guest"])
     parser.add_argument("--poison", action="store_true", help="plant an injected instruction in the upstream response")
     parser.add_argument("--demo", action="store_true")
@@ -56,7 +56,7 @@ def main(argv: List[str]) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO if args.verbose else logging.ERROR, format="%(name)s: %(message)s")
     if not args.demo and not args.zip:
-        parser.error("give a zip code or --demo")
+        parser.error("give a ZIP code or --demo")
     asyncio.run(_main(args))
     return 0
 

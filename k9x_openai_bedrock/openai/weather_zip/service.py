@@ -196,7 +196,7 @@ def checks_from_events(events: List[Dict[str, Any]], question: str = "", running
 
 def _start(zip_or_text: str, role: str) -> tuple:
     tid = f"weather-{uuid.uuid4().hex[:12]}"
-    question = f"What is the weather in zip code {zip_or_text}?"
+    question = f"What is the weather in ZIP code {zip_or_text}?"
     payload = {"message": question, "principal_id": f"demo-{role}", "roles": [role],
                "action_type": "weather.lookup", "trace_id": tid}
     with _LOCK:
