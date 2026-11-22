@@ -12,6 +12,17 @@
     --bad: #f87171; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
+  .sdkcode { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 26px; }
+  .sdkcode > * { min-width: 0; }
+  .sdkcode h3 { margin: 0 0 4px; }
+  @media (max-width: 900px) { .sdkcode { grid-template-columns: minmax(0, 1fr); } }
+  pre.code { margin: 10px 0 0; background: #0b1322; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; overflow-x: auto;
+             font: 12.8px/1.7 var(--mono); color: var(--sdk); }
+  pre.code .c { color: #64748b; } pre.code .k { color: var(--model); } pre.code .s { color: #a7f3d0; } pre.code .h { color: var(--tool); }
+  .facts { display: grid; gap: 10px; }
+  .fact { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 14.5px; }
+  .fact b { display: block; font: 700 11.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .fact code { font-family: var(--mono); font-size: 12.5px; }
   body { margin: 0; color: var(--text); font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     background: radial-gradient(70rem 26rem at 50% -6%, rgba(52,211,153,.12), transparent 60%), var(--bg); }
   a { color: var(--k9); }
@@ -169,7 +180,7 @@
     <h1>Guardrails and Zero Trust</h1>
     <p>The OpenAI Agents SDK has guardrails, and OpenAI's guide explains how to layer them. This page takes the guide
       item by item and shows what K9-AIF puts in each place, and what is switched on in the demos on this site.</p>
-    <p class="src">Source: OpenAI, <i>A practical guide to building agents</i>, pp. 24–31 (guardrails, human intervention).</p>
+    <p class="src">Source: OpenAI, <a href="https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf" target="_blank" rel="noopener"><i>A practical guide to building agents</i></a>, pp. 24–31 (guardrails, human intervention).</p>
     <div class="gist">
       <div><span class="kind sdkk">OpenAI Agents SDK</span><b>Where checks run</b>Input, output and tool guardrails: hooks you fill with your own functions or agents.</div>
       <div><span class="kind gd">OpenAI's guide</span><b>Which checks to write</b>Seven guardrail types, layered, "coupled with" authentication and authorization.</div>
@@ -249,6 +260,49 @@
           <rect class="k9" x="28" y="218" width="246" height="54" rx="10"/><text x="151" y="241" text-anchor="middle">each agent's reply</text><text class="m" x="151" y="259" text-anchor="middle">Shield and Guardian, every agent</text>
           <rect class="k9" x="286" y="218" width="246" height="54" rx="10"/><text x="409" y="241" text-anchor="middle">the final answer</text><text class="m" x="409" y="259" text-anchor="middle">Shield and Guardian</text>
         </svg>
+      </div>
+    </div>
+    <div class="sdkcode">
+      <div>
+        <h3>The same idea in SDK code</h3>
+        <pre class="code"><span class="c"># from the guide (pp. 28–29), shortened; names as in today's SDK</span>
+<span class="k">class</span> ChurnDetectionOutput(BaseModel):
+    is_churn_risk: bool
+    reasoning: str
+
+churn_detection_agent = Agent(
+    name=<span class="s">"Churn Detection Agent"</span>,
+    instructions=<span class="s">"Identify if the user message indicates a potential customer churn risk."</span>,
+    output_type=ChurnDetectionOutput,
+)
+
+<span class="h">@input_guardrail</span>
+<span class="k">async def</span> churn_detection_tripwire(ctx, agent, input):
+    result = <span class="k">await</span> Runner.run(churn_detection_agent, input, context=ctx.context)
+    <span class="k">return</span> GuardrailFunctionOutput(
+        output_info=result.final_output,
+        tripwire_triggered=result.final_output.is_churn_risk,
+    )
+
+customer_support_agent = Agent(
+    name=<span class="s">"Customer support agent"</span>,
+    instructions=<span class="s">"You are a customer support agent. You help customers with their questions."</span>,
+    input_guardrails=[churn_detection_tripwire],
+)
+
+<span class="k">try</span>:
+    <span class="k">await</span> Runner.run(customer_support_agent, <span class="s">"I think I might cancel my subscription"</span>)
+<span class="k">except</span> InputGuardrailTripwireTriggered:
+    print(<span class="s">"Churn detection guardrail tripped"</span>)</pre>
+      </div>
+      <div class="facts">
+        <div class="fact"><b>The check is an agent</b>The guardrail runs a small agent of its own, with a typed
+          answer (<code>is_churn_risk</code>, <code>reasoning</code>). An LLM check, in the guide's terms.</div>
+        <div class="fact"><b>The tripwire</b>When the check returns <code>tripwire_triggered=True</code>, the run stops
+          and raises <code>InputGuardrailTripwireTriggered</code>. Your code catches it and decides what the user sees.</div>
+        <div class="fact"><b>Optimistic execution</b><code>@input_guardrail</code> runs beside the agent by default
+          (<code>run_in_parallel=True</code>): the flow on the left above. Set it to <code>False</code> to make the agent wait.</div>
+        <div class="fact"><b>Output</b><code>@output_guardrail</code> works the same way on the final answer.</div>
       </div>
     </div>
   </section>
