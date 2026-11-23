@@ -36,6 +36,8 @@ from k9_aif_abb.k9_squad.squad_loader import SquadLoader
 from k9_aif_abb.k9_storage.paused_run_store import PausedRunStore
 from k9_aif_abb.k9_storage.routing_state_store import RoutingStateStore
 
+from weather_zip.service import open_trace, take_trace
+
 from .orchestrator import APOrchestrator
 from .tools import CAPABILITIES
 
@@ -158,7 +160,9 @@ class APRuntime:
                                                      f"{IN_TOPIC}")],
                              "created": time.time()}
         self.runs[run_id]["guardian"] = guardian
-        self.router.route({"event_type": EVENT_TYPE, "run_id": run_id, "prompt": text, "guardian_off": not guardian,
+        # trace_id: the framework tags every model call of this run with it, so the page can name the models used
+        self.router.route({"event_type": EVENT_TYPE, "run_id": run_id, "trace_id": run_id, "prompt": text,
+                           "guardian_off": not guardian,
                            "principal_id": owner, "roles": roles, "action_type": "accounts_payable.invoice"})
         return run_id
 
@@ -176,18 +180,53 @@ class APRuntime:
                                                  f"(reply on hil.replies.{HIL_QUEUE})"))
                 run["events"].append(self._event("Router", "the paused flow claimed once and routed back to "
                                                  "the orchestrator"))
+        open_trace(run_id)     # keep this run's model calls (LLMCall trace events) for the page
         try:
             out = await asyncio.to_thread(self.orchestrator.execute_flow, payload)
         except PermissionError as exc:          # stopped by K9-AIF: a recorded outcome, not a delivery failure to retry
+            calls = take_trace(run_id)
             if run is not None:
+                self._keep_model_calls(run, calls)
                 self._record_blocked(run, str(exc))
             return
         except Exception as exc:                                  # recorded for the page, then raised (delivery)
+            take_trace(run_id)
             if run is not None:
                 run["status"], run["error"] = "error", f"{type(exc).__name__}: {exc}"
             raise
+        calls = take_trace(run_id)
         if run is not None:
+            self._keep_model_calls(run, calls)
             self._record(run, out, payload)
+
+    @staticmethod
+    def _keep_model_calls(run: Dict[str, Any], events: List[Dict[str, Any]]) -> None:
+        """Every model call of the run (LLMCall trace events from the framework), by who made it: an OpenAI agent, or
+        Granite Guardian. Kept across a pause and its resume."""
+        calls = run.setdefault("model_calls", {})
+        for e in events:
+            if e.get("type") != "LLMCall":
+                continue
+            who = "Granite Guardian" if str(e.get("task_type", "")).startswith("guardian") else str(e.get("agent") or "?")
+            c = calls.setdefault(who, {"model": e.get("model"), "calls": 0, "ms": 0})
+            c["calls"] += 1
+            c["ms"] += int(e.get("latency_ms") or 0)
+
+    @staticmethod
+    def _model(run: Dict[str, Any], who: str) -> str:
+        """" (qwen3.8:27b, 2 calls, 7.4 s)" for the page's step line; empty when that agent made no model call."""
+        c = (run.get("model_calls") or {}).get(who)
+        if not c:
+            return ""
+        n = c["calls"]
+        return f" ({c['model']}, {n} call{'' if n == 1 else 's'}, {c['ms'] / 1000:.1f} s)"
+
+    def _guardian_line(self, run: Dict[str, Any]) -> None:
+        c = (run.get("model_calls") or {}).get("Granite Guardian")
+        if c and not run.get("guardian_line"):
+            run["guardian_line"] = True
+            run["events"].append(self._event("Granite Guardian", f"model check on the invoice and each step"
+                                             f"{self._model(run, 'Granite Guardian')}"))
 
     def _record_blocked(self, run: Dict[str, Any], reason: str) -> None:
         """Where K9-AIF stopped a bad invoice, from the refusal itself: Zero Trust at the orchestrator (before any
@@ -227,7 +266,8 @@ class APRuntime:
         fields = run.get("invoice_fields") or {}
         if isinstance(fields, dict) and fields:
             run["events"].append(self._event("InvoiceAgent (OpenAI)", f"read {fields.get('vendor')} · "
-                                             f"{fields.get('invoice_id')} · ${float(fields.get('amount') or 0):,.2f}"))
+                                             f"{fields.get('invoice_id')} · ${float(fields.get('amount') or 0):,.2f}"
+                                             f"{self._model(run, 'InvoiceAgent')}"))
         decision = run.get("decision") or {}
         if decision:
             run["events"].append(self._event("K9X Rules Engine", f"{decision.get('rule')}: {decision.get('decision')}"
@@ -243,7 +283,9 @@ class APRuntime:
             self._steps_before_payment(run, out)
             calls = ", ".join(str(c.get("tool")) for c in out.get("paused_calls") or []) or "pay_invoice"
             run["events"].append(self._event("PaymentAgent (OpenAI)", f"wants to call {calls}: the OpenAI SDK paused "
-                                             "the run (needs_approval), saved in PausedRunStore"))
+                                             f"the run (needs_approval), saved in PausedRunStore"
+                                             f"{self._model(run, 'PaymentAgent')}"))
+            self._guardian_line(run)
             run["events"].append(self._event("K9X HIL", f"task published on hil.requests.{HIL_QUEUE}; waiting for "
                                              "a person"))
             return
@@ -262,11 +304,14 @@ class APRuntime:
                                              "are kept, not run again"))
             run["events"].append(self._event("PaymentAgent (OpenAI)", (
                 "the person rejected the call: pay_invoice did not run" if rejected_by_person else
-                "the person approved the call: the same OpenAI run continued and pay_invoice ran")))
+                "the person approved the call: the same OpenAI run continued and pay_invoice ran")
+                + self._model(run, "PaymentAgent")))
         else:
             self._steps_before_payment(run, out)
             run["events"].append(self._event("PaymentAgent (OpenAI)", "skipped: the rules rejected the invoice"
-                                             if rejected_by_rules else "pay_invoice ran (within the auto-pay limit)"))
+                                             if rejected_by_rules else "pay_invoice ran (within the auto-pay limit)"
+                                             + self._model(run, "PaymentAgent")))
+        self._guardian_line(run)
         run["status"] = "rejected" if (rejected_by_rules or rejected_by_person) else "completed"
         run["events"].append(self._event("Orchestrator", "done: not paid (rules)" if rejected_by_rules
                                          else "done: not paid (person)" if rejected_by_person

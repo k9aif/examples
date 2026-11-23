@@ -42,6 +42,18 @@ def _collect(event: Dict[str, Any]) -> None:
 register_trace_callback(_collect)
 
 
+def open_trace(tid: str) -> None:
+    """Start keeping the trace events of one run (the site has one trace callback; accounts payable uses it too)."""
+    with _LOCK:
+        _EVENTS.setdefault(tid, [])
+
+
+def take_trace(tid: str) -> List[Dict[str, Any]]:
+    """The events kept for one run so far, and stop keeping them."""
+    with _LOCK:
+        return _EVENTS.pop(tid, [])
+
+
 def _secs(ms: Any) -> str:
     try:
         return f"{int(ms) / 1000:.1f} s"

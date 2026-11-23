@@ -24,9 +24,6 @@ PORT=8003
 # OPENAI_GUARDIAN_ENABLED=true
 # GUARDIAN_MODEL=granite4.1-guardian:8b
 
-# Shown next to the model on the signed-in pages (e.g. the GPU host's name). Optional.
-# MODEL_HOST_LABEL=
-
 # Requests a minute per visitor on the page (public hosting).
 WEATHER_RATE_PER_MIN=6
 
