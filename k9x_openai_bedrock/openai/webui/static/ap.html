@@ -52,17 +52,18 @@
     background: transparent; color: var(--bad); cursor: pointer; }
   button.reject:disabled, button.primary:disabled { opacity: .55; cursor: not-allowed; }
   tr.fired td { background: rgba(251,191,36,.12); } tr.fired td:first-child { box-shadow: inset 4px 0 0 var(--gate); }
-  .flow { display: grid; gap: 6px; margin-top: 10px; }
-  .fl { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: start; border: 1px solid var(--line);
-    border-radius: 10px; padding: 9px 12px; background: var(--panel-2); font-size: 13.5px; }
-  .fl b { color: var(--ink); } .fl.k9 { border-left: 4px solid var(--ok); } .fl.sdk { border-left: 4px solid #60a5fa; }
-  .fl.bus { border-left: 4px solid #a78bfa; } .fl.hil { border-left: 4px solid var(--gate); } .fl.rules { border-left: 4px solid #22d3ee; }
-  .fl .who { font: 700 11.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
+  .aflow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 26px; margin-top: 10px; }
+  .abox { position: relative; border: 1px solid #3b4a68; border-radius: 6px; background: var(--panel-2);
+    padding: 8px 10px; font-size: 12px; line-height: 1.4; color: var(--muted); }
+  .abox b { display: block; color: var(--ink); font-size: 12.5px; margin-bottom: 2px; }
+  .abox + .abox::before { content: "→"; position: absolute; left: -20px; top: 50%; transform: translateY(-50%); color: #7c8aa5; }
+  .abox:nth-child(5n+1)::before { content: none; }
   @media (max-width: 760px) { nav { flex-wrap: wrap; } nav button { border-radius: 10px; padding: 7px 12px; }
-    .ap-pick, .ap-grid > *, .hil-pane, .flow { min-width: 0; } .ap-pick button { min-width: 0; overflow-wrap: anywhere; }
+    .ap-pick, .ap-grid > *, .hil-pane, .aflow { min-width: 0; } .ap-pick button { min-width: 0; overflow-wrap: anywhere; }
     .ap-pick { grid-template-columns: 1fr 1fr; }
     #hil-task dl { grid-template-columns: 1fr !important; } #hil-task dt { margin-top: 6px; } .ap-grid { grid-template-columns: 1fr; }
-    .fl { grid-template-columns: 1fr; } }
+    .aflow { grid-template-columns: 1fr; gap: 20px; }
+    .abox + .abox::before, .abox:nth-child(5n+1)::before { content: "↓"; left: 50%; top: -17px; transform: translateX(-50%); } }
   .hiflow-wrap { border: 1px solid var(--line); border-radius: 12px; background: #0b1322; padding: 10px; overflow-x: auto; }
   .hiflow { width: 100%; min-width: 640px; display: block; }
   .prodnote { font-size: 13px; border: 1px dashed var(--gate); border-radius: 9px; padding: 8px 12px; margin: 6px 0 12px; color: #fde68a; background: rgba(251,191,36,.06); }
@@ -375,18 +376,19 @@
 </svg>
     </div>
     <h2>Architecture: how the pieces talk</h2>
-    <div class="flow">
-      <div class="fl k9"><span class="who">K9-AIF Router</span><span><b>K9EventRouter</b> routes <code>event_type: openai.ap.invoice</code> to Kafka <code>openai.ap.in</code> (routing table in <code>config.yaml</code>).</span></div>
-      <div class="fl k9"><span class="who">Orchestrator</span><span><b>APOrchestrator</b> applies Zero Trust and runs the <code>ap_invoice</code> squad. It knows only the squad (K9-DEC-002).</span></div>
-      <div class="fl sdk"><span class="who">Step 1 · OpenAI</span><span><b>InvoiceAgent</b> (<code>K9OpenAIAgent</code>): reads vendor, invoice and amount as structured output. Governed by Shield like every agent.</span></div>
-      <div class="fl rules"><span class="who">Step 2 · Rules</span><span><b>APRulesAgent</b> (<code>K9RulesAgent</code> + <code>GoRulesAdapter</code>): looks up the facts in the records and asks the <b>K9X Rules Engine</b>. Decision: auto pay, needs approval, or reject.</span></div>
-      <div class="fl sdk"><span class="who">Step 3 · OpenAI</span><span><b>PaymentAgent</b> (<code>K9OpenAIAgent</code>) calls <code>pay_invoice</code>. Its <code>needs_approval_when</code> reads the rules step's decision, so the OpenAI SDK pauses the run only when the rules said so. Skipped on reject.</span></div>
-      <div class="fl k9"><span class="who">Pause</span><span><b>OpenAIHILAdapter</b> (<code>BaseHILAdapter</code>) saves the SDK's run state in <code>PausedRunStore</code> (PostgreSQL schema <code>openai</code>) and raises <code>RequiresHIL</code>. The orchestrator hands it to <b>BaseHILOrchestrator</b>.</span></div>
-      <div class="fl bus"><span class="who">Kafka (Redpanda)</span><span><code>hil.requests.openai-ap-payments</code> on the enterprise Redpanda (Kafka API, in a Podman container), shared by every K9X application, each on its own topics.</span></div>
-      <div class="fl hil"><span class="who">K9X HIL</span><span>A task in <b>OpenAI Demo Application → Invoice Approvals</b>. A person approves or rejects (here, or at hil.k9x.ai).</span></div>
-      <div class="fl bus"><span class="who">Kafka (Redpanda)</span><span><code>hil.replies.openai-ap-payments</code> carries the decision, keyed by <code>correlation_id</code>.</span></div>
-      <div class="fl k9"><span class="who">Resume</span><span>The Router's <code>listen_for_hil_replies</code> claims the pending flow once and re-routes it. The squad skips steps 1 and 2; PaymentAgent restores the same OpenAI run, approves or rejects the waiting call, and finishes.</span></div>
+    <div class="aflow">
+      <div class="abox"><b>K9-AIF Router</b><code>K9EventRouter</code> → Kafka <code>openai.ap.in</code></div>
+      <div class="abox"><b>Orchestrator</b><code>APOrchestrator</code> runs the <code>ap_invoice</code> squad</div>
+      <div class="abox"><b>1 · InvoiceAgent</b>OpenAI reads vendor, invoice, amount</div>
+      <div class="abox"><b>2 · APRulesAgent</b>K9X Rules Engine: pay, approve or reject</div>
+      <div class="abox"><b>3 · PaymentAgent</b>OpenAI calls <code>pay_invoice</code>; SDK pauses if rules say so</div>
+      <div class="abox"><b>Pause</b><code>OpenAIHILAdapter</code> saves the run state</div>
+      <div class="abox"><b>Kafka</b><code>hil.requests.openai-ap-payments</code></div>
+      <div class="abox"><b>K9X HIL</b>A person approves or rejects</div>
+      <div class="abox"><b>Kafka</b><code>hil.replies.openai-ap-payments</code></div>
+      <div class="abox"><b>Resume</b>Router re-routes; the same OpenAI run finishes</div>
     </div>
+    <p class="muted" style="font-size:13px;margin:10px 0 0">K9-AIF governs every agent (Shield). The paused run is kept in <code>PausedRunStore</code> (PostgreSQL) and resumed once, keyed by <code>correlation_id</code>.</p>
     <h3 style="font-size:14px;margin:26px 0 8px">The sequence</h3>
     <p class="muted" style="font-size:13.5px;margin:0 0 10px">The sequence: the run, the pause as a K9X HIL task, and the
       resume of the same OpenAI run. Click to open it full size.</p>
